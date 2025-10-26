@@ -1,12 +1,8 @@
-import { gemini_cli_resp_to_gemini_resp, new_inner, TargetType } from "../pkg/converter_wasm";
+import { gemini_cli_resp_to_gemini_resp, new_inner, TargetType, gemini_cli_stream_wrapper_convert } from "../pkg/converter_wasm";
 
 const responseConvert = (wrapper, sourceType, targetType) => {
-    let responseWrapper = {
-        chunk: wrapper,
-        inner: inner,
-    };
     if (sourceType === TargetType.GeminiCli) {
-        return gemini_cli_stream_wrapper_convert(responseWrapper, targetType);
+        return gemini_cli_stream_wrapper_convert(wrapper, targetType);
     }
 }
 
@@ -35,6 +31,7 @@ export const StreamEvent = async (stream, response, sourceType, targetType) => {
                     inner = streams_wrapper.inner;
                     let chunks = streams_wrapper.chunks;
                     for (const chunk of chunks) {
+                        console.log(chunk);
                         stream.writeSSE({
                             event: chunk.type,
                             data: JSON.stringify(chunk),
@@ -56,6 +53,7 @@ export const StreamEvent = async (stream, response, sourceType, targetType) => {
             inner = streams_wrapper.inner;
             let chunks = streams_wrapper.chunks;
             for (const chunk of chunks) {
+                console.log(chunk);
                 stream.writeSSE({
                     event: chunk.type,
                     data: JSON.stringify(chunk),

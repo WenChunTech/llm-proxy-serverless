@@ -24,7 +24,7 @@ app.post("/v1beta/models/:modelName:streamGenerateContent", async (c) => {
     const body = await c.req.json();
     body.model = model;
     const provider = getProvider(model);
-    await provider.execute(stream, body, TargetType.Gemini, TargetType.Gemini);
+    await provider.execute(c.env, stream, body, TargetType.Gemini, TargetType.Gemini);
   });
 });
 
@@ -33,7 +33,7 @@ app.post("/v1/messages", (c) => {
     const body = await c.req.json();
     const model = body.model;
     const provider = getProvider(model);
-    await provider.execute(stream, body, TargetType.Claude, TargetType.Claude);
+    await provider.execute(c.env, stream, body, TargetType.Claude, TargetType.Claude);
   });
 });
 

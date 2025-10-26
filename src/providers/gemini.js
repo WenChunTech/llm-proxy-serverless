@@ -19,10 +19,8 @@ export class GeminiProvider {
         convertedRequest.project = this.project;
         const token = await getAccessToken(env);
         const response = await fetchWithRetry(fetchGeminiCLiResponse, { token, data: convertedRequest });
-
         if (!response.ok) {
             console.error("Error fetching from provider:", await response.text());
-            // Handle error appropriately
             return;
         }
 

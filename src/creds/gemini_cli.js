@@ -1,7 +1,6 @@
 import { OAuth2Client } from 'google-auth-library';
 
-import { getCredentials, updateCredentials } from '../kv/creds'
-import { appConfig, APP_CONFIG } from '../init'
+import { appConfig, updateConfig } from '../init'
 
 const OAUTH_CLIENT_ID = '681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com';
 const OAUTH_CLIENT_SECRET = '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';
@@ -18,19 +17,23 @@ const refreshAccessToken = async (env) => {
     const { credentials } = await authClient.refreshAccessToken();
     authClient.setCredentials(credentials);
     appConfig.gemini_cli.auth = credentials
-    updateCredentials(env, APP_CONFIG, JSON.stringify(appConfig));
+    await updateConfig(env, appConfig);
 }
 
-const initAuthClient = async (env) => {
-    const credentials = await getCredentials(env, GeminiCLICredentials);
-    if (credentials) {
-        authClient.setCredentials(JSON.parse(credentials));
+const initAuthClient = async () => {
+    authClient.setCredentials(appConfig.gemini_cli.auth);
+    if (isAccessTokenExpired()) {
+        console.log('Access token expired, refreshing...');
+        await refreshAccessToken();
+        console.log('Access token refreshed:', authClient.credentials.access_token);
     }
 }
 
 const getAccessToken = async (env) => {
     if (isAccessTokenExpired()) {
+        console.log('Access token expired, refreshing...');
         await refreshAccessToken(env);
+        console.log('Access token refreshed:', authClient.credentials.access_token);
     }
     return authClient.credentials.access_token;
 }
