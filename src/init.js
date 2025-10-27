@@ -1,7 +1,7 @@
 import fs from 'fs'
 
-import { initAuthClient } from './creds/gemini_cli'
-import { getCredentials, updateCredentials } from './kv/creds'
+import { initAuthClient } from './creds/gemini_cli.js'
+import { getCredentials, updateCredentials } from './kv/creds.js'
 
 export let appConfig;
 export const APP_CONFIG = "APP_CONFIG";

@@ -1,5 +1,5 @@
-import { MODEL_PROVIDER_MAP, PROVIDERS } from './base';
-import { GeminiProvider } from './gemini';
+import { MODEL_PROVIDER_MAP, PROVIDERS } from './base.js';
+import { GeminiProvider } from './gemini.js';
 
 export function getProvider(model) {
     const providerInfo = MODEL_PROVIDER_MAP.find(item => item.pattern.test(model));
