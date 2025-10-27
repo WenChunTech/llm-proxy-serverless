@@ -18,6 +18,7 @@ export const initConfig = async (env) => {
             appConfig = JSON.parse(configStr);
         }
     }
+    console.log(appConfig);
     if (appConfig.gemini_cli.auth) {
         await initAuthClient(appConfig.gemini_cli.auth);
     }
