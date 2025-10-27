@@ -3,6 +3,7 @@
   "scripts": {
     "dev": "bun run --hot src/index.js"
   },
+  "type": "module",
   "dependencies": {
     "@vercel/kv": "^3.0.0",
     "google-auth-library": "^10.4.1",
