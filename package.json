@@ -1,7 +1,8 @@
 {
   "name": "llm-proxy",
   "scripts": {
-    "dev": "bun run --hot src/index.js"
+    "dev": "bun run --hot src/index.js",
+    "deploy": "npx wrangler deploy src/index.js"
   },
   "type": "module",
   "dependencies": {
