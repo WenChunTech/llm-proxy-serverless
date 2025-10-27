@@ -6,6 +6,7 @@ import { initConfig } from './init.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { env } from 'process'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,9 +59,5 @@ app.post("/v1/messages", (c) => {
   });
 });
 
-export default {
-  async fetch(request, env, ctx) {
-    await initConfig(env);
-    return app.fetch(request, env, ctx);
-  },
-};
+await initConfig(env);
+export default app;
