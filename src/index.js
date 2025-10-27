@@ -4,7 +4,21 @@ import initWasm, { TargetType } from '../pkg/converter_wasm.js';
 import { getProvider } from './providers/index.js';
 import { initConfig } from './init.js';
 
+await initWasm();
 const app = new Hono();
+
+app.get("/", (c) => {
+  return c.html(`
+    <html>
+      <head>
+        <title>LLM Proxy</title>
+      </head>
+      <body>
+        <h1>LLM Proxy</h1>
+      </body>
+    </html>
+  `)
+})
 
 app.post("/v1/chat/completions", async (c) => {
   return streamSSE(c, async (stream) => {
@@ -39,7 +53,6 @@ app.post("/v1/messages", (c) => {
 
 export default {
   async fetch(request, env, ctx) {
-    await initWasm();
     await initConfig(env);
     return app.fetch(request, env, ctx);
   },

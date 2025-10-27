@@ -7,6 +7,9 @@ export let appConfig;
 export const APP_CONFIG = "APP_CONFIG";
 
 export const initConfig = async (env) => {
+    if (appConfig) {
+        return;
+    }
     if (await fs.existsSync('config.json')) {
         appConfig = JSON.parse(fs.readFileSync('config.json'));
     } else {
