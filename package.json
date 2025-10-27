@@ -2,7 +2,8 @@
   "name": "llm-proxy",
   "scripts": {
     "dev": "bun run --hot src/index.js",
-    "deploy": "npx wrangler deploy src/index.js"
+    "deploy": "npx wrangler deploy src/index.js",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "type": "module",
   "dependencies": {
