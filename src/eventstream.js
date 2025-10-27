@@ -1,4 +1,4 @@
-import { gemini_cli_resp_to_gemini_resp, new_inner, TargetType, gemini_cli_stream_wrapper_convert } from "../pkg/converter_wasm";
+import { gemini_cli_resp_to_gemini_resp, new_inner, TargetType, gemini_cli_stream_wrapper_convert } from "../pkg/converter_wasm.js";
 
 const responseConvert = (wrapper, sourceType, targetType) => {
     if (sourceType === TargetType.GeminiCli) {
