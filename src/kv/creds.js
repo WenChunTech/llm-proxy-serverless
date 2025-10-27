@@ -2,7 +2,7 @@
 import { Redis } from '@upstash/redis'
 
 const getCredentials = async (env, key) => {
-    console.log("get:", env);
+    console.log("get:", env.Platform);
     if (env.Platform === "Cloudflare") {
         return await env.KV.get(key);
     } else if (env.Platform === "Vercel") {

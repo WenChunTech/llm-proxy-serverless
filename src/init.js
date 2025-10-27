@@ -13,12 +13,11 @@ export const initConfig = async (env) => {
     if (await fs.existsSync('config.json')) {
         appConfig = JSON.parse(fs.readFileSync('config.json'));
     } else {
-        const configStr = await getCredentials(env, APP_CONFIG);
-        if (configStr) {
-            appConfig = JSON.parse(configStr);
+        const config = await getCredentials(env, APP_CONFIG);
+        if (config) {
+            appConfig = config;
         }
     }
-    console.log(appConfig);
     if (appConfig.gemini_cli.auth) {
         await initAuthClient(appConfig.gemini_cli.auth);
     }
