@@ -3,8 +3,15 @@ import { streamSSE } from "hono/streaming";
 import initWasm, { TargetType } from '../pkg/converter_wasm.js';
 import { getProvider } from './providers/index.js';
 import { initConfig } from './init.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-await initWasm();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const wasmPath = path.join(__dirname, '..', 'pkg', 'converter_wasm_bg.wasm');
+const wasmBuffer = fs.readFileSync(wasmPath);
+await initWasm(wasmBuffer);
 const app = new Hono();
 
 app.get("/", (c) => {
