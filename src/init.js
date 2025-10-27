@@ -6,14 +6,14 @@ import { getCredentials, updateCredentials } from './kv/creds.js'
 export let appConfig;
 export const APP_CONFIG = "APP_CONFIG";
 
-export const initConfig = async (env) => {
+export const initConfig = async () => {
     if (appConfig) {
         return;
     }
     if (await fs.existsSync('config.json')) {
         appConfig = JSON.parse(fs.readFileSync('config.json'));
     } else {
-        const config = await getCredentials(env, APP_CONFIG);
+        const config = await getCredentials(APP_CONFIG);
         if (config) {
             appConfig = config;
         }
@@ -23,11 +23,11 @@ export const initConfig = async (env) => {
     }
 }
 
-export const updateConfig = async (env, config) => {
+export const updateConfig = async (config) => {
     if (await fs.existsSync('config.json')) {
         appConfig = config;
         fs.writeFileSync('config.json', JSON.stringify(appConfig));
     } else {
-        await updateCredentials(env, APP_CONFIG, JSON.stringify(config));
+        await updateCredentials(APP_CONFIG, JSON.stringify(config));
     }
 }

@@ -13,11 +13,11 @@ const isAccessTokenExpired = () => {
     return Date.now() >= authClient.credentials.expiry_date;
 }
 
-const refreshAccessToken = async (env) => {
+const refreshAccessToken = async () => {
     const { credentials } = await authClient.refreshAccessToken();
     authClient.setCredentials(credentials);
     appConfig.gemini_cli.auth = credentials
-    await updateConfig(env, appConfig);
+    await updateConfig(appConfig);
 }
 
 const initAuthClient = async () => {
@@ -29,10 +29,10 @@ const initAuthClient = async () => {
     }
 }
 
-const getAccessToken = async (env) => {
+const getAccessToken = async () => {
     if (isAccessTokenExpired()) {
         console.log('Access token expired, refreshing...');
-        await refreshAccessToken(env);
+        await refreshAccessToken();
         console.log('Access token refreshed:', authClient.credentials.access_token);
     }
     return authClient.credentials.access_token;

@@ -14,10 +14,10 @@ export class GeminiProvider {
         this.project = appConfig.gemini_cli.projects[0];
     }
 
-    async execute(env, stream, body, source, target) {
+    async execute(stream, body, source, target) {
         const convertedRequest = this.convertRequest(body, source);
         convertedRequest.project = this.project;
-        const token = await getAccessToken(env);
+        const token = await getAccessToken();
         const response = await fetchWithRetry(fetchGeminiCLiResponse, { token, data: convertedRequest });
         if (!response.ok) {
             console.error("Error fetching from provider:", await response.text());
