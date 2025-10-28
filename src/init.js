@@ -24,7 +24,7 @@ export const initConfig = async () => {
 }
 
 export const updateConfig = async (config) => {
-    if (await fs.existsSync('config.json')) {
+    if (fs.existsSync('config.json')) {
         appConfig = config;
         fs.writeFileSync('config.json', JSON.stringify(appConfig));
     } else {

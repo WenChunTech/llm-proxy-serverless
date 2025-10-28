@@ -14,8 +14,8 @@ export class GeminiProvider {
         this.project = appConfig.gemini_cli.projects[0];
     }
 
-    async execute(stream, body, source, target) {
-        const convertedRequest = this.convertRequest(body, source);
+    async execute(stream, body, target) {
+        const convertedRequest = this.convertRequest(body, target);
         convertedRequest.project = this.project;
         const token = await getAccessToken();
         const response = await fetchWithRetry(fetchGeminiCLiResponse, { token, data: convertedRequest });
