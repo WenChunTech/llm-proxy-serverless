@@ -42,11 +42,10 @@ app.post("/v1/chat/completions", async (c) => {
 });
 
 app.post("/v1beta/models/:modelName", async (c) => {
-  const path = c.req.param("modelName");
-  const model = path.split(":")[0];
-  const streaming = path.split(":")[1] === "streamGenerateContent";
-
   return streamSSE(c, async (stream) => {
+    const path = c.req.param("modelName");
+    const model = path.split(":")[0];
+    const streaming = path.split(":")[1] === "streamGenerateContent";
     const body = await c.req.json();
     body.model = model;
     const provider = getProvider(model);
