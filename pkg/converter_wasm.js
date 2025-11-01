@@ -30,9 +30,72 @@ function getStringFromWasm0(ptr, len) {
     return decodeText(ptr, len);
 }
 
+let WASM_VECTOR_LEN = 0;
+
+const cachedTextEncoder = new TextEncoder();
+
+if (!('encodeInto' in cachedTextEncoder)) {
+    cachedTextEncoder.encodeInto = function (arg, view) {
+        const buf = cachedTextEncoder.encode(arg);
+        view.set(buf);
+        return {
+            read: arg.length,
+            written: buf.length
+        };
+    }
+}
+
+function passStringToWasm0(arg, malloc, realloc) {
+
+    if (realloc === undefined) {
+        const buf = cachedTextEncoder.encode(arg);
+        const ptr = malloc(buf.length, 1) >>> 0;
+        getUint8ArrayMemory0().subarray(ptr, ptr + buf.length).set(buf);
+        WASM_VECTOR_LEN = buf.length;
+        return ptr;
+    }
+
+    let len = arg.length;
+    let ptr = malloc(len, 1) >>> 0;
+
+    const mem = getUint8ArrayMemory0();
+
+    let offset = 0;
+
+    for (; offset < len; offset++) {
+        const code = arg.charCodeAt(offset);
+        if (code > 0x7F) break;
+        mem[ptr + offset] = code;
+    }
+
+    if (offset !== len) {
+        if (offset !== 0) {
+            arg = arg.slice(offset);
+        }
+        ptr = realloc(ptr, len, len = offset + arg.length * 3, 1) >>> 0;
+        const view = getUint8ArrayMemory0().subarray(ptr + offset, ptr + len);
+        const ret = cachedTextEncoder.encodeInto(arg, view);
+
+        offset += ret.written;
+        ptr = realloc(ptr, len, offset, 1) >>> 0;
+    }
+
+    WASM_VECTOR_LEN = offset;
+    return ptr;
+}
+
+let cachedDataViewMemory0 = null;
+
+function getDataViewMemory0() {
+    if (cachedDataViewMemory0 === null || cachedDataViewMemory0.buffer.detached === true || (cachedDataViewMemory0.buffer.detached === undefined && cachedDataViewMemory0.buffer !== wasm.memory.buffer)) {
+        cachedDataViewMemory0 = new DataView(wasm.memory.buffer);
+    }
+    return cachedDataViewMemory0;
+}
+
 function addToExternrefTable0(obj) {
     const idx = wasm.__externref_table_alloc();
-    wasm.__wbindgen_export_2.set(idx, obj);
+    wasm.__wbindgen_export_4.set(idx, obj);
     return idx;
 }
 
@@ -52,15 +115,6 @@ function getArrayU8FromWasm0(ptr, len) {
 
 function isLikeNone(x) {
     return x === undefined || x === null;
-}
-
-let cachedDataViewMemory0 = null;
-
-function getDataViewMemory0() {
-    if (cachedDataViewMemory0 === null || cachedDataViewMemory0.buffer.detached === true || (cachedDataViewMemory0.buffer.detached === undefined && cachedDataViewMemory0.buffer !== wasm.memory.buffer)) {
-        cachedDataViewMemory0 = new DataView(wasm.memory.buffer);
-    }
-    return cachedDataViewMemory0;
 }
 
 function debugString(val) {
@@ -128,62 +182,8 @@ function debugString(val) {
     return className;
 }
 
-let WASM_VECTOR_LEN = 0;
-
-const cachedTextEncoder = new TextEncoder();
-
-if (!('encodeInto' in cachedTextEncoder)) {
-    cachedTextEncoder.encodeInto = function (arg, view) {
-        const buf = cachedTextEncoder.encode(arg);
-        view.set(buf);
-        return {
-            read: arg.length,
-            written: buf.length
-        };
-    }
-}
-
-function passStringToWasm0(arg, malloc, realloc) {
-
-    if (realloc === undefined) {
-        const buf = cachedTextEncoder.encode(arg);
-        const ptr = malloc(buf.length, 1) >>> 0;
-        getUint8ArrayMemory0().subarray(ptr, ptr + buf.length).set(buf);
-        WASM_VECTOR_LEN = buf.length;
-        return ptr;
-    }
-
-    let len = arg.length;
-    let ptr = malloc(len, 1) >>> 0;
-
-    const mem = getUint8ArrayMemory0();
-
-    let offset = 0;
-
-    for (; offset < len; offset++) {
-        const code = arg.charCodeAt(offset);
-        if (code > 0x7F) break;
-        mem[ptr + offset] = code;
-    }
-
-    if (offset !== len) {
-        if (offset !== 0) {
-            arg = arg.slice(offset);
-        }
-        ptr = realloc(ptr, len, len = offset + arg.length * 3, 1) >>> 0;
-        const view = getUint8ArrayMemory0().subarray(ptr + offset, ptr + len);
-        const ret = cachedTextEncoder.encodeInto(arg, view);
-
-        offset += ret.written;
-        ptr = realloc(ptr, len, offset, 1) >>> 0;
-    }
-
-    WASM_VECTOR_LEN = offset;
-    return ptr;
-}
-
 function takeFromExternrefTable0(idx) {
-    const value = wasm.__wbindgen_export_2.get(idx);
+    const value = wasm.__wbindgen_export_4.get(idx);
     wasm.__externref_table_dealloc(idx);
     return value;
 }
@@ -192,8 +192,8 @@ function takeFromExternrefTable0(idx) {
  * @param {TargetType} target
  * @returns {any}
  */
-export function gemini_cli_stream_response_convert(resp, target) {
-    const ret = wasm.gemini_cli_stream_response_convert(resp, target);
+export function gemini_stream_warpper_convert(resp, target) {
+    const ret = wasm.gemini_stream_warpper_convert(resp, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -206,19 +206,6 @@ export function gemini_cli_stream_response_convert(resp, target) {
  */
 export function gemini_cli_resp_to_gemini_resp(resp) {
     const ret = wasm.gemini_cli_resp_to_gemini_resp(resp);
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
-    }
-    return takeFromExternrefTable0(ret[0]);
-}
-
-/**
- * @param {any} req
- * @param {TargetType} target
- * @returns {any}
- */
-export function gemini_request_convert(req, target) {
-    const ret = wasm.gemini_request_convert(req, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -239,12 +226,10 @@ export function gemini_cli_stream_wrapper_convert(resp, target) {
 }
 
 /**
- * @param {any} req
- * @param {TargetType} target
  * @returns {any}
  */
-export function claude_request_convert(req, target) {
-    const ret = wasm.claude_request_convert(req, target);
+export function default_stream_state() {
+    const ret = wasm.default_stream_state();
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -252,12 +237,51 @@ export function claude_request_convert(req, target) {
 }
 
 /**
- * @param {any} resp
+ * @param {any} req
  * @param {TargetType} target
  * @returns {any}
  */
-export function openai_stream_response_convert(resp, target) {
-    const ret = wasm.openai_stream_response_convert(resp, target);
+export function gemini_request_convert(req, target) {
+    const ret = wasm.gemini_request_convert(req, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} req
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function claude_response_convert(req, target) {
+    const ret = wasm.claude_response_convert(req, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} req
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function gemini_cli_response_convert(req, target) {
+    const ret = wasm.gemini_cli_response_convert(req, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} req
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function openai_response_convert(req, target) {
+    const ret = wasm.openai_response_convert(req, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -277,10 +301,25 @@ export function gemini_req_convert_to_gemini_cli_req(req) {
 }
 
 /**
+ * @param {any} req
+ * @param {TargetType} target
  * @returns {any}
  */
-export function new_inner() {
-    const ret = wasm.new_inner();
+export function openai_request_convert(req, target) {
+    const ret = wasm.openai_request_convert(req, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} resp
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function openai_stream_wrapper_convert(resp, target) {
+    const ret = wasm.openai_stream_wrapper_convert(resp, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -292,8 +331,34 @@ export function new_inner() {
  * @param {TargetType} target
  * @returns {any}
  */
-export function openai_request_convert(req, target) {
-    const ret = wasm.openai_request_convert(req, target);
+export function gemini_response_convert(req, target) {
+    const ret = wasm.gemini_response_convert(req, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} resp
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function claudei_stream_wrapper_convert(resp, target) {
+    const ret = wasm.claudei_stream_wrapper_convert(resp, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} req
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function claude_request_convert(req, target) {
+    const ret = wasm.claude_request_convert(req, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -355,6 +420,13 @@ function __wbg_get_imports() {
     imports.wbg.__wbg_Number_998bea33bd87c3e0 = function(arg0) {
         const ret = Number(arg0);
         return ret;
+    };
+    imports.wbg.__wbg_String_8f0eb39a4a4c2f66 = function(arg0, arg1) {
+        const ret = String(arg1);
+        const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        getDataViewMemory0().setInt32(arg0 + 4 * 1, len1, true);
+        getDataViewMemory0().setInt32(arg0 + 4 * 0, ptr1, true);
     };
     imports.wbg.__wbg_call_13410aac570ffff7 = function() { return handleError(function (arg0, arg1) {
         const ret = arg0.call(arg1);
@@ -564,7 +636,7 @@ function __wbg_get_imports() {
         return ret;
     };
     imports.wbg.__wbindgen_init_externref_table = function() {
-        const table = wasm.__wbindgen_export_2;
+        const table = wasm.__wbindgen_export_4;
         const offset = table.grow(4);
         table.set(0, undefined);
         table.set(offset + 0, undefined);

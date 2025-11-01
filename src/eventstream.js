@@ -1,4 +1,4 @@
-import { gemini_cli_resp_to_gemini_resp, new_inner, TargetType, gemini_cli_stream_wrapper_convert } from "../pkg/converter_wasm.js";
+import { gemini_cli_resp_to_gemini_resp, default_stream_state, TargetType, gemini_cli_stream_wrapper_convert } from "../pkg/converter_wasm.js";
 
 const responseConvert = (wrapper, sourceType, targetType) => {
     if (sourceType === TargetType.GeminiCli) {
@@ -9,7 +9,7 @@ const responseConvert = (wrapper, sourceType, targetType) => {
 export const StreamEvent = async (stream, response, sourceType, targetType) => {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let inner = new_inner();
+    let state = default_stream_state();
     let buffer = '';
     while (true) {
         const { done, value } = await reader.read();
@@ -25,13 +25,12 @@ export const StreamEvent = async (stream, response, sourceType, targetType) => {
                 if (data) {
                     let wrapper = {
                         chunk: JSON.parse(data),
-                        inner: inner,
+                        state: state,
                     }
                     const streams_wrapper = responseConvert(wrapper, sourceType, targetType);
-                    inner = streams_wrapper.inner;
+                    state = streams_wrapper.state;
                     let chunks = streams_wrapper.chunks;
                     for (const chunk of chunks) {
-                        console.log(chunk);
                         stream.writeSSE({
                             event: chunk.type,
                             data: JSON.stringify(chunk),
@@ -47,13 +46,12 @@ export const StreamEvent = async (stream, response, sourceType, targetType) => {
         if (data) {
             let wrapper = {
                 chunk: JSON.parse(data),
-                inner: inner,
+                inner: state,
             }
             const streams_wrapper = responseConvert(wrapper, sourceType, targetType);
-            inner = streams_wrapper.inner;
+            state = streams_wrapper.inner;
             let chunks = streams_wrapper.chunks;
             for (const chunk of chunks) {
-                console.log(chunk);
                 stream.writeSSE({
                     event: chunk.type,
                     data: JSON.stringify(chunk),

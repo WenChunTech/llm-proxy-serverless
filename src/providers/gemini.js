@@ -1,11 +1,10 @@
 import {
     openai_request_convert,
     claude_request_convert,
+    gemini_cli_response_convert,
     gemini_req_convert_to_gemini_cli_req,
     TargetType
 } from '../../pkg/converter_wasm.js';
-import { getAccessToken } from '../creds/gemini_cli.js';
-import { fetchWithRetry, fetchGeminiCLiResponse } from '../provider/gemini_cli.js';
 import { StreamEvent, geminiCliResponseConvert } from '../eventstream.js';
 import { appConfig } from '../init.js';
 
@@ -14,20 +13,7 @@ export class GeminiProvider {
         this.project = appConfig.gemini_cli.projects[0];
     }
 
-    async execute(stream, body, target) {
-        const convertedRequest = this.convertRequest(body, target);
-        convertedRequest.project = this.project;
-        const token = await getAccessToken();
-        const response = await fetchWithRetry(fetchGeminiCLiResponse, { token, data: convertedRequest });
-        if (!response.ok) {
-            console.error("Error fetching from provider:", await response.text());
-            return;
-        }
-
-        return this.convertResponse(stream, response, target);
-    }
-
-    convertRequest(body, source) {
+    async convertRequest(body, source) {
         switch (source) {
             case TargetType.OpenAI:
                 return openai_request_convert(body, TargetType.GeminiCli);
@@ -40,7 +26,13 @@ export class GeminiProvider {
         }
     }
 
-    convertResponse(stream, response, target) {
+    async convertResponse(c, response, target) {
+        const data = await response.json();
+        const resp = gemini_cli_response_convert(data, target);
+        return c.json(resp)
+    }
+
+    async convertStreamResponse(stream, response, target) {
         if (target === TargetType.Gemini) {
             return geminiCliResponseConvert(stream, response);
         }

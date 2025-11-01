@@ -1,5 +1,16 @@
-export const fetchGeminiCLiResponse = async ({ token, data }) => {
+export const fetchGeminiCLiStreamResponse = async ({ token, data }) => {
     return fetch("https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+    })
+}
+
+export const fetchGeminiCLiResponse = async ({ token, data }) => {
+    return fetch("https://cloudcode-pa.googleapis.com/v1internal:generateContent", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",

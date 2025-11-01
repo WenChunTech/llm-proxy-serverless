@@ -1,14 +1,19 @@
 /* tslint:disable */
 /* eslint-disable */
-export function gemini_cli_stream_response_convert(resp: any, target: TargetType): any;
+export function gemini_stream_warpper_convert(resp: any, target: TargetType): any;
 export function gemini_cli_resp_to_gemini_resp(resp: any): any;
-export function gemini_request_convert(req: any, target: TargetType): any;
 export function gemini_cli_stream_wrapper_convert(resp: any, target: TargetType): any;
-export function claude_request_convert(req: any, target: TargetType): any;
-export function openai_stream_response_convert(resp: any, target: TargetType): any;
+export function default_stream_state(): any;
+export function gemini_request_convert(req: any, target: TargetType): any;
+export function claude_response_convert(req: any, target: TargetType): any;
+export function gemini_cli_response_convert(req: any, target: TargetType): any;
+export function openai_response_convert(req: any, target: TargetType): any;
 export function gemini_req_convert_to_gemini_cli_req(req: any): any;
-export function new_inner(): any;
 export function openai_request_convert(req: any, target: TargetType): any;
+export function openai_stream_wrapper_convert(resp: any, target: TargetType): any;
+export function gemini_response_convert(req: any, target: TargetType): any;
+export function claudei_stream_wrapper_convert(resp: any, target: TargetType): any;
+export function claude_request_convert(req: any, target: TargetType): any;
 export enum TargetType {
   OpenAI = 0,
   Gemini = 1,
@@ -21,19 +26,24 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly claude_request_convert: (a: any, b: number) => [number, number, number];
+  readonly claude_response_convert: (a: any, b: number) => [number, number, number];
+  readonly claudei_stream_wrapper_convert: (a: any, b: number) => [number, number, number];
+  readonly default_stream_state: () => [number, number, number];
   readonly gemini_cli_resp_to_gemini_resp: (a: any) => [number, number, number];
-  readonly gemini_cli_stream_response_convert: (a: any, b: number) => [number, number, number];
+  readonly gemini_cli_response_convert: (a: any, b: number) => [number, number, number];
   readonly gemini_cli_stream_wrapper_convert: (a: any, b: number) => [number, number, number];
   readonly gemini_req_convert_to_gemini_cli_req: (a: any) => [number, number, number];
   readonly gemini_request_convert: (a: any, b: number) => [number, number, number];
-  readonly new_inner: () => [number, number, number];
+  readonly gemini_response_convert: (a: any, b: number) => [number, number, number];
+  readonly gemini_stream_warpper_convert: (a: any, b: number) => [number, number, number];
   readonly openai_request_convert: (a: any, b: number) => [number, number, number];
-  readonly openai_stream_response_convert: (a: any, b: number) => [number, number, number];
-  readonly __wbindgen_exn_store: (a: number) => void;
-  readonly __externref_table_alloc: () => number;
-  readonly __wbindgen_export_2: WebAssembly.Table;
+  readonly openai_response_convert: (a: any, b: number) => [number, number, number];
+  readonly openai_stream_wrapper_convert: (a: any, b: number) => [number, number, number];
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
+  readonly __wbindgen_exn_store: (a: number) => void;
+  readonly __externref_table_alloc: () => number;
+  readonly __wbindgen_export_4: WebAssembly.Table;
   readonly __externref_table_dealloc: (a: number) => void;
   readonly __wbindgen_start: () => void;
 }
