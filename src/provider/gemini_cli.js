@@ -24,7 +24,7 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const fetchWithRetry = async (fetchFn, reqParam, retries = 5) => {
     let attempt = 0;
-    let lastErrorText = '';
+    let lastErrorResponse;
     while (attempt < retries) {
         try {
             const response = await fetchFn(reqParam);
@@ -32,13 +32,13 @@ export const fetchWithRetry = async (fetchFn, reqParam, retries = 5) => {
                 return response;
             }
             await sleep(3000);
-            lastErrorText = await response.text();
-            console.error(`Failed to fetch Gemini CLI response, attempt ${attempt}: ${lastErrorText}`);
+            lastErrorResponse = response;
+            console.error(`Failed to fetch Gemini CLI response, attempt ${attempt}: ${lastErrorResponse}`);
             attempt++
         } catch (error) {
             attempt++
             console.log(error);
         }
     }
-    throw new Error(lastErrorText)
+    return lastErrorResponse;
 }
