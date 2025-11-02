@@ -50,16 +50,10 @@ app.post("/v1/chat/completions", async (c) => {
   if (is_streaming) {
     return streamSSE(c, async (stream) => {
       const resp = await fetchWithRetry(fetchGeminiCLiStreamResponse, { token, data: req });
-      if (!resp.Ok) {
-        return resp
-      }
       return provider.convertStreamResponse(stream, resp, TargetType.OpenAI);
     });
   } else {
     const resp = await fetchWithRetry(fetchGeminiCLiResponse, { token, data: req });
-    if (!resp.Ok) {
-      return resp
-    }
     return provider.convertResponse(c, resp, TargetType.OpenAI);
   }
 });
@@ -77,17 +71,11 @@ app.post("/v1beta/models/:modelName", async (c) => {
 
   if (is_streaming) {
     const resp = await fetchWithRetry(fetchGeminiCLiStreamResponse, { token, data: req });
-    if (!resp.Ok) {
-      return resp
-    }
     return streamSSE(c, async (stream) => {
       return provider.convertStreamResponse(stream, resp, TargetType.Gemini);
     });
   } else {
     const resp = await fetchWithRetry(fetchGeminiCLiResponse, { token, data: req });
-    if (!resp.Ok) {
-      return resp
-    }
     return provider.convertResponse(c, resp, TargetType.Gemini);
   }
 });
@@ -102,17 +90,11 @@ app.post("/v1/messages", async (c) => {
   const token = await getAccessToken();
   if (is_streaming) {
     const resp = await fetchWithRetry(fetchGeminiCLiStreamResponse, { token, data: req });
-    if (!resp.Ok) {
-      return resp
-    }
     return streamSSE(c, async (stream) => {
       return provider.convertStreamResponse(stream, resp, TargetType.Claude);
     });
   } else {
     const resp = await fetchWithRetry(fetchGeminiCLiResponse, { token, data: req });
-    if (!resp.Ok) {
-      return resp
-    }
     return provider.convertResponse(c, resp, TargetType.Claude);
   }
 });

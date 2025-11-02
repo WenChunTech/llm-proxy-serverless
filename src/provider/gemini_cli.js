@@ -32,7 +32,7 @@ export const fetchWithRetry = async (fetchFn, reqParam, retries = 5) => {
                 return response;
             }
             await sleep(3000);
-            lastErrorResponse = response;
+            lastErrorResponse = await response.text();
             console.error(`Failed to fetch Gemini CLI response, attempt ${attempt}: ${lastErrorResponse}`);
             attempt++
         } catch (error) {
@@ -40,5 +40,5 @@ export const fetchWithRetry = async (fetchFn, reqParam, retries = 5) => {
             console.log(error);
         }
     }
-    return lastErrorResponse;
+    throw new Error(lastErrorResponse)
 }
