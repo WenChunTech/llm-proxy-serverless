@@ -18,6 +18,14 @@ await initConfig();
 
 const app = new Hono();
 
+// cors
+app.use(async (c, next) => {
+  c.header("Access-Control-Allow-Origin", "*");
+  c.header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  c.header("Access-Control-Allow-Headers", "Content-Type");
+  await next();
+});
+
 app.get("/", (c) => {
   return c.html(`
     <html>
@@ -38,9 +46,7 @@ app.post("/v1/chat/completions", async (c) => {
   const provider = getProvider(model);
   const req = await provider.convertRequest(body, TargetType.OpenAI);
   req.project = provider.project;
-  console.log(JSON.stringify(req));
   const token = await getAccessToken();
-  console.log(is_streaming);
   if (is_streaming) {
     return streamSSE(c, async (stream) => {
       const resp = await fetchWithRetry(fetchGeminiCLiStreamResponse, { token, data: req });
@@ -62,6 +68,7 @@ app.post("/v1beta/models/:modelName", async (c) => {
   const req = await provider.convertRequest(body, TargetType.Gemini);
   req.project = provider.project;
   const token = await getAccessToken();
+
   if (is_streaming) {
     const resp = await fetchWithRetry(fetchGeminiCLiStreamResponse, { token, data: req });
     return streamSSE(c, async (stream) => {
@@ -92,4 +99,9 @@ app.post("/v1/messages", async (c) => {
   }
 });
 
-export default app;
+// export default app;
+export default {
+  hostname: "0.0.0.0",
+  port: 3000,
+  fetch: app.fetch,
+}
