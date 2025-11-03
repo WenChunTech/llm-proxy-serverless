@@ -5,6 +5,17 @@
     "module": "ESNext",
     "moduleResolution": "Node",
     "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx"
-  }
+    "jsxImportSource": "hono/jsx",
+    "esModuleInterop": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true
+  },
+  "exclude": [
+    "node_modules",
+    "pkg",
+    "dist"
+  ]
 }

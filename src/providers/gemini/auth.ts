@@ -13,23 +13,16 @@ const HOST = '127.0.0.1';
 
 // --- Module-level variables ---
 const credPath = path.join("./", CREDENTIALS_DIR, CREDENTIALS_FILE);
-// const credPath = path.join(os.homedir(), CREDENTIALS_DIR, CREDENTIALS_FILE);
 const authClient = new OAuth2Client(OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET);
 
-/**
- * Initiates a new token acquisition flow. It starts a local server to
- * listen for the OAuth2 callback, prints an auth URL for the user to visit,
- * and saves the obtained token to the credentials file.
- * @returns {Promise<object>} A promise that resolves with the new tokens.
- */
 async function getNewToken() {
     const redirectUri = `http://${HOST}:${AUTH_REDIRECT_PORT}/callback`;
-    authClient.redirectUri = redirectUri;
 
     return new Promise((resolve, reject) => {
         const authUrl = authClient.generateAuthUrl({
             access_type: 'offline',
-            scope: ['https://www.googleapis.com/auth/cloud-platform']
+            scope: ['https://www.googleapis.com/auth/cloud-platform'],
+            redirect_uri: redirectUri
         });
 
         console.log('\n[Gemini Auth] Please open this URL in your browser to authenticate:');
@@ -37,6 +30,10 @@ async function getNewToken() {
 
         const server = http.createServer(async (req, res) => {
             try {
+                if (!req.url) {
+                    reject(new Error('Request URL is missing.'));
+                    return;
+                }
                 const url = new URL(req.url, redirectUri);
                 const code = url.searchParams.get('code');
 
@@ -66,65 +63,67 @@ async function getNewToken() {
     });
 }
 
-/**
- * Checks if the current access token is expired or close to expiring.
- * @returns {boolean} True if the token is expired, otherwise false.
- */
 function isAccessTokenExpired() {
     if (!authClient.credentials || !authClient.credentials.expiry_date) {
-        return true; // Assume expired if no credentials or expiry date.
+        return true;
     }
     return Date.now() >= authClient.credentials.expiry_date;
 }
 
-/**
- * Refreshes the access token using the refresh token.
- * If refreshing fails, it triggers the new token acquisition flow.
- */
-async function refreshAccessToken(refreshToken) {
+async function refreshAccessToken() {
     console.log('[Gemini Auth] Refreshing access token...');
     const { credentials } = await authClient.refreshAccessToken();
-    console.log('[Gemini Auth] Refreshed token:', credentials);
+    console.log('[Gemini Auth] Refreshed Token');
     authClient.setCredentials(credentials);
     fs.writeFile(credPath, JSON.stringify(credentials, null, 2));
     console.log('[Gemini Auth] Token refreshed and stored successfully.');
 }
 
-/**
- * Initializes authentication by loading tokens from the file.
- * If the file doesn't exist, it starts the new token flow.
- * If tokens are loaded, it checks for expiration and refreshes if needed.
- */
-async function initializeAuth() {
-    let credentials
-    if (await fs.exists(credPath)) {
+export async function initAuthClient() {
+    let credentials: any;
+    try {
+        await fs.stat(credPath);
         const data = await fs.readFile(credPath, "utf8");
         credentials = JSON.parse(data);
-    } else {
+    } catch (e) {
         console.log(`[Gemini Auth] Credentials file not found. Starting new authentication flow...`);
         credentials = await getNewToken();
         console.log('[Gemini Auth] New token obtained and configured.');
     }
     console.log('[Gemini Auth] Authentication configured successfully.');
-    console.log(credentials);
     authClient.setCredentials(credentials);
     if (isAccessTokenExpired()) {
         await refreshAccessToken();
     }
 }
 
-/**
- * Retrieves a valid access token. It ensures authentication is initialized
- * and handles token expiration and refreshing automatically.
- * @returns {Promise<string>} A promise that resolves with the valid access token.
- */
 export async function getAccessToken() {
-    // Ensure credentials are loaded before proceeding.
-    if (!authClient.credentials || !authClient.credentials.access_token) {
-        await initializeAuth();
-    } else if (isAccessTokenExpired()) {
-        // If already loaded but expired, refresh.
-        await refreshAccessToken();
+    if (!authClient.credentials || !authClient.credentials.access_token || isAccessTokenExpired()) {
+        await initAuthClient();
     }
     return authClient.credentials.access_token;
+}
+
+export async function fetchGeminiCLiStreamResponse({ token, data }: any) {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${data.model}:streamGenerateContent`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+    });
+    return response;
+}
+
+export async function fetchGeminiCLiResponse({ token, data }: any) {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${data.model}:generateContent`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+    });
+    return response;
 }

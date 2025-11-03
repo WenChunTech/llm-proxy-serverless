@@ -1,6 +1,8 @@
 export const PROVIDERS = {
     GEMINI: 'gemini',
     QWEN: 'qwen',
+    OPENAI: 'openai',
+    CLAUDE: 'claude',
 };
 
 export const MODEL_PROVIDER_MAP = [
@@ -11,5 +13,13 @@ export const MODEL_PROVIDER_MAP = [
     {
         pattern: /^qwen-.*/,
         provider: PROVIDERS.QWEN,
+    },
+    {
+        pattern: /^gpt-.*/,
+        provider: PROVIDERS.OPENAI,
+    },
+    {
+        pattern: /^claude-.*/,
+        provider: PROVIDERS.CLAUDE,
     }
 ];

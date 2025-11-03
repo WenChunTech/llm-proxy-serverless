@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Proxy - 统一大语言模型 API 代理</title>
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #34d399;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --text-color: #1e293b;
+            --subtle-text: #64748b;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        header {
+            text-align: center;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+        header .subtitle {
+            font-size: 1.2rem;
+            color: var(--subtle-text);
+        }
+        .card {
+            background-color: var(--card-background);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+        h2 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 0.5rem;
+            margin-top: 0;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+        .feature-item {
+            text-align: center;
+        }
+        .feature-item .icon {
+            font-size: 2.5rem;
+            color: var(--secondary-color);
+        }
+        code {
+            background-color: #eef2ff;
+            color: var(--primary-color);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: "Fira Code", monospace;
+        }
+        pre {
+            background-color: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: "Fira Code", monospace;
+        }
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: var(--subtle-text);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>LLM Proxy</h1>
+            <p class="subtitle">一个为 OpenAI, Gemini, Claude 等设计的统一大语言模型 API 代理</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2>项目概述</h2>
+                <p>LLM Proxy 是一个使用 TypeScript 和 Hono 构建的高性能、轻量级的代理服务器。它旨在为多个主流大型语言模型（LLM）提供商提供一个统一、兼容的 API 接口。通过协议转换的核心功能，开发者可以在不同的 LLM 服务之间无缝切换，而无需修改任何客户端代码。</p>
+            </div>
+
+            <div class="card">
+                <h2>核心功能</h2>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <div class="icon">🔄</div>
+                        <h3>统一 API</h3>
+                        <p>为 OpenAI, Gemini, Claude, Qwen 等提供单一、一致的 API 访问点。</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="icon">📜</div>
+                        <h3>协议转换</h3>
+                        <p>在不同提供商的 API 格式之间自动转换请求和响应。</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="icon">⚡️</div>
+                        <h3>流式传输</h3>
+                        <p>通过服务器发送事件 (SSE) 全面支持流式响应，实现实时交互。</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="icon">🧩</div>
+                        <h3>可扩展架构</h3>
+                        <p>模块化的提供商设计，可以轻松添加对新 LLM 服务的支持。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>实现细节</h2>
+                <p>项目后端采用 <strong>Hono</strong> 框架，这是一个为边缘计算环境设计的超快速 Web 框架，确保了代理服务器的低延迟和高吞吐量。</p>
+                <p>当收到一个 API 请求时 (例如，一个发往 <code>/v1/chat/completions</code> 的 OpenAI 格式请求), 代理执行以下步骤:</p>
+                <ol>
+                    <li><strong>模型解析与提供商选择</strong>: 通过请求中的 <code>model</code> 字段 (如 <code>gemini-1.5-pro-latest</code>)，<code>factory.ts</code> 中的工厂函数会动态地选择并实例化对应的提供商 (例如 <code>GeminiProvider</code>)。</li>
+                    <li><strong>请求转换</strong>: 选定的提供商将传入的请求体 (例如 OpenAI 格式) 转换为其目标 LLM API 的原生格式。</li>
+                    <li><strong>请求转发与响应获取</strong>: 代理将转换后的请求发送到目标 LLM 提供商的 API 端点。</li>
+                    <li><strong>响应转换</strong>: 在收到 LLM 提供商的响应后，代理会将其转换回原始请求的格式 (例如 OpenAI 格式)。对于流式响应，此转换是实时逐块进行的。</li>
+                </ol>
+            </div>
+
+            <div class="card">
+                <h2>API 端点示例</h2>
+                <p>以下是如何使用此代理与不同提供商进行交互的示例:</p>
+
+                <h3>与 Gemini 模型交互 (使用 OpenAI 格式)</h3>
+                <pre><code>curl -X POST http://localhost:3000/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{
+       "model": "gemini-1.5-pro-latest",
+       "messages": [{"role": "user", "content": "你好！"}],
+       "stream": false
+     }'</code></pre>
+
+                <h3>与 Claude 模型交互 (使用 Claude 原生格式)</h3>
+                <pre><code>curl -X POST http://localhost:3000/v1/messages \
+     -H "Content-Type: application/json" \
+     -d '{
+       "model": "claude-3-opus-20240229",
+       "max_tokens": 1024,
+       "messages": [{"role": "user", "content": "你好！"}],
+       "stream": false
+     }'</code></pre>
+            </div>
+        </main>
+
+        <footer>
+            <p>LLM Proxy &copy; 2024</p>
+        </footer>
+    </div>
+</body>
+</html>
