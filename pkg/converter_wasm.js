@@ -344,8 +344,8 @@ export function gemini_response_convert(req, target) {
  * @param {TargetType} target
  * @returns {any}
  */
-export function claudei_stream_wrapper_convert(resp, target) {
-    const ret = wasm.claudei_stream_wrapper_convert(resp, target);
+export function claude_stream_wrapper_convert(resp, target) {
+    const ret = wasm.claude_stream_wrapper_convert(resp, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }

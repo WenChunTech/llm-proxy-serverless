@@ -3,7 +3,7 @@
 export const memory: WebAssembly.Memory;
 export const claude_request_convert: (a: any, b: number) => [number, number, number];
 export const claude_response_convert: (a: any, b: number) => [number, number, number];
-export const claudei_stream_wrapper_convert: (a: any, b: number) => [number, number, number];
+export const claude_stream_wrapper_convert: (a: any, b: number) => [number, number, number];
 export const default_stream_state: () => [number, number, number];
 export const gemini_cli_resp_to_gemini_resp: (a: any) => [number, number, number];
 export const gemini_cli_response_convert: (a: any, b: number) => [number, number, number];

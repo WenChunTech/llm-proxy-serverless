@@ -7,7 +7,7 @@ import {
 } from '../../../pkg/converter_wasm.js';
 import { StreamEvent, geminiCliResponseConvert } from '../../streaming/sse.js';
 
-export function convertGeminiRequest(body: any, source: any) {
+export function convertToGeminiCliRequest(body: any, source: any) {
     switch (source) {
         case TargetType.OpenAI:
             return openai_request_convert(body, TargetType.GeminiCli);
@@ -20,7 +20,7 @@ export function convertGeminiRequest(body: any, source: any) {
     }
 }
 
-export async function convertGeminiResponse(c: any, response: any, target: any) {
+export async function convertGeminiCliResponse(c: any, response: any, target: any) {
     const data = await response.json();
     const resp = gemini_cli_response_convert(data, target);
     return c.json(resp)

@@ -1,4 +1,4 @@
-export async function fetchWithRetry(fetchFn: any, options: any, maxRetries = 3, retryDelay = 1000) {
+export async function fetchWithRetry(fetchFn: any, options: any, maxRetries = 5, retryDelay = 3000) {
     let lastError: any;
     for (let i = 0; i < maxRetries; i++) {
         try {

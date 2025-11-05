@@ -12,7 +12,7 @@ export function gemini_req_convert_to_gemini_cli_req(req: any): any;
 export function openai_request_convert(req: any, target: TargetType): any;
 export function openai_stream_wrapper_convert(resp: any, target: TargetType): any;
 export function gemini_response_convert(req: any, target: TargetType): any;
-export function claudei_stream_wrapper_convert(resp: any, target: TargetType): any;
+export function claude_stream_wrapper_convert(resp: any, target: TargetType): any;
 export function claude_request_convert(req: any, target: TargetType): any;
 export enum TargetType {
   OpenAI = 0,
@@ -27,7 +27,7 @@ export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly claude_request_convert: (a: any, b: number) => [number, number, number];
   readonly claude_response_convert: (a: any, b: number) => [number, number, number];
-  readonly claudei_stream_wrapper_convert: (a: any, b: number) => [number, number, number];
+  readonly claude_stream_wrapper_convert: (a: any, b: number) => [number, number, number];
   readonly default_stream_state: () => [number, number, number];
   readonly gemini_cli_resp_to_gemini_resp: (a: any) => [number, number, number];
   readonly gemini_cli_response_convert: (a: any, b: number) => [number, number, number];

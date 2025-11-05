@@ -1,20 +1,35 @@
 import { fetchWithRetry } from '../../utils/fetch.js';
-import { appConfig } from '../../config.js';
-import { convertOpenAIRequest, convertOpenAIResponse, convertOpenAIStreamResponse } from './adapter.js';
+import { openAIPoller } from '../../config.js';
+import { convertToOpenAIRequest, convertOpenAIResponse, convertOpenAIStreamResponse } from './adapter.js';
 
 export class OpenAIProvider {
     apiKey: string;
+    baseUrl: string;
+
     constructor() {
-        this.apiKey = appConfig.openai.api_key;
+        const openaiConfig = openAIPoller.getNext();
+        this.apiKey = openaiConfig.api_key;
+        this.baseUrl = openaiConfig.base_url;
     }
 
     async convertRequest(body: any, source: any) {
-        return convertOpenAIRequest(body, source);
+        return convertToOpenAIRequest(body, source);
     }
 
-    async fetchResponse(is_streaming: boolean, reqData: any) {
-        // Placeholder for fetchResponse
-        return new Response();
+    async fetchResponse(_is_streaming: boolean, reqData: any) {
+        const url = `${this.baseUrl}/v1/chat/completions`;
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`,
+        };
+        const body = JSON.stringify(reqData);
+        const fetcher = async () => fetch(url, {
+            method: 'POST',
+            headers: headers,
+            body: body,
+        });
+
+        return fetchWithRetry(fetcher, {});
     }
 
     async convertResponse(c: any, response: any, target: any) {
