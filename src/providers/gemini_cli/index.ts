@@ -1,12 +1,15 @@
-import { geminiCliPoller, geminiCliProjectsPoller } from '../../config.js';
+import { geminiCliPoller } from '../../config.js';
+import { GeminiCliConfig } from '../../types/config.js';
 import { getAccessToken, fetchGeminiCLiStreamResponse, fetchGeminiCLiResponse } from './auth.js';
 import { fetchWithRetry } from '../../utils/fetch.js';
 import { convertToGeminiCliRequest, convertGeminiCliResponse, convertGeminiStreamResponse } from './adapter.js';
 
 export class GeminiCliProvider {
-    project: string;
+    geminiConfig: GeminiCliConfig;
+    projectCounter: number;
     constructor() {
-        this.project = geminiCliProjectsPoller.getNext();
+        this.geminiConfig = geminiCliPoller.getNext();
+        this.projectCounter = 0;
     }
 
     async convertRequest(body: any, source: any) {
@@ -14,9 +17,16 @@ export class GeminiCliProvider {
     }
 
     async fetchResponse(is_streaming: boolean, reqData: any) {
-        const geminiConfig = geminiCliPoller.getNext();
-        const token = await getAccessToken(geminiConfig.auth);
-        reqData.project = this.project;
+        if (this.projectCounter >= this.geminiConfig.projects.length) {
+            this.geminiConfig = geminiCliPoller.getNext();
+            this.projectCounter = 0;
+        }
+
+        const project = this.geminiConfig.projects[this.projectCounter];
+        this.projectCounter++;
+
+        const token = await getAccessToken(this.geminiConfig.auth);
+        reqData.project = project;
         if (is_streaming) {
             return fetchWithRetry(fetchGeminiCLiStreamResponse, { token, data: reqData });
         } else {
