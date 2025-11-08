@@ -1,16 +1,17 @@
-import app from './server';
-import { initConfig } from './config';
-import initWasm from '../pkg/converter_wasm.js';
+import app from '@/server';
+import { initConfig } from '@/config';
+import initWasm from 'converter-wasm';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const wasmPath = path.join(__dirname, '..', 'pkg', 'converter_wasm_bg.wasm');
-const wasmBuffer = fs.readFileSync(wasmPath);
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
+// const wasmPath = path.join(__dirname, '..', 'node_modules', 'converter-wasm', 'converter_wasm_bg.wasm');
+// const wasmBuffer = fs.readFileSync(wasmPath);
+// await initWasm({ module_or_path: wasmBuffer });
 
-await initWasm({ module_or_path: wasmBuffer });
+await initWasm();
 await initConfig();
 
 export default {

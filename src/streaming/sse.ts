@@ -1,12 +1,12 @@
-import { gemini_cli_resp_to_gemini_resp, default_stream_state, TargetType, gemini_cli_stream_wrapper_convert, openai_stream_wrapper_convert, claude_stream_wrapper_convert } from "../../pkg/converter_wasm.js";
+import { claudeStreamWrapperConvertTo, geminiCliResponseConvertToGeminiResponse, geminiCliStreamWrapperConvertTo, getDefaultStreamState, openaiStreamWrapperConvertTo, TargetType } from "converter-wasm";
 
 const responseConvert = (wrapper: any, sourceType: TargetType, targetType: TargetType) => {
     if (sourceType === TargetType.GeminiCli) {
-        return gemini_cli_stream_wrapper_convert(wrapper, targetType);
+        return geminiCliStreamWrapperConvertTo(wrapper, targetType);
     } else if (sourceType === TargetType.OpenAI) {
-        return openai_stream_wrapper_convert(wrapper, targetType);
+        return openaiStreamWrapperConvertTo(wrapper, targetType);
     } else if (sourceType === TargetType.Claude) {
-        return claude_stream_wrapper_convert(wrapper, targetType);
+        return claudeStreamWrapperConvertTo(wrapper, targetType);
     }
 }
 
@@ -16,7 +16,7 @@ export const StreamEvent = async (stream: any, response: Response, sourceType: T
     }
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-    let state = default_stream_state();
+    let state = getDefaultStreamState();
     let buffer = '';
     while (true) {
         const { done, value } = await reader.read();
@@ -41,7 +41,6 @@ export const StreamEvent = async (stream: any, response: Response, sourceType: T
                     state = streams_wrapper.state;
                     let chunks = streams_wrapper.chunks;
                     for (const chunk of chunks) {
-                        // console.log(JSON.stringify(chunk));
                         stream.writeSSE({
                             event: chunk.type,
                             data: JSON.stringify(chunk),
@@ -63,7 +62,6 @@ export const StreamEvent = async (stream: any, response: Response, sourceType: T
             state = streams_wrapper.inner;
             let chunks = streams_wrapper.chunks;
             for (const chunk of chunks) {
-                // console.log(JSON.stringify(chunk));
                 stream.writeSSE({
                     event: chunk.type,
                     data: JSON.stringify(chunk),
@@ -73,7 +71,7 @@ export const StreamEvent = async (stream: any, response: Response, sourceType: T
     }
 }
 
-export const geminiCliResponseConvert = async (stream: any, response: Response) => {
+export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (stream: any, response: Response) => {
     if (!response.body) {
         return;
     }
@@ -95,7 +93,7 @@ export const geminiCliResponseConvert = async (stream: any, response: Response) 
             if (line.startsWith('data:')) {
                 const data = line.substring(5).trim();
                 if (data) {
-                    const responseData = gemini_cli_resp_to_gemini_resp(JSON.parse(data));
+                    const responseData = geminiCliResponseConvertToGeminiResponse(JSON.parse(data));
                     stream.writeSSE({
                         data: JSON.stringify(responseData),
                     })
@@ -107,7 +105,7 @@ export const geminiCliResponseConvert = async (stream: any, response: Response) 
     if (buffer.startsWith('data:')) {
         const data = buffer.substring(5).trim();
         if (data) {
-            const responseData = gemini_cli_resp_to_gemini_resp(JSON.parse(data));
+            const responseData = geminiCliResponseConvertToGeminiResponse(JSON.parse(data));
             stream.writeSSE({
                 data: JSON.stringify(responseData),
             })

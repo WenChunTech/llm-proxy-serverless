@@ -1,8 +1,9 @@
-import { geminiCliPoller } from '../../config.js';
-import { GeminiCliConfig } from '../../types/config.js';
+import { geminiCliPoller } from '@/config.js';
+import { GeminiCliConfig } from '@/types/config.js';
 import { getAccessToken, fetchGeminiCLiStreamResponse, fetchGeminiCLiResponse } from './auth.js';
-import { fetchWithRetry } from '../../utils/fetch.js';
-import { convertToGeminiCliRequest, convertGeminiCliResponse, convertGeminiStreamResponse } from './adapter.js';
+import { fetchWithRetry } from '@/utils/fetch.js';
+import { convertToGeminiCliRequestTo, convertGeminiCliResponseTo, convertGeminiStreamResponseTo } from './adapter.js';
+import { TargetType } from 'converter-wasm';
 
 export class GeminiCliProvider {
     geminiConfig: GeminiCliConfig;
@@ -12,8 +13,12 @@ export class GeminiCliProvider {
         this.projectCounter = 0;
     }
 
-    async convertRequest(body: any, source: any) {
-        return convertToGeminiCliRequest(body, source);
+    getProviderType() {
+        return TargetType.GeminiCli
+    }
+
+    async convertRequestTo(body: any, source: any) {
+        return convertToGeminiCliRequestTo(body, source);
     }
 
     async fetchResponse(is_streaming: boolean, reqData: any) {
@@ -34,11 +39,11 @@ export class GeminiCliProvider {
         }
     }
 
-    async convertResponse(c: any, response: any, target: any) {
-        return convertGeminiCliResponse(c, response, target);
+    async convertResponseTo(c: any, response: Response, target: any) {
+        return convertGeminiCliResponseTo(c, response, target);
     }
 
-    async convertStreamResponse(stream: any, response: any, target: any) {
-        return convertGeminiStreamResponse(stream, response, target);
+    async convertStreamResponseTo(stream: any, response: Response, target: any) {
+        return convertGeminiStreamResponseTo(stream, response, target);
     }
 }

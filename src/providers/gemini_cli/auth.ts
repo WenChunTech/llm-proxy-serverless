@@ -1,6 +1,6 @@
 import { OAuth2Client } from 'google-auth-library';
-import { GeminiCliAuth } from '../../types/config';
-import { appConfig, updateConfig } from '../../config';
+import { GeminiCliAuth } from '@/types/config';
+import { appConfig, updateConfig } from '@/config';
 
 const OAUTH_CLIENT_ID = '681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com';
 const OAUTH_CLIENT_SECRET = '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';

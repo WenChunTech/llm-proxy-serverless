@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
-import { streamSSE } from "hono/streaming";
 import { serveStatic } from 'hono/bun';
-import { TargetType } from '../pkg/converter_wasm.js';
-import { getProvider } from './providers/factory.js';
+import { TargetType } from 'converter-wasm';
+import { handleModelRequest } from '@/utils/routeHandlers.js';
+import { getModelsResponse } from '@/services/models.js';
 
 const app = new Hono();
 
@@ -17,51 +17,19 @@ app.use(async (c, next) => {
 app.use('/*', serveStatic({ root: './public' }))
 
 app.post("/v1/chat/completions", async (c) => {
-  const body = await c.req.json();
-  const is_streaming = body.stream;
-  const model = body.model;
-  const provider = getProvider(model);
-  const req: any = await provider.convertRequest(body, TargetType.OpenAI);
-  const resp = await provider.fetchResponse(is_streaming, req);
-  if (is_streaming) {
-    return streamSSE(c, async (stream) => {
-      return provider.convertStreamResponse(stream, resp, TargetType.OpenAI);
-    });
-  }
-  return provider.convertResponse(c, resp, TargetType.OpenAI);
-
+  return handleModelRequest(c, TargetType.OpenAI);
 });
 
 app.post("/v1beta/models/:modelName", async (c) => {
-  const path = c.req.param("modelName");
-  const model = path.split(":")[0];
-  const is_streaming = path.split(":")[1] === "streamGenerateContent";
-  const body = await c.req.json();
-  body.model = model;
-  const provider = getProvider(model);
-  const req: any = await provider.convertRequest(body, TargetType.Gemini);
-  const resp = await provider.fetchResponse(is_streaming, req);
-  if (is_streaming) {
-    return streamSSE(c, async (stream) => {
-      return provider.convertStreamResponse(stream, resp, TargetType.Gemini);
-    });
-  }
-  return provider.convertResponse(c, resp, TargetType.Gemini);
+  return handleModelRequest(c, TargetType.Gemini);
 });
 
 app.post("/v1/messages", async (c) => {
-  const body = await c.req.json();
-  const model = body.model;
-  const is_streaming = body.stream;
-  const provider = getProvider(model);
-  const req: any = await provider.convertRequest(body, TargetType.Claude);
-  const resp = await provider.fetchResponse(is_streaming, req);
-  if (is_streaming) {
-    return streamSSE(c, async (stream) => {
-      return provider.convertStreamResponse(stream, resp, TargetType.Claude);
-    });
-  }
-  return provider.convertResponse(c, resp, TargetType.Claude);
+  return handleModelRequest(c, TargetType.Claude);
+});
+
+app.get("/v1/models", async (c) => {
+  return getModelsResponse(c);
 });
 
 export default app;

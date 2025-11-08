@@ -1,6 +1,7 @@
-import { fetchWithRetry } from '../../utils/fetch.js';
-import { claudePoller } from '../../config.js';
-import { convertToClaudeRequest, convertClaudeResponse, convertClaudeStreamResponse } from './adapter.js';
+import { fetchWithRetry } from '@/utils/fetch.js';
+import { claudePoller } from '@/config.js';
+import { convertToClaudeRequestTo, convertClaudeResponseTo, convertClaudeStreamResponseTo } from './adapter.js';
+import { TargetType } from 'converter-wasm';
 
 export class ClaudeProvider {
     apiKey: string;
@@ -9,11 +10,15 @@ export class ClaudeProvider {
     constructor() {
         const claudeConfig = claudePoller.getNext();
         this.apiKey = claudeConfig.api_key;
-        this.baseUrl = claudeConfig.base_url || 'https://api.anthropic.com';
+        this.baseUrl = claudeConfig.base_url;
     }
 
-    async convertRequest(body: any, source: any) {
-        return convertToClaudeRequest(body, source);
+    getProviderType() {
+        return TargetType.Claude;
+    }
+
+    async convertRequestTo(body: any, source: any) {
+        return convertToClaudeRequestTo(body, source);
     }
 
     async fetchResponse(is_streaming: boolean, reqData: any) {
@@ -34,11 +39,11 @@ export class ClaudeProvider {
         return fetchWithRetry(fetcher, {});
     }
 
-    async convertResponse(c: any, response: any, target: any) {
-        return convertClaudeResponse(c, response, target);
+    async convertResponseTo(c: any, response: Response, target: any) {
+        return convertClaudeResponseTo(c, response, target);
     }
 
-    async convertStreamResponse(stream: any, response: any, target: any) {
-        return convertClaudeStreamResponse(stream, response, target);
+    async convertStreamResponseTo(stream: any, response: Response, target: any) {
+        return convertClaudeStreamResponseTo(stream, response, target);
     }
 }

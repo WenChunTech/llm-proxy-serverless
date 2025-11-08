@@ -1,10 +1,10 @@
-import { PROVIDERS } from './_base';
-import { GeminiCliProvider } from './gemini_cli';
-import { OpenAIProvider } from './openai';
-import { ClaudeProvider } from './claude';
-import { QwenProvider } from './qwen';
-import { appConfig } from '../config';
-import { QwenConfig, OpenAIConfig, ClaudeConfig, GeminiCliConfig } from '../types/config';
+import { PROVIDERS } from '@/providers/_base';
+import { GeminiCliProvider } from '@/providers/gemini_cli';
+import { OpenAIProvider } from '@/providers/openai';
+import { ClaudeProvider } from '@/providers/claude';
+import { QwenProvider } from '@/providers/qwen';
+import { appConfig } from '@/config';
+import { QwenConfig, OpenAIConfig, ClaudeConfig, GeminiCliConfig } from '@/types/config';
 
 const providerClasses = {
   [PROVIDERS.GEMINICLI]: GeminiCliProvider,
@@ -120,6 +120,6 @@ export function getProvider(model: string) {
       throw new Error(`Provider class not found for provider: ${providerName}`);
     }
   }
-
+  console.log(`Selected provider for model ${model}: ${providerName}`);
   return providerInstances[providerName];
 }

@@ -1,6 +1,7 @@
-import { fetchWithRetry } from '../../utils/fetch.js';
-import { openAIPoller } from '../../config.js';
-import { convertToOpenAIRequest, convertOpenAIResponse, convertOpenAIStreamResponse } from './adapter.js';
+import { fetchWithRetry } from '@/utils/fetch.js';
+import { openAIPoller } from '@/config.js';
+import { convertToOpenAIRequestTo, convertOpenAIResponseTo, convertOpenAIStreamResponseTo } from './adapter.js';
+import { TargetType } from 'converter-wasm';
 
 export class OpenAIProvider {
     apiKey: string;
@@ -12,8 +13,12 @@ export class OpenAIProvider {
         this.baseUrl = openaiConfig.base_url;
     }
 
-    async convertRequest(body: any, source: any) {
-        return convertToOpenAIRequest(body, source);
+    getProviderType() {
+        return TargetType.OpenAI;
+    }
+
+    async convertRequestTo(body: any, source: any) {
+        return convertToOpenAIRequestTo(body, source);
     }
 
     async fetchResponse(_is_streaming: boolean, reqData: any) {
@@ -32,11 +37,11 @@ export class OpenAIProvider {
         return fetchWithRetry(fetcher, {});
     }
 
-    async convertResponse(c: any, response: any, target: any) {
-        return convertOpenAIResponse(c, response, target);
+    async convertResponseTo(c: any, response: Response, target: any) {
+        return convertOpenAIResponseTo(c, response, target);
     }
 
-    async convertStreamResponse(stream: any, response: any, target: any) {
-        return convertOpenAIStreamResponse(stream, response, target);
+    async convertStreamResponseTo(stream: any, response: Response, target: any) {
+        return convertOpenAIStreamResponseTo(stream, response, target);
     }
 }

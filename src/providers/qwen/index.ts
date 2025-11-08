@@ -1,6 +1,7 @@
-import { fetchWithRetry } from '../../utils/fetch.js';
-import { qwenPoller } from '../../config.js';
+import { fetchWithRetry } from '@/utils/fetch.js';
+import { qwenPoller } from '@/config.js';
 import { convertToQwenRequest, convertQwenResponse, convertQwenStreamResponse } from './adapter.js';
+import { TargetType } from 'converter-wasm';
 
 export class QwenProvider {
     constructor() { }
@@ -8,6 +9,10 @@ export class QwenProvider {
 
     async convertRequest(body: any, source: any) {
         return convertToQwenRequest(body, source);
+    }
+
+    getProviderType() {
+        return TargetType.OpenAI;
     }
 
     async fetchResponse(is_streaming: boolean, reqData: any) {

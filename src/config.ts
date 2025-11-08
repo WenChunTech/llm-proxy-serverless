@@ -1,7 +1,7 @@
 import fs from 'fs';
-import { getCredentials, updateCredentials } from './services/credentials.js';
-import { Config, GeminiCliConfig, QwenConfig, OpenAIConfig, ClaudeConfig } from './types/config.js';
-import Poller from './services/polling.js';
+import { getCredentials, updateCredentials } from '@/services/credentials.js';
+import { Config, GeminiCliConfig, QwenConfig, OpenAIConfig, ClaudeConfig } from '@/types/config.js';
+import Poller from '@/services/polling.js';
 
 export let appConfig: Config = {
     gemini_cli: [],
@@ -51,11 +51,13 @@ export const initConfig = async (force: boolean = false) => {
 export const updateConfig = async (config: Config) => {
     try {
         await fs.promises.access('config.json');
-        await fs.promises.writeFile('config.json', JSON.stringify(config, null, 4));
+        await fs.promises.writeFile('config.json', JSON.stringify(config));
+        console.log("Succeed save new config to config.json");
+
     } catch (e) {
         await updateCredentials(APP_CONFIG, JSON.stringify(config));
+        console.log("Succeed save new config to kv");
     }
     appConfig = config;
-    // Re-initialize pollers with new config
     await initConfig(true);
 }

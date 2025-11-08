@@ -192,8 +192,8 @@ function takeFromExternrefTable0(idx) {
  * @param {TargetType} target
  * @returns {any}
  */
-export function gemini_stream_warpper_convert(resp, target) {
-    const ret = wasm.gemini_stream_warpper_convert(resp, target);
+export function geminiStreamWrapperConvertTo(resp, target) {
+    const ret = wasm.geminiStreamWrapperConvertTo(resp, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -204,109 +204,8 @@ export function gemini_stream_warpper_convert(resp, target) {
  * @param {any} resp
  * @returns {any}
  */
-export function gemini_cli_resp_to_gemini_resp(resp) {
-    const ret = wasm.gemini_cli_resp_to_gemini_resp(resp);
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
-    }
-    return takeFromExternrefTable0(ret[0]);
-}
-
-/**
- * @param {any} resp
- * @param {TargetType} target
- * @returns {any}
- */
-export function gemini_cli_stream_wrapper_convert(resp, target) {
-    const ret = wasm.gemini_cli_stream_wrapper_convert(resp, target);
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
-    }
-    return takeFromExternrefTable0(ret[0]);
-}
-
-/**
- * @returns {any}
- */
-export function default_stream_state() {
-    const ret = wasm.default_stream_state();
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
-    }
-    return takeFromExternrefTable0(ret[0]);
-}
-
-/**
- * @param {any} req
- * @param {TargetType} target
- * @returns {any}
- */
-export function gemini_request_convert(req, target) {
-    const ret = wasm.gemini_request_convert(req, target);
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
-    }
-    return takeFromExternrefTable0(ret[0]);
-}
-
-/**
- * @param {any} req
- * @param {TargetType} target
- * @returns {any}
- */
-export function claude_response_convert(req, target) {
-    const ret = wasm.claude_response_convert(req, target);
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
-    }
-    return takeFromExternrefTable0(ret[0]);
-}
-
-/**
- * @param {any} req
- * @param {TargetType} target
- * @returns {any}
- */
-export function gemini_cli_response_convert(req, target) {
-    const ret = wasm.gemini_cli_response_convert(req, target);
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
-    }
-    return takeFromExternrefTable0(ret[0]);
-}
-
-/**
- * @param {any} req
- * @param {TargetType} target
- * @returns {any}
- */
-export function openai_response_convert(req, target) {
-    const ret = wasm.openai_response_convert(req, target);
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
-    }
-    return takeFromExternrefTable0(ret[0]);
-}
-
-/**
- * @param {any} req
- * @returns {any}
- */
-export function gemini_req_convert_to_gemini_cli_req(req) {
-    const ret = wasm.gemini_req_convert_to_gemini_cli_req(req);
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
-    }
-    return takeFromExternrefTable0(ret[0]);
-}
-
-/**
- * @param {any} req
- * @param {TargetType} target
- * @returns {any}
- */
-export function openai_request_convert(req, target) {
-    const ret = wasm.openai_request_convert(req, target);
+export function geminiCliResponseConvertToGeminiResponse(resp) {
+    const ret = wasm.geminiCliResponseConvertToGeminiResponse(resp);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -318,8 +217,19 @@ export function openai_request_convert(req, target) {
  * @param {TargetType} target
  * @returns {any}
  */
-export function openai_stream_wrapper_convert(resp, target) {
-    const ret = wasm.openai_stream_wrapper_convert(resp, target);
+export function geminiCliStreamWrapperConvertTo(resp, target) {
+    const ret = wasm.geminiCliStreamWrapperConvertTo(resp, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @returns {any}
+ */
+export function getDefaultStreamState() {
+    const ret = wasm.getDefaultStreamState();
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -331,8 +241,72 @@ export function openai_stream_wrapper_convert(resp, target) {
  * @param {TargetType} target
  * @returns {any}
  */
-export function gemini_response_convert(req, target) {
-    const ret = wasm.gemini_response_convert(req, target);
+export function geminiRequestConvertTo(req, target) {
+    const ret = wasm.geminiRequestConvertTo(req, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} req
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function claudeResponseConvertTo(req, target) {
+    const ret = wasm.claudeResponseConvertTo(req, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} req
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function geminiCliResponseConvertTo(req, target) {
+    const ret = wasm.geminiCliResponseConvertTo(req, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} req
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function openaiResponseConvertTo(req, target) {
+    const ret = wasm.openaiResponseConvertTo(req, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} req
+ * @returns {any}
+ */
+export function geminiRequestConvertToGeminiCliRequest(req) {
+    const ret = wasm.geminiRequestConvertToGeminiCliRequest(req);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} req
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function openaiRequestConvertTo(req, target) {
+    const ret = wasm.openaiRequestConvertTo(req, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -344,8 +318,8 @@ export function gemini_response_convert(req, target) {
  * @param {TargetType} target
  * @returns {any}
  */
-export function claude_stream_wrapper_convert(resp, target) {
-    const ret = wasm.claude_stream_wrapper_convert(resp, target);
+export function openaiStreamWrapperConvertTo(resp, target) {
+    const ret = wasm.openaiStreamWrapperConvertTo(resp, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -357,8 +331,34 @@ export function claude_stream_wrapper_convert(resp, target) {
  * @param {TargetType} target
  * @returns {any}
  */
-export function claude_request_convert(req, target) {
-    const ret = wasm.claude_request_convert(req, target);
+export function geminiResponseConvertTo(req, target) {
+    const ret = wasm.geminiResponseConvertTo(req, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} resp
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function claudeStreamWrapperConvertTo(resp, target) {
+    const ret = wasm.claudeStreamWrapperConvertTo(resp, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} req
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function claudeRequestConvertTo(req, target) {
+    const ret = wasm.claudeRequestConvertTo(req, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
