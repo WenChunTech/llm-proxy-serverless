@@ -9,6 +9,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@hono/node-server": "^1.19.6",
     "@upstash/redis": "^1.35.6",
     "converter-wasm": "./pkg",
     "google-auth-library": "^10.4.1",

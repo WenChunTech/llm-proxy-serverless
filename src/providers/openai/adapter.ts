@@ -4,6 +4,7 @@ import { StreamEvent } from '../../streaming/sse.js';
 export function convertToOpenAIRequestTo(body: any, source: any) {
     switch (source) {
         case TargetType.Claude:
+            console.log(JSON.stringify(body));
             return claudeRequestConvertTo(body, TargetType.OpenAI);
         case TargetType.Gemini:
             return geminiRequestConvertTo(body, TargetType.OpenAI);

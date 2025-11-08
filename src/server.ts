@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
-import { serveStatic } from 'hono/bun';
 import { TargetType } from 'converter-wasm';
+import { serveStatic } from '@hono/node-server/serve-static'
+
 import { handleModelRequest } from './utils/routeHandlers.js';
 import { getModelsResponse } from './services/models.js';
 
