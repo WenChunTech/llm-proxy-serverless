@@ -19,14 +19,10 @@ export let qwenPoller: Poller<QwenConfig>;
 export let openAIPoller: Poller<OpenAIConfig>;
 export let claudePoller: Poller<ClaudeConfig>;
 
-export const initConfig = async (force: boolean = false) => {
-    if (appConfig && !force && appConfig.gemini_cli.length > 0) {
-        return;
-    }
-
+export const initConfig = async () => {
     let loadedConfig: any;
     if (fs.existsSync(CONFIG_FILE)) {
-        const fileContent = await fs.promises.readFile(CONFIG_FILE, 'utf-8');
+        const fileContent = fs.readFileSync(CONFIG_FILE, 'utf-8');
         loadedConfig = JSON.parse(fileContent);
         console.log("Load config from config.json Successfully");
     } else {
@@ -47,13 +43,12 @@ export const initConfig = async (force: boolean = false) => {
 
 
 export const updateConfig = async (config: Config) => {
-    if (!fs.existsSync(CONFIG_FILE)) {
-        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(config));
+    if (fs.existsSync(CONFIG_FILE)) {
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(config));
         console.log("Saved new config to config.json Successfully");
     } else {
-        await updateCredentials(APP_CONFIG, JSON.stringify(config));
+        updateCredentials(APP_CONFIG, JSON.stringify(config));
         console.log("Saved new config to kv store Successfully");
     }
     appConfig = config;
-    await initConfig(true);
 }

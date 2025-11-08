@@ -6,8 +6,12 @@ import { serveStatic } from '@hono/node-server/serve-static'
 
 import { handleModelRequest } from './utils/routeHandlers.js';
 import { getModelsResponse } from './services/models.js';
+import { initMiddleware } from './middleware/init.js';
 
 const app = new Hono();
+
+// init middleware
+app.use('*', initMiddleware);
 
 // cors
 app.use(async (c, next) => {

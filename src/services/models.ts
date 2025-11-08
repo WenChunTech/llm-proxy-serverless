@@ -19,7 +19,6 @@ export function getModelsResponse(c: Context): Response {
 
 export function collectAllModels(): ModelInfo[] {
   const models: ModelInfo[] = [];
-  console.log(appConfig);
 
   if (appConfig.gemini_cli) {
     appConfig.gemini_cli.forEach(config => {
