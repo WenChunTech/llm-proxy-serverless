@@ -1,5 +1,5 @@
-import app from './server';
-import { initConfig } from './config';
+import app from './server.js';
+import { initConfig } from './config.js';
 import initWasm from 'converter-wasm';
 import fs from 'fs';
 import path from 'path';
