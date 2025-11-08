@@ -1,7 +1,7 @@
 import fs from 'fs';
-import { getCredentials, updateCredentials } from 'src/services/credentials.js';
-import { Config, GeminiCliConfig, QwenConfig, OpenAIConfig, ClaudeConfig } from 'src/types/config.js';
-import Poller from 'src/services/polling.js';
+import { getCredentials, updateCredentials } from './services/credentials.js';
+import { Config, GeminiCliConfig, QwenConfig, OpenAIConfig, ClaudeConfig } from './types/config.js';
+import Poller from './services/polling.js';
 
 export let appConfig: Config = {
     gemini_cli: [],

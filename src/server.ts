@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/bun';
 import { TargetType } from 'converter-wasm';
-import { handleModelRequest } from 'src/utils/routeHandlers.js';
-import { getModelsResponse } from 'src/services/models.js';
+import { handleModelRequest } from './utils/routeHandlers.js';
+import { getModelsResponse } from './services/models.js';
 
 const app = new Hono();
 

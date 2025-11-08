@@ -1,7 +1,7 @@
 import { Context } from 'hono';
 import { streamSSE } from "hono/streaming";
 import { TargetType } from 'converter-wasm';
-import { getProvider } from 'src/providers/factory.js';
+import { getProvider } from '../providers/factory.js';
 
 function proxyResponse(response: Response) {
   const newHeaders = new Headers(response.headers);

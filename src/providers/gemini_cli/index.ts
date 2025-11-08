@@ -1,7 +1,7 @@
-import { geminiCliPoller } from 'src/config.js';
-import { GeminiCliConfig } from 'src/types/config.js';
+import { geminiCliPoller } from '../../config.js';
+import { GeminiCliConfig } from '../../types/config.js';
 import { getAccessToken, fetchGeminiCLiStreamResponse, fetchGeminiCLiResponse } from './auth.js';
-import { fetchWithRetry } from 'src/utils/fetch.js';
+import { fetchWithRetry } from '../../utils/fetch.js';
 import { convertToGeminiCliRequestTo, convertGeminiCliResponseTo, convertGeminiStreamResponseTo } from './adapter.js';
 import { TargetType } from 'converter-wasm';
 

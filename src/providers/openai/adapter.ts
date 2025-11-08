@@ -1,5 +1,5 @@
 import { claudeRequestConvertTo, geminiRequestConvertTo, openaiResponseConvertTo, TargetType } from 'converter-wasm';
-import { StreamEvent } from 'src/streaming/sse.js';
+import { StreamEvent } from '../../streaming/sse.js';
 
 export function convertToOpenAIRequestTo(body: any, source: any) {
     switch (source) {
