@@ -1,5 +1,5 @@
 import { Context } from 'hono';
-import { appConfig } from '@/config.js';
+import { appConfig } from 'src/config.js';
 
 export interface ModelInfo {
   id: string;
