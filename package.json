@@ -3,7 +3,9 @@
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "deploy": "npx wrangler deploy src/index.ts",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+    "build": "bun build src/index.ts --target bun --outdir dist",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "start": "bun src/index.ts"
   },
   "type": "module",
   "dependencies": {

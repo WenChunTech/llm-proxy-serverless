@@ -1,0 +1,17 @@
+{
+  "builds": [
+    {
+      "src": "dist/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "outputDirectory": "dist",
+  "installCommand": "bun install",
+  "buildCommand": "bun run build",
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "dist/index.js"
+    }
+  ]
+}
