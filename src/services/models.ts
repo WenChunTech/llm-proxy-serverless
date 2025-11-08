@@ -14,14 +14,12 @@ export function getModelsResponse(c: Context): Response {
     object: "list",
     data: allModels
   };
-  const cache_control = c.req.header("Cache-Control") ?? "no-store,no-cache,must-revalidate,max-age=0";
-  return c.json(response, 200, {
-    "Cache-Control": cache_control
-  });
+  return c.json(response, 200);
 }
 
 export function collectAllModels(): ModelInfo[] {
   const models: ModelInfo[] = [];
+  console.log(appConfig);
 
   if (appConfig.gemini_cli) {
     appConfig.gemini_cli.forEach(config => {

@@ -26,11 +26,12 @@ export const initConfig = async (force: boolean = false) => {
 
     let loadedConfig: any;
     if (fs.existsSync(CONFIG_FILE)) {
-        await fs.promises.access(CONFIG_FILE);
         const fileContent = await fs.promises.readFile(CONFIG_FILE, 'utf-8');
         loadedConfig = JSON.parse(fileContent);
+        console.log("Load config from config.json Successfully");
     } else {
         loadedConfig = await getCredentials(APP_CONFIG);
+        console.log("Load config from kv store Successfully");
     }
 
     if (loadedConfig) {
@@ -46,11 +47,10 @@ export const initConfig = async (force: boolean = false) => {
 
 
 export const updateConfig = async (config: Config) => {
-    try {
-        await fs.promises.access(CONFIG_FILE);
+    if (!fs.existsSync(CONFIG_FILE)) {
         await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(config));
         console.log("Saved new config to config.json Successfully");
-    } catch (e) {
+    } else {
         await updateCredentials(APP_CONFIG, JSON.stringify(config));
         console.log("Saved new config to kv store Successfully");
     }
