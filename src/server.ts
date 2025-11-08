@@ -1,6 +1,9 @@
+import path from 'path';
+
 import { Hono } from 'hono';
 import { TargetType } from 'converter-wasm';
 import { serveStatic } from '@hono/node-server/serve-static'
+
 
 import { handleModelRequest } from './utils/routeHandlers.js';
 import { getModelsResponse } from './services/models.js';
@@ -15,7 +18,12 @@ app.use(async (c, next) => {
   await next();
 });
 
-app.use('/*', serveStatic({ root: './public' }))
+const __filename = new URL(import.meta.url).pathname;
+const __dirname = path.dirname(__filename);
+
+app.use('/*', serveStatic({
+  root: path.join(__dirname, '../public')
+}))
 
 app.post("/v1/chat/completions", async (c) => {
   return handleModelRequest(c, TargetType.OpenAI);

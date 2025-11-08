@@ -11,6 +11,7 @@ export let appConfig: Config = {
     model_priority: [],
 };
 export const APP_CONFIG = "APP_CONFIG";
+const CONFIG_FILE = "config.json";
 
 export let geminiCliPoller: Poller<GeminiCliConfig>;
 export let geminiCliProjectsPoller: Poller<string>;
@@ -19,26 +20,22 @@ export let openAIPoller: Poller<OpenAIConfig>;
 export let claudePoller: Poller<ClaudeConfig>;
 
 export const initConfig = async (force: boolean = false) => {
-    if (appConfig && !force && appConfig.gemini_cli.length > 0) { // Check if already initialized
+    if (appConfig && !force && appConfig.gemini_cli.length > 0) {
         return;
     }
 
     let loadedConfig: any;
-    try {
-        await fs.promises.access('config.json');
-        const fileContent = await fs.promises.readFile('config.json', 'utf-8');
+    if (fs.existsSync(CONFIG_FILE)) {
+        await fs.promises.access(CONFIG_FILE);
+        const fileContent = await fs.promises.readFile(CONFIG_FILE, 'utf-8');
         loadedConfig = JSON.parse(fileContent);
-    } catch (e) {
-        const configStr = await getCredentials(APP_CONFIG);
-        if (configStr && typeof configStr === 'string') {
-            loadedConfig = JSON.parse(configStr);
-        }
+    } else {
+        loadedConfig = await getCredentials(APP_CONFIG);
     }
 
     if (loadedConfig) {
         appConfig = { ...appConfig, ...loadedConfig };
     }
-
     geminiCliPoller = new Poller(appConfig.gemini_cli || []);
     const allProjects = appConfig.gemini_cli.flatMap(c => c.projects);
     geminiCliProjectsPoller = new Poller(allProjects || []);
@@ -50,13 +47,12 @@ export const initConfig = async (force: boolean = false) => {
 
 export const updateConfig = async (config: Config) => {
     try {
-        await fs.promises.access('config.json');
-        await fs.promises.writeFile('config.json', JSON.stringify(config));
-        console.log("Succeed save new config to config.json");
-
+        await fs.promises.access(CONFIG_FILE);
+        await fs.promises.writeFile(CONFIG_FILE, JSON.stringify(config));
+        console.log("Saved new config to config.json Successfully");
     } catch (e) {
         await updateCredentials(APP_CONFIG, JSON.stringify(config));
-        console.log("Succeed save new config to kv");
+        console.log("Saved new config to kv store Successfully");
     }
     appConfig = config;
     await initConfig(true);
