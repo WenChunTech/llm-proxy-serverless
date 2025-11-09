@@ -13,7 +13,8 @@ LLM Proxy 是一个用 TypeScript 和 Hono 构建的轻量级代理服务器。�
 *   **流式支持**: 完全支持通过服务器发送事件（SSE）进行流式响应。
 *   **可扩展的提供商架构**: 通过 `src/providers` 目录中的模块化提供商，可以轻松添加新的 LLM 提供商。
 *   **动态提供商选择**: 根据请求中指定的模型名称自动路由到相应的 LLM 提供商。
-*   **配置**: 通过 `config.json` 文件或环境变量进行简单的配置。
+*   **配置**: 通过 `config.json` 文件或KV数据库存储配置和密钥相关信息。
+*   ***转换***: 使用Rust打包的WASM进行请求和响应负载的高效转换。
 
 ## 快速入门
 
@@ -40,25 +41,43 @@ LLM Proxy 是一个用 TypeScript 和 Hono 构建的轻量级代理服务器。�
 2.  添加您的 LLM 提供商的 API 密钥和任何其他配置。该文件应遵循以下结构：
 
     ```json
-    {
-      "openai": {
-        "apiKey": "sk-..."
-      },
-      "gemini": {
-        "apiKey": "..."
-      },
-      "gemini_cli": {
-        "auth": false
-      },
-      "claude": {
-        "apiKey": "sk-ant-..."
-      },
-      "qwen": {
-        "apiKey": "sk-..."
-      }
-    }
+{
+    "gemini_cli": [
+        {
+            "projects": [],
+            "auth": {
+                "access_token": "",
+                "scope": "",
+                "token_type": "",
+                "expiry_date": 0,
+                "refresh_token": ""
+            },
+            "models": []
+        }
+    ],
+    "qwen": [
+        {
+            "auth": {},
+            "models": []
+        }
+    ],
+    "openai": [
+        {
+            "base_url": "",
+            "api_key": "",
+            "models": []
+        }
+    ],
+    "claude": [
+        {
+            "base_url": "",
+            "api_key": "",
+            "models": []
+        }
+    ],
+    "model_priority": []
+}
     ```
-    * `gemini_cli.auth`: 如果设置为 `true`，代理将尝试使用 `gcloud` CLI 工具进行身份验证。
 
 ### 运行服务器
 
@@ -82,13 +101,22 @@ bun run dev
 
 **示例请求:**
 ```bash
-curl -X POST http://localhost:3000/v1/chat/completions \
-     -H "Content-Type: application/json" \
-     -d '{
-       "model": "gemini-1.5-pro-latest",
-       "messages": [{"role": "user", "content": "你好！"}],
-       "stream": false
-     }'
+curl --request POST \
+  --url http://localhost:3000/v1/chat/completions \
+  --header 'content-type: application/json' \
+  --data '{
+    "model": "gemini-2.5-pro",
+    "temperature": 0,
+    "messages": [
+        {
+            "role": "user",
+            "content": "你是什么大模型？"
+        }
+    ],
+    "stream": false,
+    "stream_options": {
+        "include_usage": true
+    }
 ```
 
 ### Google Gemini 兼容端点
@@ -99,11 +127,21 @@ curl -X POST http://localhost:3000/v1/chat/completions \
 
 **示例请求:**
 ```bash
-curl -X POST http://localhost:3000/v1beta/models/gemini-1.5-pro-latest:generateContent \
-     -H "Content-Type: application/json" \
-     -d '{
-       "contents": [{"parts":[{"text":"你好！"}]}]
-     }'
+curl --request POST \
+  --url 'http://localhost:3000/v1beta/models/gemini-2.5-pro:streamGenerateContent?alt=sse' \
+  --header 'Content-Type: application/json' \
+  --header 'x-goog-api-key: ABCD-1234' \
+  --data '{
+    "contents": [
+        {
+            "parts": [
+                {
+                    "text": "你是什么大模型？"
+                }
+            ]
+        }
+    ]
+}'
 ```
 
 ### Anthropic Claude 兼容端点
@@ -114,37 +152,101 @@ curl -X POST http://localhost:3000/v1beta/models/gemini-1.5-pro-latest:generateC
 
 **示例请求:**
 ```bash
-curl -X POST http://localhost:3000/v1/messages \
-     -H "Content-Type: application/json" \
-     -d '{
-       "model": "claude-3-opus-20240229",
-       "max_tokens": 1024,
-       "messages": [{"role": "user", "content": "你好！"}],
-       "stream": false
-     }'
+curl --request POST \
+  --url http://localhost:3000/v1/messages \
+  --header 'content-type: application/json' \
+  --data '{
+    "max_tokens": 512,
+    "messages": [
+        {
+            "content": "你是什么大模型?",
+            "role": "user"
+        }
+    ],
+    "model": "gemini-2.5-pro",
+    "stream": true,
+    "system": [
+        {
+            "text": "Analyze if this message indicates a new conversation topic. If it does, extract a 2-3 word title that captures the new topic. Format your response as a JSON object with two fields: '\''isNewTopic'\'' (boolean) and '\''title'\'' (string, or null if isNewTopic is false). Only include these fields, no other text.",
+            "type": "text"
+        }
+    ],
+    "temperature": 0
+}'
 ```
 
 ## 项目结构
 
 ```
-llm-proxy/
-├── src/
-│   ├── providers/
-│   │   ├── _base/      # 基础提供商接口和模型映射
-│   │   ├── claude/     # Claude 提供商实现
-│   │   ├── gemini/     # Gemini 提供商实现
-│   │   ├── openai/     # OpenAI 提供商实现
-│   │   ├── qwen/       # Qwen 提供商实现
-│   │   └── factory.ts  # 基于模型名称实例化提供商
-│   ├── services/       # 用于凭据管理等服务的服务
-│   ├── config.ts       # 配置加载
-│   └── server.ts       # Hono 服务器和路由
-├── package.json        # 项目依赖和脚本
-└── tsconfig.json       # TypeScript 配置
+src
+|____middleware
+| |____init.ts
+|____types
+| |____config.ts
+|____providers
+| |____claude
+| | |____adapter.ts
+| | |____index.ts
+| |____qwen
+| | |____adapter.ts
+| | |____index.ts
+| |____factory.ts
+| |____gemini_cli
+| | |____adapter.ts
+| | |____index.ts
+| | |____auth.ts
+| |_____base
+| | |____index.ts
+| |____openai
+| | |____adapter.ts
+| | |____index.ts
+|____utils
+| |____routeHandlers.ts
+| |____fetch.ts
+|____streaming
+| |____sse.ts
+|____index.ts
+|____config.ts
+|____server.ts
+|____services
+| |____polling.ts
+| |____credentials.ts
+| |____models.ts
 ```
 
-## 主要依赖
+## 转换实现原理
 
-*   [Hono](https://hono.dev/): 用于构建 Web 应用程序的快速、轻量级的 Web 框架。
-*   [@upstash/redis](https://github.com/upstash/upstash-redis): 用于与 Upstash Redis 交互。
-*   [google-auth-library](https://github.com/googleapis/google-auth-library-nodejs): 用于 Google API 的身份验证。
+LLM Proxy 的核心价值在于其强大的协议转换能力。其基本原理是：**以 OpenAI 的 API 格式作为统一的中间表示层**。这意味着所有来自不同厂商（如 Google Gemini 或 Anthropic Claude）的请求都会首先被适配器转换为 OpenAI 格式，然后再转发给相应的 LLM 提供商。同样，从 LLM 提供商返回的响应也会被转换回原始请求所期望的格式（如果原始请求是 OpenAI 格式，则直接返回；如果是其他厂商格式，则先转换为该厂商的原生格式）。
+
+这种“OpenAI 居中”的策略带来了以下优势：
+*   **简化适配**: 只需为每个 LLM 提供商编写两个转换器（A -> OpenAI 和 OpenAI -> A），而不是为每对提供商之间编写独立的转换器，这大大减少了所需的适配器数量。
+*   **高度兼容**: OpenAI API 已成为行业事实标准，许多现有应用和工具都基于此。LLM Proxy 能够无缝兼容这些应用。
+*   **未来可扩展**: 添加新的 LLM 提供商时，只需实现其与 OpenAI 格式之间的转换逻辑即可。
+
+所有这些复杂的请求和响应负载转换，都通过 **Rust 编写并编译为 WebAssembly (WASM)** 的模块来高效完成。WASM 的使用确保了转换过程在高性能、低延迟的环境下运行，即使面对高并发的流式请求也能保持卓越表现。这种设计将计算密集型任务从 Node.js 主线程卸载，提供了接近原生的执行速度。
+
+## 请求转换适配
+
+WASM 模块提供了以下请求转换能力：
+1.  **Gemini -> OpenAI**:
+    *   文本内容
+    *   图片内容 (多模态)
+    *   函数调用 (将 Gemini 的函数调用转换为 OpenAI 格式)
+2.  **Claude -> OpenAI**:
+    *   文本内容
+    *   函数调用 (将 Claude 的函数调用转换为 OpenAI 格式)
+3.  **Qwen -> OpenAI**:
+    *   文本内容
+    *   图片内容 (多模态)
+
+## 响应转换适配
+
+WASM 模块提供了以下响应转换能力：
+1.  **OpenAI -> Gemini**:
+    *   文本内容
+    *   函数调用
+2.  **OpenAI -> Claude**:
+    *   文本内容
+    *   函数调用
+3.  **OpenAI -> Qwen**:
+    *   文本内容

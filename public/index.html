@@ -105,7 +105,7 @@
         <main>
             <div class="card">
                 <h2>项目概述</h2>
-                <p>LLM Proxy 是一个使用 TypeScript 和 Hono 构建的高性能、轻量级的代理服务器。它旨在为多个主流大型语言模型（LLM）提供商提供一个统一、兼容的 API 接口。通过协议转换的核心功能，开发者可以在不同的 LLM 服务之间无缝切换，而无需修改任何客户端代码。</p>
+                <p>LLM Proxy 是一个使用 TypeScript 和 Hono 构建的高性能、轻量级的代理服务器。它旨在为多个主流大型语言模型（LLM）提供商提供一个统一、兼容的 API 接口。通过协议转换的核心功能，开发者可以在不同的 LLM 服务之间无缝切换，而无需修改任何客户端代码。其核心的请求和响应转换逻辑由 **Rust 编写并编译为 WebAssembly (WASM)** 高效执行，确保了卓越的性能和低延迟。</p>
             </div>
 
             <div class="card">
@@ -136,13 +136,13 @@
 
             <div class="card">
                 <h2>实现细节</h2>
-                <p>项目后端采用 <strong>Hono</strong> 框架，这是一个为边缘计算环境设计的超快速 Web 框架，确保了代理服务器的低延迟和高吞吐量。</p>
+                <p>项目后端采用 <strong>Hono</strong> 框架，这是一个为边缘计算环境设计的超快速 Web 框架，确保了代理服务器的低延迟和高吞吐量。**请求和响应的协议转换由 Rust 编写并编译为 WebAssembly (WASM) 的模块高效完成**，这极大地提升了转换性能并减少了主线程的负担。</p>
                 <p>当收到一个 API 请求时 (例如，一个发往 <code>/v1/chat/completions</code> 的 OpenAI 格式请求), 代理执行以下步骤:</p>
                 <ol>
                     <li><strong>模型解析与提供商选择</strong>: 通过请求中的 <code>model</code> 字段 (如 <code>gemini-1.5-pro-latest</code>)，<code>factory.ts</code> 中的工厂函数会动态地选择并实例化对应的提供商 (例如 <code>GeminiProvider</code>)。</li>
-                    <li><strong>请求转换</strong>: 选定的提供商将传入的请求体 (例如 OpenAI 格式) 转换为其目标 LLM API 的原生格式。</li>
+                    <li><strong>请求转换 (WASM)</strong>: 选定的提供商会调用底层的 WASM 模块，将传入的请求体 (例如 OpenAI 格式) 转换为其目标 LLM API 的原生格式。</li>
                     <li><strong>请求转发与响应获取</strong>: 代理将转换后的请求发送到目标 LLM 提供商的 API 端点。</li>
-                    <li><strong>响应转换</strong>: 在收到 LLM 提供商的响应后，代理会将其转换回原始请求的格式 (例如 OpenAI 格式)。对于流式响应，此转换是实时逐块进行的。</li>
+                    <li><strong>响应转换 (WASM)</strong>: 在收到 LLM 提供商的响应后，代理会再次调用 WASM 模块，将其转换回原始请求所期望的格式 (例如 OpenAI 格式)。对于流式响应，此转换是实时逐块进行的，保证了低延迟。</li>
                 </ol>
             </div>
 
