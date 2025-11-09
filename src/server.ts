@@ -1,12 +1,12 @@
-import path from 'path';
+import * as path from 'node:path';
 
 import { Hono } from 'hono';
 import { TargetType } from 'converter-wasm';
 import { serveStatic } from '@hono/node-server/serve-static'
 
-import { handleModelRequest } from './utils/routeHandlers.js';
-import { getModelsResponse } from './services/models.js';
-import { initMiddleware } from './middleware/init.js';
+import { handleModelRequest } from './utils/routeHandlers.ts';
+import { getModelsResponse } from './services/models.ts';
+import { initMiddleware } from './middleware/init.ts';
 
 const app = new Hono();
 

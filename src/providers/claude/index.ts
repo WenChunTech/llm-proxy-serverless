@@ -1,6 +1,6 @@
-import { fetchWithRetry } from '../../utils/fetch.js';
-import { claudePoller } from '../../config.js';
-import { convertToClaudeRequestTo, convertClaudeResponseTo, convertClaudeStreamResponseTo } from './adapter.js';
+import { fetchWithRetry } from '../../utils/fetch.ts';
+import { claudePoller } from '../../config.ts';
+import { convertToClaudeRequestTo, convertClaudeResponseTo, convertClaudeStreamResponseTo } from './adapter.ts';
 import { TargetType } from 'converter-wasm';
 
 export class ClaudeProvider {

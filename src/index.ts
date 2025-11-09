@@ -1,4 +1,4 @@
-import app from './server.js'
+import app from './server.ts'
 
 export default {
   hostname: "0.0.0.0",

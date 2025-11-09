@@ -1,6 +1,6 @@
-import { fetchWithRetry } from '../../utils/fetch.js';
-import { openAIPoller } from '../../config.js';
-import { convertToOpenAIRequestTo, convertOpenAIResponseTo, convertOpenAIStreamResponseTo } from './adapter.js';
+import { fetchWithRetry } from '../../utils/fetch.ts';
+import { openAIPoller } from '../../config.ts';
+import { convertToOpenAIRequestTo, convertOpenAIResponseTo, convertOpenAIStreamResponseTo } from './adapter.ts';
 import { TargetType } from 'converter-wasm';
 
 export class OpenAIProvider {

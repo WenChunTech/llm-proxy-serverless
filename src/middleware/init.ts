@@ -1,9 +1,9 @@
 import { Context, Next } from 'hono';
-import { initConfig } from '../config.js';
+import { initConfig } from '../config.ts';
 import initWasm from 'converter-wasm';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 
 let isInitialized = false;

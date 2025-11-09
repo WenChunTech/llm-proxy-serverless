@@ -1,10 +1,10 @@
-import { PROVIDERS } from './_base/index.js';
-import { GeminiCliProvider } from './gemini_cli/index.js';
-import { OpenAIProvider } from './openai/index.js';
-import { ClaudeProvider } from './claude/index.js';
-import { QwenProvider } from './qwen/index.js';
-import { appConfig } from '../config.js';
-import { QwenConfig, OpenAIConfig, ClaudeConfig, GeminiCliConfig } from '../types/config.js';
+import { PROVIDERS } from './_base/index.ts';
+import { GeminiCliProvider } from './gemini_cli/index.ts';
+import { OpenAIProvider } from './openai/index.ts';
+import { ClaudeProvider } from './claude/index.ts';
+import { QwenProvider } from './qwen/index.ts';
+import { appConfig } from '../config.ts';
+import { QwenConfig, OpenAIConfig, ClaudeConfig, GeminiCliConfig } from '../types/config.ts';
 
 const providerClasses = {
   [PROVIDERS.GEMINICLI]: GeminiCliProvider,

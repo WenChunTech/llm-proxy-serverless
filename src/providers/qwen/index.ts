@@ -1,6 +1,6 @@
-import { fetchWithRetry } from '../../utils/fetch.js';
-import { qwenPoller } from '../../config.js';
-import { convertToQwenRequest, convertQwenResponse, convertQwenStreamResponse } from './adapter.js';
+import { fetchWithRetry } from '../../utils/fetch.ts';
+import { qwenPoller } from '../../config.ts';
+import { convertToQwenRequest, convertQwenResponse, convertQwenStreamResponse } from './adapter.ts';
 import { TargetType } from 'converter-wasm';
 
 export class QwenProvider {
