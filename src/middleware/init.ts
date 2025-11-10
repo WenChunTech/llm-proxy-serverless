@@ -1,6 +1,6 @@
 import { Context, Next } from 'hono';
 import { initConfig } from '../config.js';
-import initWasm from 'converter-wasm';
+import initWasm from '../../pkg/converter_wasm.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
