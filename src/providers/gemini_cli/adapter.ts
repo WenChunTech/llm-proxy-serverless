@@ -4,7 +4,7 @@ import {
     geminiCliResponseConvertTo,
     geminiRequestConvertToGeminiCliRequest,
     TargetType
-} from 'converter-wasm';
+} from '../../../pkg/converter_wasm.js';
 import { StreamEvent, geminiCliStreamResponseConvertToGeminiStreamResponse } from '../../streaming/sse.ts';
 
 export function convertToGeminiCliRequestTo(body: any, source: any) {

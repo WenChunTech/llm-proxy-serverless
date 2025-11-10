@@ -1,4 +1,4 @@
-import { TargetType } from 'converter-wasm';
+import { TargetType } from '../../../pkg/converter_wasm.js';
 
 export function convertToQwenRequest(body: any, source: any) {
     // Placeholder for Qwen request conversion

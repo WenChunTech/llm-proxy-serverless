@@ -1,7 +1,7 @@
 import * as path from 'node:path';
 
 import { Hono } from 'hono';
-import { TargetType } from 'converter-wasm';
+import { TargetType } from '../pkg/converter_wasm.js';
 import { serveStatic } from '@hono/node-server/serve-static'
 
 import { handleModelRequest } from './utils/routeHandlers.ts';

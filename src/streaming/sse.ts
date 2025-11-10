@@ -1,4 +1,4 @@
-import { claudeStreamWrapperConvertTo, geminiCliResponseConvertToGeminiResponse, geminiCliStreamWrapperConvertTo, getDefaultStreamState, openaiStreamWrapperConvertTo, TargetType } from "converter-wasm";
+import { claudeStreamWrapperConvertTo, geminiCliResponseConvertToGeminiResponse, geminiCliStreamWrapperConvertTo, getDefaultStreamState, openaiStreamWrapperConvertTo, TargetType } from "../../pkg/converter_wasm.js";
 
 const responseConvert = (wrapper: any, sourceType: TargetType, targetType: TargetType) => {
     if (sourceType === TargetType.GeminiCli) {

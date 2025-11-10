@@ -1,7 +1,7 @@
 import { fetchWithRetry } from '../../utils/fetch.ts';
 import { claudePoller } from '../../config.ts';
 import { convertToClaudeRequestTo, convertClaudeResponseTo, convertClaudeStreamResponseTo } from './adapter.ts';
-import { TargetType } from 'converter-wasm';
+import { TargetType } from '../../../pkg/converter_wasm.js';
 
 export class ClaudeProvider {
     apiKey: string;

@@ -15,6 +15,7 @@
     "baseUrl": "."
   },
   "include": [
+    "pkg/**/*",
     "src/**/*",
     "public/**/*"
   ],

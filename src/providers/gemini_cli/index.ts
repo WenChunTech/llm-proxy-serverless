@@ -3,7 +3,7 @@ import { GeminiCliConfig } from '../../types/config.ts';
 import { getAccessToken, fetchGeminiCLiStreamResponse, fetchGeminiCLiResponse } from './auth.ts';
 import { fetchWithRetry } from '../../utils/fetch.ts';
 import { convertToGeminiCliRequestTo, convertGeminiCliResponseTo, convertGeminiStreamResponseTo } from './adapter.ts';
-import { TargetType } from 'converter-wasm';
+import { TargetType } from '../../../pkg/converter_wasm.js';
 
 export class GeminiCliProvider {
     geminiConfig: GeminiCliConfig;

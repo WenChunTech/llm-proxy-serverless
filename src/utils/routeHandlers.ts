@@ -1,6 +1,6 @@
 import { Context } from 'hono';
 import { streamSSE } from "hono/streaming";
-import { TargetType } from 'converter-wasm';
+import { TargetType } from '../../pkg/converter_wasm.js';
 import { getProvider } from '../providers/factory.ts';
 
 function proxyResponse(response: Response) {
