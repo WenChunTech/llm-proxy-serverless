@@ -27,11 +27,16 @@ export const initConfig = async () => {
         console.log("Load config from config.json Successfully");
     } else {
         loadedConfig = await getCredentials(APP_CONFIG);
+        if (typeof loadedConfig === 'string') {
+            loadedConfig = JSON.parse(loadedConfig);
+            console.log("loadedConfig is string");
+
+        }
         console.log("Load config from kv store Successfully");
     }
 
     if (loadedConfig) {
-        appConfig = { ...appConfig, ...loadedConfig };
+        appConfig = loadedConfig;
     }
     geminiCliPoller = new Poller(appConfig.gemini_cli || []);
     const allProjects = appConfig.gemini_cli.flatMap(c => c.projects);

@@ -1,14 +1,15 @@
 import { fetchWithRetry } from '../../utils/fetch.ts';
 import { qwenPoller } from '../../config.ts';
-import { convertToQwenRequest, convertQwenResponse, convertQwenStreamResponse } from './adapter.ts';
 import { TargetType } from '../../../pkg/converter_wasm.js';
+import { convertToQwenRequestTo, convertQwenResponseTo, convertQwenStreamResponseTo } from './adapter.ts';
+import { getAccessToken } from './auth.ts';
 
 export class QwenProvider {
     constructor() { }
 
 
-    async convertRequest(body: any, source: any) {
-        return convertToQwenRequest(body, source);
+    async convertRequestTo(body: any, source: any) {
+        return convertToQwenRequestTo(body, source);
     }
 
     getProviderType() {
@@ -17,17 +18,12 @@ export class QwenProvider {
 
     async fetchResponse(is_streaming: boolean, reqData: any) {
         const qwenConfig = qwenPoller.getNext();
-        const apiKey = qwenConfig.api_key;
-        const endpoint = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation";
-
+        const token = await getAccessToken(qwenConfig.auth);
+        const endpoint = `https://${qwenConfig.auth.resource_url}/v1/chat/completions`;
         const headers: any = {
-            'Authorization': `Bearer ${apiKey}`,
+            'Authorization': `Bearer ${qwenConfig.auth.access_token}`,
             'Content-Type': 'application/json',
         };
-
-        if (is_streaming) {
-            headers['X-DashScope-SSE'] = 'enable';
-        }
 
         const fetcher = async () => fetch(endpoint, {
             method: 'POST',
@@ -38,11 +34,11 @@ export class QwenProvider {
         return fetchWithRetry(fetcher, {});
     }
 
-    async convertResponse(c: any, response: any, target: any) {
-        return convertQwenResponse(c, response, target);
+    async convertResponseTo(c: any, response: any, target: any) {
+        return convertQwenResponseTo(c, response, target);
     }
 
-    async convertStreamResponse(stream: any, response: any, target: any) {
-        return convertQwenStreamResponse(stream, response, target);
+    async convertStreamResponseTo(stream: any, response: any, target: any) {
+        return convertQwenStreamResponseTo(stream, response, target);
     }
 }

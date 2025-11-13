@@ -29,11 +29,15 @@ export async function handleModelRequest(
   }
   const provider = getProvider(model);
   const req: any = await provider.convertRequestTo(body, targetType);
-  if (targetType == TargetType.Gemini) {
+  if (provider.getProviderType() != TargetType.Gemini && provider.getProviderType() != TargetType.GeminiCli) {
     req.stream = is_streaming;
   }
 
-  const resp = await provider.fetchResponse(is_streaming, req);
+  const resp: Response = await provider.fetchResponse(is_streaming, req);
+  if (!resp.ok) {
+    return proxyResponse(resp);
+  }
+
   if (targetType == provider.getProviderType()) {
     return proxyResponse(resp);
   }

@@ -4,6 +4,7 @@
     "": {
       "name": "llm-proxy",
       "dependencies": {
+        "converter-wasm": "./pkg",
         "@hono/node-server": "^1.19.6",
         "@upstash/redis": "^1.35.6",
         "converter-wasm": "./pkg",
@@ -52,6 +53,8 @@
     "color-convert": ["color-convert@2.0.1", "https://registry.npmmirror.com/color-convert/-/color-convert-2.0.1.tgz", { "dependencies": { "color-name": "~1.1.4" } }, "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ=="],
 
     "color-name": ["color-name@1.1.4", "https://registry.npmmirror.com/color-name/-/color-name-1.1.4.tgz", {}, "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA=="],
+
+    "converter-wasm": ["converter-wasm@file:pkg", {}],
 
     "converter-wasm": ["converter-wasm@file:pkg", {}],
 
