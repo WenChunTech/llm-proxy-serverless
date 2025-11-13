@@ -1,17 +1,25 @@
-import { TargetType } from 'converter-wasm';
+import { claudeRequestConvertTo, geminiRequestConvertTo, openaiResponseConvertTo, TargetType } from 'converter-wasm';
+import { StreamEvent } from '../../streaming/sse.js';
 
-export function convertToQwenRequest(body: any, source: any) {
-    // Placeholder for Qwen request conversion
-    return body;
+export function convertToQwenRequestTo(body: any, source: any) {
+    switch (source) {
+        case TargetType.Claude:
+            return claudeRequestConvertTo(body, TargetType.OpenAI);
+        case TargetType.Gemini:
+            return geminiRequestConvertTo(body, TargetType.OpenAI);
+        case TargetType.OpenAI:
+            return body;
+        default:
+            throw new Error(`Unsupported source type for OpenAI provider: ${source}`);
+    }
 }
 
-export async function convertQwenResponse(c: any, response: any, target: any) {
-    // Placeholder for Qwen response conversion
+export async function convertQwenResponseTo(c: any, response: Response, target: any) {
     const data = await response.json();
-    return c.json(data);
+    const resp = openaiResponseConvertTo(data, target);
+    return c.json(resp)
 }
 
-export async function convertQwenStreamResponse(stream: any, response: any, target: any) {
-    // Placeholder for Qwen stream response conversion
-    return response.body;
+export async function convertQwenStreamResponseTo(stream: any, response: Response, target: any) {
+    return StreamEvent(stream, response, TargetType.OpenAI, target);
 }

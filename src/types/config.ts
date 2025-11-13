@@ -13,9 +13,20 @@ export interface GeminiCliConfig {
     models: string[];
 }
 
+export interface QwenAuth {
+    access_token: string;
+    refresh_token: string;
+    expiry_date: number;
+    status: string;
+    token_type: string;
+    expires_in: number;
+    scope: string;
+    resource_url: string;
+}
+
 export interface QwenConfig {
-    api_key: string;
     models: string[];
+    auth: QwenAuth;
 }
 
 export interface OpenAIConfig {

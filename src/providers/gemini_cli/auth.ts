@@ -40,6 +40,8 @@ async function refreshAccessToken(auth: GeminiCliAuth) {
 export async function getAccessToken(auth: GeminiCliAuth) {
     if (!auth || !auth.access_token || isAccessTokenExpired(auth)) {
         const newCreds = await refreshAccessToken(auth);
+        auth.access_token = newCreds.access_token!;
+        auth.expiry_date = newCreds.expiry_date!;
         return newCreds.access_token;
     }
     return auth.access_token;
