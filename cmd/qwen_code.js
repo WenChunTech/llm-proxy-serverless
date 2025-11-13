@@ -97,16 +97,11 @@ async function authWithQwenDeviceFlow() {
         });
 
         if (!deviceAuthResponse.device_code) {
-            throw new Error(
-                `Device authorization failed: ${deviceAuthResponse?.error || "Unknown error"
-                }`,
-            );
+            throw new Error(`Device authorization failed: ${deviceAuthResponse?.error || 'Unknown error'}`);
         }
 
         authEvents.emit(AuthEvent.AuthUri, deviceAuthResponse);
-        await openUrlInBrowser(deviceAuthResponse.verification_uri_complete).catch(
-            () => { },
-        );
+        await openUrlInBrowser(deviceAuthResponse.verification_uri_complete).catch(() => { });
 
         authEvents.emit(AuthEvent.AuthProgress, 'polling', 'Waiting for authorization...');
         const pollInterval = (deviceAuthResponse.interval || 5) * 1000;
@@ -137,30 +132,21 @@ async function authWithQwenDeviceFlow() {
                     };
                     console.log(tokenResponse);
                     await cacheQwenCredentials(credentials);
-                    authEvents.emit(
-                        AuthEvent.AuthProgress,
-                        "success",
-                        "Authentication successful!",
-                    );
+                    authEvents.emit(AuthEvent.AuthProgress, 'success', 'Authentication successful!');
                     return { success: true };
                 }
             } catch (error) {
                 const errorData = error.data || {};
-                if (
-                    errorData.error !== "authorization_pending" &&
-                    errorData.error !== "slow_down"
-                ) {
-                    throw new Error(
-                        `Token polling failed: ${errorData.error_description || error.message
-                        }`,
-                    );
+                if (errorData.error !== 'authorization_pending' && errorData.error !== 'slow_down') {
+                    throw new Error(`Token polling failed: ${errorData.error_description || error.message}`);
                 }
             }
         }
 
-        throw new Error("Authentication timed out.");
+        throw new Error('Authentication timed out.');
+
     } catch (error) {
-        authEvents.emit(AuthEvent.AuthProgress, "error", error.message);
+        authEvents.emit(AuthEvent.AuthProgress, 'error', error.message);
         return { success: false, reason: error.message };
     }
 }
