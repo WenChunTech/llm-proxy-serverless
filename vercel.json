@@ -1,0 +1,8 @@
+{
+    "git": {
+        "deploymentEnabled": {
+            "deno": false,
+            "cloudflare": true
+        }
+    }
+}
