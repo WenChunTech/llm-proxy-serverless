@@ -7,8 +7,8 @@ export class OpenAIProvider {
     apiKey: string;
     baseUrl: string;
 
-    constructor() {
-        const openaiConfig = openAIPoller.getNext();
+    constructor(model: string) {
+        const openaiConfig = openAIPoller.getNext(model);
         this.apiKey = openaiConfig.api_key;
         this.baseUrl = openaiConfig.base_url;
     }

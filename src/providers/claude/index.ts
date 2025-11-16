@@ -7,8 +7,8 @@ export class ClaudeProvider {
     apiKey: string;
     baseUrl: string;
 
-    constructor() {
-        const claudeConfig = claudePoller.getNext();
+    constructor(model: string) {
+        const claudeConfig = claudePoller.getNext(model);
         this.apiKey = claudeConfig.api_key;
         this.baseUrl = claudeConfig.base_url;
     }

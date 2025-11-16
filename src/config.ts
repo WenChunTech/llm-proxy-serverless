@@ -14,7 +14,6 @@ export const APP_CONFIG = "APP_CONFIG";
 const CONFIG_FILE = "config.json";
 
 export let geminiCliPoller: Poller<GeminiCliConfig>;
-export let geminiCliProjectsPoller: Poller<string>;
 export let qwenPoller: Poller<QwenConfig>;
 export let openAIPoller: Poller<OpenAIConfig>;
 export let claudePoller: Poller<ClaudeConfig>;
@@ -34,8 +33,6 @@ export const initConfig = async () => {
         appConfig = { ...appConfig, ...loadedConfig };
     }
     geminiCliPoller = new Poller(appConfig.gemini_cli || []);
-    const allProjects = appConfig.gemini_cli.flatMap(c => c.projects);
-    geminiCliProjectsPoller = new Poller(allProjects || []);
     qwenPoller = new Poller(appConfig.qwen || []);
     openAIPoller = new Poller(appConfig.openai || []);
     claudePoller = new Poller(appConfig.claude || []);

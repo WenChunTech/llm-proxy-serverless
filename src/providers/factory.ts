@@ -7,10 +7,10 @@ import { appConfig } from '../config.js';
 import { QwenConfig, OpenAIConfig, ClaudeConfig, GeminiCliConfig } from '../types/config.js';
 
 const providerClasses = {
-  [PROVIDERS.GEMINICLI]: GeminiCliProvider,
-  [PROVIDERS.OPENAI]: OpenAIProvider,
-  [PROVIDERS.CLAUDE]: ClaudeProvider,
-  [PROVIDERS.QWEN]: QwenProvider,
+  [PROVIDERS.GEMINICLI]: (model: string) => new GeminiCliProvider(model),
+  [PROVIDERS.OPENAI]: (model: string) => new OpenAIProvider(model),
+  [PROVIDERS.CLAUDE]: (model: string) => new ClaudeProvider(model),
+  [PROVIDERS.QWEN]: (model: string) => new QwenProvider(model),
 };
 
 const providerInstances: { [key: string]: any } = {};
@@ -79,7 +79,7 @@ export function getProvider(model: string) {
     if (!providerInstances[providerName]) {
       const ProviderClass = providerClasses[providerName];
       if (ProviderClass) {
-        providerInstances[providerName] = new ProviderClass();
+        providerInstances[providerName] = ProviderClass(model);
       } else {
         throw new Error(`Default provider class not found for provider: ${providerName}`);
       }
@@ -115,7 +115,7 @@ export function getProvider(model: string) {
   if (!providerInstances[providerName]) {
     const ProviderClass = providerClasses[providerName];
     if (ProviderClass) {
-      providerInstances[providerName] = new ProviderClass();
+      providerInstances[providerName] = ProviderClass(model);
     } else {
       throw new Error(`Provider class not found for provider: ${providerName}`);
     }
