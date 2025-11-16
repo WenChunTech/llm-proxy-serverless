@@ -26,7 +26,6 @@ const configKeyMap: { [key: string]: string } = {
   [PROVIDERS.GEMINI]: "gemini",
   [PROVIDERS.QWEN]: "qwen",
   [PROVIDERS.IFLOW]: "iflow",
-  [PROVIDERS.GEMINI]: "gemini",
   [PROVIDERS.OPENAI]: "openai",
   [PROVIDERS.CLAUDE]: "claude",
 };
@@ -50,6 +49,7 @@ function buildModelToProvidersMap() {
   const providerConfigs: {
     [key: string]: (
       | GeminiCliConfig
+      | GeminiConfig
       | QwenConfig
       | OpenAIConfig
       | ClaudeConfig
