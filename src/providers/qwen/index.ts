@@ -5,8 +5,10 @@ import { convertToQwenRequestTo, convertQwenResponseTo, convertQwenStreamRespons
 import { getAccessToken } from './auth.ts';
 
 export class QwenProvider {
-    constructor() { }
-
+    model: string;
+    constructor(model: string) {
+        this.model = model
+    }
 
     async convertRequestTo(body: any, source: any) {
         return convertToQwenRequestTo(body, source);
@@ -16,12 +18,12 @@ export class QwenProvider {
         return TargetType.OpenAI;
     }
 
-    async fetchResponse(is_streaming: boolean, reqData: any) {
-        const qwenConfig = qwenPoller.getNext();
+    async fetchResponse(_is_streaming: boolean, reqData: any) {
+        const qwenConfig = qwenPoller.getNext(this.model);
         const token = await getAccessToken(qwenConfig.auth);
         const endpoint = `https://${qwenConfig.auth.resource_url}/v1/chat/completions`;
         const headers: any = {
-            'Authorization': `Bearer ${qwenConfig.auth.access_token}`,
+            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
         };
 

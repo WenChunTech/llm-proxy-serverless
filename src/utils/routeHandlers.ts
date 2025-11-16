@@ -19,7 +19,7 @@ export async function handleModelRequest(
   c: Context,
   targetType: TargetType
 ) {
-  let body = await c.req.json();
+  const body = await c.req.json();
   let is_streaming = body.stream;
   let model = body.model;
   if (targetType === TargetType.Gemini) {

@@ -8,8 +8,10 @@ import { TargetType } from '../../../pkg/converter_wasm.js';
 export class GeminiCliProvider {
     geminiConfig: GeminiCliConfig;
     projectCounter: number;
-    constructor() {
-        this.geminiConfig = geminiCliPoller.getNext();
+    model: string;
+    constructor(model: string) {
+        this.model = model
+        this.geminiConfig = geminiCliPoller.getNext(model);
         this.projectCounter = 0;
     }
 
@@ -23,7 +25,7 @@ export class GeminiCliProvider {
 
     async fetchResponse(is_streaming: boolean, reqData: any) {
         if (this.projectCounter >= this.geminiConfig.projects.length) {
-            this.geminiConfig = geminiCliPoller.getNext();
+            this.geminiConfig = geminiCliPoller.getNext(this.model);
             this.projectCounter = 0;
         }
 
