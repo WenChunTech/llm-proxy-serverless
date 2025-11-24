@@ -3,14 +3,16 @@ import { GeminiCliProvider } from './gemini_cli/index.js';
 import { OpenAIProvider } from './openai/index.js';
 import { ClaudeProvider } from './claude/index.js';
 import { QwenProvider } from './qwen/index.js';
+import { IflowProvider } from './iflow/index.js';
 import { appConfig } from '../config.js';
-import { QwenConfig, OpenAIConfig, ClaudeConfig, GeminiCliConfig } from '../types/config.js';
+import { QwenConfig, OpenAIConfig, ClaudeConfig, GeminiCliConfig, IFlowConfig } from '../types/config.js';
 
 const providerClasses = {
   [PROVIDERS.GEMINICLI]: (model: string) => new GeminiCliProvider(model),
   [PROVIDERS.OPENAI]: (model: string) => new OpenAIProvider(model),
   [PROVIDERS.CLAUDE]: (model: string) => new ClaudeProvider(model),
   [PROVIDERS.QWEN]: (model: string) => new QwenProvider(model),
+  [PROVIDERS.IFLOW]: (model: string) => new IflowProvider(model),
 };
 
 const providerInstances: { [key: string]: any } = {};
@@ -29,6 +31,7 @@ const providerNameMap: { [key: string]: string } = {
   openai: PROVIDERS.OPENAI,
   claude: PROVIDERS.CLAUDE,
   qwen: PROVIDERS.QWEN,
+  iflow: PROVIDERS.IFLOW,
 };
 
 function buildModelToProvidersMap() {
@@ -39,12 +42,13 @@ function buildModelToProvidersMap() {
   const config = appConfig;
 
   const providerConfigs: {
-    [key: string]: (GeminiCliConfig | QwenConfig | OpenAIConfig | ClaudeConfig)[]
+    [key: string]: (GeminiCliConfig | QwenConfig | OpenAIConfig | ClaudeConfig | IFlowConfig)[]
   } = {
     gemini_cli: config.gemini_cli,
     qwen: config.qwen,
     openai: config.openai,
-    claude: config.claude
+    claude: config.claude,
+    iflow: config.iflow,
   };
 
   for (const configKey of Object.keys(providerNameMap)) {
@@ -92,7 +96,7 @@ export function getProvider(model: string) {
   if (providers.length === 1) {
     providerName = providers[0];
   } else {
-    const priority = appConfig.model_priority || ["gemini_cli", "openai", "qwen", "claude"];
+    const priority = appConfig.model_priority || ["gemini_cli", "iflow", "openai", "qwen", "claude"];
     let bestProvider: string | null = null;
     let bestPriority = Infinity;
 

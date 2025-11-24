@@ -64,3 +64,5 @@ async function getNewTokenFromWeb() {
         });
     });
 }
+
+await getNewTokenFromWeb()

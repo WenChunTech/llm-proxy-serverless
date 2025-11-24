@@ -29,6 +29,26 @@ export interface QwenConfig {
     auth: QwenAuth;
 }
 
+export interface IFlowConfig {
+    models: string[];
+    auth: IFlowAuth;
+}
+
+export interface IFlowAuth {
+    access_token: string;
+    token_type: string;
+    refresh_token: string;
+    expires_in: number;
+    scope: string;
+    expiry_date: number;
+    userId: string;
+    userName: string;
+    avatar: string;
+    email: string | null;
+    phone: string;
+    apiKey: string;
+}
+
 export interface OpenAIConfig {
     base_url: string;
     api_key: string;
@@ -46,5 +66,6 @@ export interface Config {
     qwen: QwenConfig[];
     openai: OpenAIConfig[];
     claude: ClaudeConfig[];
+    iflow: IFlowConfig[];
     model_priority: string[];
 }
