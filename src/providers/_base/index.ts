@@ -3,5 +3,6 @@ export const PROVIDERS = {
     QWEN: 'qwen',
     OPENAI: 'openai',
     CLAUDE: 'claude',
+    IFLOW: 'iflow',
 };
 

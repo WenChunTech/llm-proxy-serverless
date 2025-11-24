@@ -3,7 +3,6 @@ import { appConfig, updateConfig } from '../../config.ts';
 
 const QWEN_OAUTH_TOKEN_ENDPOINT = 'https://chat.qwen.ai/api/v1/oauth2/token';
 const QWEN_OAUTH_CLIENT_ID = 'f0304373b74a44d2b584a3fb70ca9e56';
-const TOKEN_REFRESH_BUFFER_MS = 30 * 1000;
 
 function objectToUrlEncoded(data: Record<string, string>) {
     return Object.keys(data)
@@ -15,7 +14,7 @@ export function isAccessTokenExpired(auth: QwenAuth): boolean {
     if (!auth || !auth.expiry_date) {
         return true;
     }
-    return Date.now() >= auth.expiry_date - TOKEN_REFRESH_BUFFER_MS;
+    return Date.now() >= auth.expiry_date - 60000;
 }
 
 export async function refreshAccessToken(auth: QwenAuth): Promise<QwenAuth> {

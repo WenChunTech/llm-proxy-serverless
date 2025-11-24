@@ -72,5 +72,18 @@ export function collectAllModels(): ModelInfo[] {
     });
   }
 
+  if (appConfig.iflow) {
+    appConfig.iflow.forEach(config => {
+      config.models.forEach(model => {
+        models.push({
+          id: model,
+          object: "model",
+          created: Date.now(),
+          owned_by: "iflow"
+        });
+      });
+    });
+  }
+
   return models;
 }
