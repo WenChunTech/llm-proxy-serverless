@@ -1,4 +1,5 @@
-import { IFlowAuth } from 'src/types/config';
+import { appConfig, updateConfig } from '../../config.js';
+import { IFlowAuth } from '../../types/config.js';
 import { URLSearchParams } from 'url';
 
 // --- iFlow Constants (from cmd/iflow.js) ---
@@ -62,11 +63,14 @@ export async function refreshAccessToken(auth: IFlowAuth) {
         ...newTokenData,
         ...userInfo
     };
+    const newConfig = {
+        ...appConfig,
+        iflow: appConfig.iflow.map((c) =>
+            c.auth?.refresh_token === auth.refresh_token ? { ...c, auth: updatedCreds } : c
+        ),
+    };
 
-    auth.access_token = newTokenData.access_token;
-    auth.refresh_token = newTokenData.refresh_token;
-    auth.expiry_date = newTokenData.expiry_date;
-    auth.apiKey = userInfo.apiKey;
+    await updateConfig(newConfig);
     console.log('[iFlow Auth] Access token refreshed and stored successfully.');
     return updatedCreds;
 }
@@ -78,7 +82,11 @@ export async function refreshAccessToken(auth: IFlowAuth) {
 export async function getAccessToken(auth: IFlowAuth) {
     // Check if the access token is expired or missing
     if (!auth || !auth.access_token || isAccessTokenExpired(auth)) {
-        await refreshAccessToken(auth);
+        const newAuth = await refreshAccessToken(auth);
+        auth.access_token = newAuth.access_token;
+        auth.refresh_token = newAuth.refresh_token;
+        auth.expiry_date = newAuth.expiry_date;
+        auth.apiKey = newAuth.apiKey;
     }
 
     return auth.apiKey;
