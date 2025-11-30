@@ -78,7 +78,7 @@ export async function refreshAccessToken(auth: IFlowAuth) {
 export async function getAccessToken(auth: IFlowAuth) {
     // Check if the access token is expired or missing
     if (!auth || !auth.access_token || isAccessTokenExpired(auth)) {
-        auth = await refreshAccessToken(auth);
+        await refreshAccessToken(auth);
     }
 
     return auth.apiKey;
