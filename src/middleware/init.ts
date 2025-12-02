@@ -1,5 +1,6 @@
 import { Context, Next } from 'hono';
 import { initConfig } from '../config.ts';
+import { iflowAuth } from '../providers/iflow/auth.ts';
 import initWasm from '../../pkg/converter_wasm.js';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -29,6 +30,7 @@ const ensureInitialized = async (): Promise<void> => {
       await initWasm({ module_or_path: wasmBuffer });
       console.log('Initializing config...');
       await initConfig();
+      iflowAuth.init();
       isInitialized = true;
       console.log('Initialization completed successfully');
     } catch (error) {

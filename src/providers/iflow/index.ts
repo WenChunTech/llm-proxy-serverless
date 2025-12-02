@@ -2,9 +2,7 @@ import { fetchWithRetry } from '../../utils/fetch.ts';
 import { iflowPoller } from '../../config.ts';
 import { convertToIFlowRequestTo, convertIFlowResponseTo, convertIFlowStreamResponseTo } from './adapter.ts';
 import { TargetType } from '../../../pkg/converter_wasm.js';
-import { getAccessToken } from './auth.ts';
-
-
+import { iFlowAuthManager } from './authManager.ts';
 
 export class IflowProvider {
     model: string;
@@ -22,7 +20,7 @@ export class IflowProvider {
 
     async fetchResponse(_is_streaming: boolean, reqData: any) {
         const iflowConfig = iflowPoller.getNext(this.model);
-        const token = await getAccessToken(iflowConfig.auth);
+        const token = await iFlowAuthManager.getValidApiKey(iflowConfig);
         const endpoint = 'https://apis.iflow.cn/v1/chat/completions';
         const headers: any = {
             'Authorization': `Bearer ${token}`,
