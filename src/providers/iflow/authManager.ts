@@ -1,7 +1,7 @@
 import { IFlowAuth, IFlowConfig } from '../../types/config.ts';
 import { appConfig, updateConfig } from '../../config.ts';
 
-const IFLOW_REFRESH_TOKEN_ENDPOINT = "https://api.iflow.cn/center/v1/auth/token/refresh";
+const IFLOW_REFRESH_TOKEN_ENDPOINT = "https://iflow.cn/oauth/token";
 const IFLOW_USER_INFO_ENDPOINT = "https://iflow.cn/api/oauth/getUserInfo";
 
 class IFlowAuthManager {
