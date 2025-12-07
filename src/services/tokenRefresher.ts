@@ -1,31 +1,38 @@
 export class TokenRefresher {
-    private task: () => Promise<void>;
-    private interval: number;
-    private timerId: number | null = null;
+    private task: () => Promise<number | null>;
+    private timerId: ReturnType<typeof setTimeout> | null = null;
 
-    constructor(task: () => Promise<void>, interval: number) {
+    constructor(task: () => Promise<number | null>) {
         this.task = task;
-        this.interval = interval;
     }
 
-    public start(): void {
+    public start(initialDelay: number = 0): void {
         if (this.timerId) {
             console.log("Token refresher is already running.");
             return;
         }
-        console.log(`Starting token refresher with an interval of ${this.interval}ms.`);
-        this.timerId = setInterval(async () => {
-            try {
-                await this.task();
-            } catch (error) {
-                console.error("Error executing token refresh task:", error);
+        console.log(`Starting token refresher with an initial delay of ${initialDelay}ms.`);
+        this.timerId = setTimeout(() => this.run(), initialDelay);
+    }
+
+    private async run(): Promise<void> {
+        try {
+            const nextDelay = await this.task();
+            if (nextDelay !== null && nextDelay > 0) {
+                this.timerId = setTimeout(() => this.run(), nextDelay);
+            } else {
+                this.stop();
+                console.log("Token refresher finished its schedule.");
             }
-        }, this.interval);
+        } catch (error) {
+            console.error("Error executing token refresh task:", error);
+            this.stop();
+        }
     }
 
     public stop(): void {
         if (this.timerId) {
-            clearInterval(this.timerId);
+            clearTimeout(this.timerId);
             this.timerId = null;
             console.log("Token refresher stopped.");
         }
