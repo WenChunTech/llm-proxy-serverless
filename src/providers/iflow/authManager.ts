@@ -1,8 +1,11 @@
 import { IFlowAuth, IFlowConfig } from '../../types/config.ts';
 import { appConfig, updateConfig } from '../../config.ts';
+import {Buffer} from 'node:buffer'
 
-const IFLOW_REFRESH_TOKEN_ENDPOINT = "https://iflow.cn/oauth/token";
+const IFLOW_OAUTH_TOKEN_ENDPOINT = "https://iflow.cn/oauth/token";
 const IFLOW_USER_INFO_ENDPOINT = "https://iflow.cn/api/oauth/getUserInfo";
+const IFLOW_OAUTH_CLIENT_ID = "10009311001";
+const IFLOW_OAUTH_CLIENT_SECRET = "4Z3YjXycVsQvyGF1etiNlIBB4RsqSDtW";
 
 class IFlowAuthManager {
 
@@ -21,14 +24,23 @@ class IFlowAuthManager {
         }
         console.log(`[iFlow Auth] Refreshing access token for user: ${auth.userName}`);
 
-        const response = await fetch(IFLOW_REFRESH_TOKEN_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify({ refresh_token: auth.refresh_token }),
-        });
+    const body = new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: auth.refresh_token, // Use the refresh token from the current credentials
+        client_id: IFLOW_OAUTH_CLIENT_ID,
+        client_secret: IFLOW_OAUTH_CLIENT_SECRET,
+    });
+
+    const basicAuth = Buffer.from(`${IFLOW_OAUTH_CLIENT_ID}:${IFLOW_OAUTH_CLIENT_SECRET}`).toString('base64');
+    const response = await fetch(IFLOW_OAUTH_TOKEN_ENDPOINT, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+            'Authorization': `Basic ${basicAuth}`
+        },
+        body: body.toString(),
+    });
 
         if (!response.ok) {
             const errorText = await response.text();
