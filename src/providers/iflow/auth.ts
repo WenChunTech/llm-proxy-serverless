@@ -26,7 +26,7 @@ class IFlowAuth {
                         const currentConfig = appConfig.iflow.find(c => c.auth?.userId === config.auth?.userId);
                         if (currentConfig) {
                             await iFlowAuthManager.refreshToken(currentConfig);
-                            console.log(`[iFlow Auth] Token for ${config.auth?.userName} refreshed. Next refresh in 10 minutes.`);
+                            console.log(`[iFlow Auth] Token for ${config.auth?.userName} refreshed. Next refresh in 30 minutes.`);
                             return REFRESH_INTERVAL_MS;
                         }
                         console.error(`[iFlow Auth] Could not find config for user ${config.auth?.userName} to refresh token. Stopping refresher.`);
@@ -40,8 +40,6 @@ class IFlowAuth {
                 const refresher = new TokenRefresher(task);
                 refresher.start(initialDelay);
                 this.refreshers.push(refresher);
-
-                console.log(`[iFlow Auth] Scheduled token refresh for ${config.auth.userName}. First refresh in 10 minutes.`);
             }
         }
         this.isInitialized = true;
