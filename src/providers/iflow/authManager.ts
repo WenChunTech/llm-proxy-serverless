@@ -1,5 +1,5 @@
 import { IFlowAuth, IFlowConfig } from '../../types/config.ts';
-import { appConfig, updateConfig } from '../../config.ts';
+// import { appConfig, updateConfig } from '../../config.ts';
 import {Buffer} from 'node:buffer'
 
 const IFLOW_OAUTH_TOKEN_ENDPOINT = "https://iflow.cn/oauth/token";
@@ -61,14 +61,14 @@ class IFlowAuthManager {
         const updatedConfig = { ...configToRefresh, auth: updatedAuth };
 
         // Update the global appConfig
-        const newAppConfig = {
-            ...appConfig,
-            iflow: appConfig.iflow.map((c) =>
-                c.auth?.userId === updatedAuth.userId ? updatedConfig : c
-            ),
-        };
+        // const newAppConfig = {
+        //     ...appConfig,
+        //     iflow: appConfig.iflow.map((c) =>
+        //         c.auth?.userId === updatedAuth.userId ? updatedConfig : c
+        //     ),
+        // };
 
-        await updateConfig(newAppConfig);
+        // await updateConfig(newAppConfig);
         console.log('[iFlow Auth] Access token refreshed and global config updated successfully.');
 
         return updatedConfig;
