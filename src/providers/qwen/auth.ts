@@ -1,5 +1,5 @@
-import { QwenAuth } from '../../types/config.js';
-import { appConfig, updateConfig } from '../../config.js';
+import { QwenAuth } from '../../types/config.ts';
+import { appConfig, updateConfig } from '../../config.ts';
 
 const QWEN_OAUTH_TOKEN_ENDPOINT = 'https://chat.qwen.ai/api/v1/oauth2/token';
 const QWEN_OAUTH_CLIENT_ID = 'f0304373b74a44d2b584a3fb70ca9e56';

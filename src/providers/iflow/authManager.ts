@@ -47,12 +47,7 @@ class IFlowAuthManager {
             throw new Error(`[iFlow Auth] Token refresh failed: ${response.status} ${errorText}`);
         }
 
-        const result = await response.json();
-        if (!result.success || !result.data) {
-            throw new Error(`[iFlow Auth] Token refresh response was not successful: ${JSON.stringify(result)}`);
-        }
-
-        const newTokenData = result.data;
+        const newTokenData = await response.json();
         // Fetch user info to get the latest API Key
         const userInfo = await this.fetchUserInfo(newTokenData.access_token);
 
