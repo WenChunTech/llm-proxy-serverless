@@ -225,6 +225,40 @@ LLM Proxy 的核心价值在于其强大的协议转换能力。其基本原理�
 
 所有这些复杂的请求和响应负载转换，都通过 **Rust 编写并编译为 WebAssembly (WASM)** 的模块来高效完成。WASM 的使用确保了转换过程在高性能、低延迟的环境下运行，即使面对高并发的流式请求也能保持卓越表现。这种设计将计算密集型任务从 Node.js 主线程卸载，提供了接近原生的执行速度。
 
+## 核心实现逻辑
+
+LLM Proxy 的核心实现逻辑围绕 `Hono` Web 框架和模块化的提供商架构构建。以下是请求处理的主要流程：
+
+1.  **服务器初始化**:
+    *   项目入口点是 `src/index.ts`，它使用 `Hono` 创建了一个 Web 服务器实例。
+    *   `src/server.ts` 文件定义了所有 API 路由，包括：
+        *   `POST /v1/chat/completions` (OpenAI 兼容)
+        *   `POST /v1beta/models/:modelName` (Google Gemini 兼容)
+        *   `POST /v1/messages` (Anthropic Claude 兼容)
+        *   `GET /v1/models` (列出所有可用模型)
+    *   服务器还配置了 CORS 中间件和用于提供静态文件的 `serveStatic`。
+
+2.  **请求处理 (`handleModelRequest`)**:
+    *   所有模型相关的请求都由 `src/utils/routeHandlers.ts` 中的 `handleModelRequest` 函数统一处理。
+    *   该函数首先从请求中解析出模型名称、是否流式传输等信息。
+    *   **提供者选择**:
+        *   它调用 `src/providers/factory.ts` 中的 `getProvider` 函数，根据模型名称获取相应的提供者实例。
+        *   `getProvider` 会构建一个从模型到提供者的映射关系。如果一个模型被多个提供者支持，它会根据 `config.json` 中 `model_priority` 数组定义的优先级来选择提供者。如果未指定，则默认为 OpenAI。
+    *   **请求转换**:
+        *   获取到提供者后，请求体会被传递给该提供者的 `convertRequestTo` 方法，该方法通过 `pkg/converter_wasm.js` 中的 WASM 模块将请求负载转换为目标提供商（如 OpenAI、Gemini 或 Claude）的原生格式。
+    *   **API 调用**:
+        *   转换后的请求通过 `provider.fetchResponse` 方法发送到相应的 LLM 提供商。
+    *   **响应转换**:
+        *   如果响应是流式的，`provider.convertStreamResponseTo` 会将提供商返回的 Server-Sent Events (SSE) 流实时转换为原始请求所需的格式，并流式传输回客户端。
+        *   如果响应是非流式的，`provider.convertResponseTo` 会在返回给客户端之前，一次性将完整的响应负载转换为所需的格式。
+
+3.  **凭据和配置管理**:
+    *   **Deno KV**: 项目使用 `Deno KV` 数据库来安全地存储和管理敏感的凭据信息。`src/services/credentials.ts` 提供了 `getCredentials` 和 `updateCredentials` 函数来与 Deno KV 进行交互。
+    *   **自动令牌刷新**: `src/index.ts` 中定义了一个 Deno Cron 作业 (`Deno.cron`)，该作业会定期（每6小时）运行，自动刷新 `iFlow` 提供商的身份验证令牌，并将更新后的凭据存回 Deno KV。
+    *   **配置加载**: 项目启动时，会从 `local.json` 文件和 Deno KV 加载配置。这些配置信息被合并到 `appConfig` 对象中，供整个应用程序使用。
+
+通过这种方式，LLM Proxy 实现了一个灵活、可扩展的架构，能够轻松地在多个 LLM 提供商之间进行路由和转换，同时通过 Deno 的原生功能实现了安全的凭据管理和后台任务自动化。
+
 ## 请求转换适配
 
 WASM 模块提供了以下请求转换能力：
