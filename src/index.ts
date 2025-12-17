@@ -17,10 +17,14 @@ Deno.cron("Iflow Auth refresh", "0 */6 * * *", async () => {
     }
     const iflow: IFlowConfig[] = config.iflow;
     const iflowClient =  iFlowAuthManager;
-    const newIflow = iflow.map(async (configToRefresh) => {
-        return await iflowClient.refreshToken(configToRefresh);
-    })
-    config.iflow = await Promise.all(newIflow);
+    try {
+      const newIflow = iflow.map(async (configToRefresh) => {
+          return await iflowClient.refreshToken(configToRefresh);
+      })
+      config.iflow = await Promise.all(newIflow);
+    }catch (error) {
+      console.log(error);
+    }
     if (config.iflow.length > 0) {
       await updateCredentials(appConfig, config);
       console.log("new config saved");
