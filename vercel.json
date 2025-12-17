@@ -4,5 +4,11 @@
             "deno": false,
             "cloudflare": true
         }
-    }
+    },
+    "crons": [
+        {
+            "path": "/api/refresh-tokens",
+            "schedule": "0 */4 * * *"
+        }
+    ]
 }

@@ -52,8 +52,8 @@ export async function refreshAccessToken(auth: IFlowAuth) {
     }
 
     const newTokenData = await response.json();
-    if (!newTokenData.access_token) {
-        throw new Error('[iFlow Auth] Missing access token in refresh response.');
+    if (!newTokenData.access_token || !newTokenData.refresh_token) {
+        throw new Error('[iFlow Auth] Missing access token or refresh token in refresh response.');
     }
     newTokenData.expiry_date = Date.now() + newTokenData.expires_in * 1000;
     // Fetch user info to get the latest API Key, similar to the Go implementation
@@ -114,6 +114,7 @@ async function fetchUserInfo(accessToken: string) {
 
     const result = await response.json();
     if (!result.success || !result.data || !result.data.apiKey) {
+        console.log("error message", await response.text());
         throw new Error('[iFlow Auth] User info request not successful or API key missing.');
     }
     return result.data;

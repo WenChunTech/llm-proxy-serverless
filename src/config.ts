@@ -47,7 +47,7 @@ export const updateConfig = async (config: Config) => {
         fs.writeFileSync(CONFIG_FILE, JSON.stringify(config));
         console.log("Saved new config to config.json Successfully");
     } else {
-        updateCredentials(APP_CONFIG, JSON.stringify(config));
+        updateCredentials(APP_CONFIG, config);
         console.log("Saved new config to kv store Successfully");
     }
     appConfig = config;
