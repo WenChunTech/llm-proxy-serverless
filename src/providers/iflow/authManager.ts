@@ -48,6 +48,9 @@ class IFlowAuthManager {
         }
 
         const newTokenData = await response.json();
+        if (!newTokenData.access_token || !newTokenData.refresh_token) {
+            throw new Error('[iFlow Auth] Token refresh response did not contain access_token or refresh_token.');
+        }
         // Fetch user info to get the latest API Key
         const userInfo = await this.fetchUserInfo(newTokenData.access_token);
 
@@ -67,7 +70,6 @@ class IFlowAuthManager {
         //         c.auth?.userId === updatedAuth.userId ? updatedConfig : c
         //     ),
         // };
-
         // await updateConfig(newAppConfig);
         console.log('[iFlow Auth] Access token refreshed and global config updated successfully.');
 
