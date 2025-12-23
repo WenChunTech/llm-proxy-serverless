@@ -1,17 +1,17 @@
-import * as path from 'node:path';
+import * as path from "node:path";
 
-import { Hono } from 'hono';
-import { TargetType } from '../pkg/converter_wasm.js';
-import { serveStatic } from '@hono/node-server/serve-static'
+import { Hono } from "hono";
+import { TargetType } from "../pkg/converter_wasm.js";
+import { serveStatic } from "@hono/node-server/serve-static";
 
-import { handleModelRequest } from './utils/routeHandlers.ts';
-import { getModelsResponse } from './services/models.ts';
-import { initMiddleware } from './middleware/init.ts';
+import { handleModelRequest } from "./utils/routeHandlers.ts";
+import { getModelsResponse } from "./services/models.ts";
+import { initMiddleware } from "./middleware/init.ts";
 
 const app = new Hono();
 
 // init middleware
-app.use('*', initMiddleware);
+app.use("*", initMiddleware);
 
 // cors
 app.use(async (c, next) => {
@@ -24,9 +24,12 @@ app.use(async (c, next) => {
 const __filename = new URL(import.meta.url).pathname;
 const __dirname = path.dirname(__filename);
 
-app.use('/*', serveStatic({
-  root: path.join(__dirname, '../public')
-}))
+app.use(
+  "/*",
+  serveStatic({
+    root: path.join(__dirname, "../public"),
+  }),
+);
 
 app.post("/v1/chat/completions", async (c) => {
   return handleModelRequest(c, TargetType.OpenAI);

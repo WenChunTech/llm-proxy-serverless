@@ -1,11 +1,17 @@
-import { PROVIDERS } from './_base/index.ts  ';
-import { GeminiCliProvider } from './gemini_cli/index.ts';
-import { OpenAIProvider } from './openai/index.ts';
-import { ClaudeProvider } from './claude/index.ts';
-import { QwenProvider } from './qwen/index.ts';
-import { IflowProvider } from './iflow/index.ts';
-import { appConfig } from '../config.ts';
-import { QwenConfig, OpenAIConfig, ClaudeConfig, GeminiCliConfig, IFlowConfig } from '../types/config.ts';
+import { PROVIDERS } from "./_base/index.ts  ";
+import { GeminiCliProvider } from "./gemini_cli/index.ts";
+import { OpenAIProvider } from "./openai/index.ts";
+import { ClaudeProvider } from "./claude/index.ts";
+import { QwenProvider } from "./qwen/index.ts";
+import { IflowProvider } from "./iflow/index.ts";
+import { appConfig } from "../config.ts";
+import {
+  ClaudeConfig,
+  GeminiCliConfig,
+  IFlowConfig,
+  OpenAIConfig,
+  QwenConfig,
+} from "../types/config.ts";
 
 const providerClasses = {
   [PROVIDERS.GEMINICLI]: (model: string) => new GeminiCliProvider(model),
@@ -20,10 +26,10 @@ const providerInstances: { [key: string]: any } = {};
 let modelToProvidersMap: Map<string, string[]>;
 
 const configKeyMap: { [key: string]: string } = {
-  [PROVIDERS.GEMINICLI]: 'gemini_cli',
-  [PROVIDERS.OPENAI]: 'openai',
-  [PROVIDERS.CLAUDE]: 'claude',
-  [PROVIDERS.QWEN]: 'qwen',
+  [PROVIDERS.GEMINICLI]: "gemini_cli",
+  [PROVIDERS.OPENAI]: "openai",
+  [PROVIDERS.CLAUDE]: "claude",
+  [PROVIDERS.QWEN]: "qwen",
 };
 
 const providerNameMap: { [key: string]: string } = {
@@ -42,7 +48,13 @@ function buildModelToProvidersMap() {
   const config = appConfig;
 
   const providerConfigs: {
-    [key: string]: (GeminiCliConfig | QwenConfig | OpenAIConfig | ClaudeConfig | IFlowConfig)[]
+    [key: string]: (
+      | GeminiCliConfig
+      | QwenConfig
+      | OpenAIConfig
+      | ClaudeConfig
+      | IFlowConfig
+    )[];
   } = {
     gemini_cli: config.gemini_cli,
     qwen: config.qwen,
@@ -85,7 +97,9 @@ export function getProvider(model: string) {
       if (ProviderClass) {
         providerInstances[providerName] = ProviderClass(model);
       } else {
-        throw new Error(`Default provider class not found for provider: ${providerName}`);
+        throw new Error(
+          `Default provider class not found for provider: ${providerName}`,
+        );
       }
     }
     return providerInstances[providerName];
@@ -96,7 +110,8 @@ export function getProvider(model: string) {
   if (providers.length === 1) {
     providerName = providers[0];
   } else {
-    const priority = appConfig.model_priority || ["gemini_cli", "iflow", "openai", "qwen", "claude"];
+    const priority = appConfig.model_priority ||
+      ["gemini_cli", "iflow", "openai", "qwen", "claude"];
     let bestProvider: string | null = null;
     let bestPriority = Infinity;
 

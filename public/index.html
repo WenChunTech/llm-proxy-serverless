@@ -1,155 +1,304 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
-<head>
+  <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLM Proxy - The Universal API for Large Language Models</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://rsms.me/inter/inter.css');
-        html { font-family: 'Inter', sans-serif; }
-        .feature-card {
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background-color: rgba(255, 255, 255, 0.05);
-            transition: all 0.3s ease;
-            position: relative; /* Fix for hover overlap */
-        }
-        .feature-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(99, 102, 241, 0.7);
-            z-index: 10; /* Fix for hover overlap */
-        }
-        .flow-step {
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background-color: rgba(31, 41, 55, 0.5);
-        }
-        .arrow {
-            color: #4f46e5;
-        }
-        .logo-monochrome {
-             filter: brightness(0) invert(1);
-        }
-        .typescript-logo {
-            background-color: white;
-            border-radius: 0.25rem;
-        }
+      @import url("https://rsms.me/inter/inter.css");
+      html {
+        font-family: "Inter", sans-serif;
+      }
+      .feature-card {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+        position: relative; /* Fix for hover overlap */
+      }
+      .feature-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(99, 102, 241, 0.7);
+        z-index: 10; /* Fix for hover overlap */
+      }
+      .flow-step {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(31, 41, 55, 0.5);
+      }
+      .arrow {
+        color: #4f46e5;
+      }
+      .logo-monochrome {
+        filter: brightness(0) invert(1);
+      }
+      .typescript-logo {
+        background-color: white;
+        border-radius: 0.25rem;
+      }
     </style>
     <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        indigo: {
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                        },
-                    },
-                }
-            }
-        }
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              indigo: {
+                500: "#6366f1",
+                600: "#4f46e5",
+              },
+            },
+          },
+        },
+      };
     </script>
-</head>
-<body class="bg-gray-900 text-gray-200">
-
+  </head>
+  <body class="bg-gray-900 text-gray-200">
     <div class="container mx-auto px-4 py-16">
+      <!-- Header Section -->
+      <header class="text-center mb-24">
+        <h1 class="text-5xl md:text-6xl font-bold tracking-tight mb-4 bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">
+          LLM Proxy
+        </h1>
+        <p class="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto">
+          一个轻量级、高性能的代理服务器，为 OpenAI、Google Gemini、Anthropic
+          Claude 等多个大模型提供统一的 API 接口。
+        </p>
+      </header>
 
-        <!-- Header Section -->
-        <header class="text-center mb-24">
-            <h1 class="text-5xl md:text-6xl font-bold tracking-tight mb-4 bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">
-                LLM Proxy
-            </h1>
-            <p class="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto">
-                一个轻量级、高性能的代理服务器，为 OpenAI、Google Gemini、Anthropic Claude 等多个大模型提供统一的 API 接口。
+      <!-- Features Section -->
+      <section class="mb-24">
+        <h2 class="text-3xl font-bold text-center mb-12">核心功能</h2>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <!-- Feature 1 -->
+          <div class="p-6 rounded-lg feature-card">
+            <div class="flex items-center mb-4">
+              <svg
+                class="w-8 h-8 mr-4 text-indigo-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 9l4-4 4 4m0 6l-4 4-4-4"
+                >
+                </path>
+              </svg>
+              <h3 class="text-xl font-semibold">统一 API 接口</h3>
+            </div>
+            <p class="text-gray-400">
+              为多个 LLM 提供商提供单一、一致的 API 端点，简化客户端开发。
             </p>
-        </header>
-
-        <!-- Features Section -->
-        <section class="mb-24">
-            <h2 class="text-3xl font-bold text-center mb-12">核心功能</h2>
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <!-- Feature 1 -->
-                <div class="p-6 rounded-lg feature-card">
-                    <div class="flex items-center mb-4">
-                        <svg class="w-8 h-8 mr-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path></svg>
-                        <h3 class="text-xl font-semibold">统一 API 接口</h3>
-                    </div>
-                    <p class="text-gray-400">为多个 LLM 提供商提供单一、一致的 API 端点，简化客户端开发。</p>
-                </div>
-                <!-- Feature 2 -->
-                <div class="p-6 rounded-lg feature-card">
-                   <div class="flex items-center mb-4">
-                       <svg class="w-8 h-8 mr-4 text-indigo-400" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-9 9H7.88a2.88 2.88 0 0 1 0-5.76V12a9 9 0 0 1 9-9h0a9 9 0 0 1 9 9Z"/><path d="M3 12a9 9 0 0 0 9 9h7.88a2.88 2.88 0 0 0 0-5.76V12a9 9 0 0 0-9-9h0a9 9 0 0 0-9 9Z"/></svg>
-                        <h3 class="text-xl font-semibold">协议转换</h3>
-                    </div>
-                    <p class="text-gray-400">在 OpenAI, Gemini, Claude 等 API 格式之间自动转换请求和响应。</p>
-                </div>
-                <!-- Feature 3 -->
-                <div class="p-6 rounded-lg feature-card">
-                    <div class="flex items-center mb-4">
-                        <svg class="w-8 h-8 mr-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                        <h3 class="text-xl font-semibold">流式支持</h3>
-                    </div>
-                    <p class="text-gray-400">完全支持 Server-Sent Events (SSE)，实现低延迟的流式响应。</p>
-                </div>
-                <!-- Feature 4 -->
-                <div class="p-6 rounded-lg feature-card">
-                    <div class="flex items-center mb-4">
-                        <svg class="w-8 h-8 mr-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                        <h3 class="text-xl font-semibold">高性能核心</h3>
-                    </div>
-                    <p class="text-gray-400">使用 Rust 和 WebAssembly (WASM) 进行协议转换，达到接近原生的性能。</p>
-                </div>
-                <!-- Feature 5 -->
-                <div class="p-6 rounded-lg feature-card">
-                    <div class="flex items-center mb-4">
-                        <svg class="w-8 h-8 mr-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 16v-2m8-6h2m-18 0H2m15.364 7.364l1.414 1.414M5.222 5.222l1.414 1.414M18.364 5.222l-1.414 1.414M6.636 18.364l-1.414 1.414"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18a6 6 0 100-12 6 6 0 000 12z"></path></svg>
-                        <h3 class="text-xl font-semibold">动态路由</h3>
-                    </div>
-                    <p class="text-gray-400">根据模型名称和优先级配置，智能选择最佳的 LLM 提供商。</p>
-                </div>
-                 <!-- Feature 6 -->
-                <div class="p-6 rounded-lg feature-card">
-                    <div class="flex items-center mb-4">
-                        <svg class="w-8 h-8 mr-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14h8"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h3"></path></svg>
-                        <h3 class="text-xl font-semibold">可扩展架构</h3>
-                    </div>
-                    <p class="text-gray-400">模块化的提供商设计，可以轻松地集成新的 LLM 服务。</p>
-                </div>
+          </div>
+          <!-- Feature 2 -->
+          <div class="p-6 rounded-lg feature-card">
+            <div class="flex items-center mb-4">
+              <svg
+                class="w-8 h-8 mr-4 text-indigo-400"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 12a9 9 0 0 1-9 9H7.88a2.88 2.88 0 0 1 0-5.76V12a9 9 0 0 1 9-9h0a9 9 0 0 1 9 9Z" />
+                <path d="M3 12a9 9 0 0 0 9 9h7.88a2.88 2.88 0 0 0 0-5.76V12a9 9 0 0 0-9-9h0a9 9 0 0 0-9 9Z" />
+              </svg>
+              <h3 class="text-xl font-semibold">协议转换</h3>
             </div>
-        </section>
-
-        <!-- How it Works Section -->
-        <section class="mb-24">
-            <h2 class="text-3xl font-bold text-center mb-12">工作流程</h2>
-            <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4">
-                <div class="p-4 rounded-lg text-center flow-step">客户端请求</div>
-                <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">&rarr;</div>
-                <div class="p-4 rounded-lg text-center flow-step">Hono 服务器</div>
-                <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">&rarr;</div>
-                <div class="p-4 rounded-lg text-center flow-step">提供商工厂</div>
-                <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">&rarr;</div>
-                <div class="p-4 rounded-lg text-center flow-step">WASM 转换</div>
-                <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">&rarr;</div>
-                <div class="p-4 rounded-lg text-center flow-step">LLM 提供商</div>
-                <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">&rarr;</div>
-                <div class="p-4 rounded-lg text-center flow-step">WASM 转换</div>
-                <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">&rarr;</div>
-                <div class="p-4 rounded-lg text-center flow-step">客户端响应</div>
+            <p class="text-gray-400">
+              在 OpenAI, Gemini, Claude 等 API 格式之间自动转换请求和响应。
+            </p>
+          </div>
+          <!-- Feature 3 -->
+          <div class="p-6 rounded-lg feature-card">
+            <div class="flex items-center mb-4">
+              <svg
+                class="w-8 h-8 mr-4 text-indigo-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                >
+                </path>
+              </svg>
+              <h3 class="text-xl font-semibold">流式支持</h3>
             </div>
-        </section>
+            <p class="text-gray-400">
+              完全支持 Server-Sent Events (SSE)，实现低延迟的流式响应。
+            </p>
+          </div>
+          <!-- Feature 4 -->
+          <div class="p-6 rounded-lg feature-card">
+            <div class="flex items-center mb-4">
+              <svg
+                class="w-8 h-8 mr-4 text-indigo-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+                >
+                </path>
+              </svg>
+              <h3 class="text-xl font-semibold">高性能核心</h3>
+            </div>
+            <p class="text-gray-400">
+              使用 Rust 和 WebAssembly (WASM) 进行协议转换，达到接近原生的性能。
+            </p>
+          </div>
+          <!-- Feature 5 -->
+          <div class="p-6 rounded-lg feature-card">
+            <div class="flex items-center mb-4">
+              <svg
+                class="w-8 h-8 mr-4 text-indigo-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 6V4m0 16v-2m8-6h2m-18 0H2m15.364 7.364l1.414 1.414M5.222 5.222l1.414 1.414M18.364 5.222l-1.414 1.414M6.636 18.364l-1.414 1.414"
+                >
+                </path>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 18a6 6 0 100-12 6 6 0 000 12z"
+                >
+                </path>
+              </svg>
+              <h3 class="text-xl font-semibold">动态路由</h3>
+            </div>
+            <p class="text-gray-400">
+              根据模型名称和优先级配置，智能选择最佳的 LLM 提供商。
+            </p>
+          </div>
+          <!-- Feature 6 -->
+          <div class="p-6 rounded-lg feature-card">
+            <div class="flex items-center mb-4">
+              <svg
+                class="w-8 h-8 mr-4 text-indigo-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"
+                >
+                </path>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 14h8"
+                >
+                </path>
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M8 10h3"
+                >
+                </path>
+              </svg>
+              <h3 class="text-xl font-semibold">可扩展架构</h3>
+            </div>
+            <p class="text-gray-400">
+              模块化的提供商设计，可以轻松地集成新的 LLM 服务。
+            </p>
+          </div>
+        </div>
+      </section>
 
-        <!-- API Usage Section -->
-        <section class="mb-24">
-            <h2 class="text-3xl font-bold text-center mb-12">API 用法示例</h2>
-            <div x-data="{ tab: 'openai' }" class="max-w-4xl mx-auto">
-                <div class="flex border-b border-gray-700">
-                    <button @click="tab = 'openai'" :class="{ 'bg-gray-800 text-indigo-400 border-indigo-400': tab === 'openai', 'text-gray-400 border-transparent': tab !== 'openai' }" class="px-4 py-2 font-medium border-b-2 focus:outline-none">OpenAI 格式</button>
-                    <button @click="tab = 'gemini'" :class="{ 'bg-gray-800 text-indigo-400 border-indigo-400': tab === 'gemini', 'text-gray-400 border-transparent': tab !== 'gemini' }" class="px-4 py-2 font-medium border-b-2 focus:outline-none">Gemini 格式</button>
-                    <button @click="tab = 'claude'" :class="{ 'bg-gray-800 text-indigo-400 border-indigo-400': tab === 'claude', 'text-gray-400 border-transparent': tab !== 'claude' }" class="px-4 py-2 font-medium border-b-2 focus:outline-none">Claude 格式</button>
-                </div>
-                <div class="bg-gray-800 rounded-b-lg p-1">
-                    <pre class="language-bash p-4 rounded-lg text-sm overflow-x-auto"><code x-show="tab === 'openai'" class="block">curl --request POST \
+      <!-- How it Works Section -->
+      <section class="mb-24">
+        <h2 class="text-3xl font-bold text-center mb-12">工作流程</h2>
+        <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4">
+          <div class="p-4 rounded-lg text-center flow-step">客户端请求</div>
+          <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">
+            &rarr;
+          </div>
+          <div class="p-4 rounded-lg text-center flow-step">Hono 服务器</div>
+          <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">
+            &rarr;
+          </div>
+          <div class="p-4 rounded-lg text-center flow-step">提供商工厂</div>
+          <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">
+            &rarr;
+          </div>
+          <div class="p-4 rounded-lg text-center flow-step">WASM 转换</div>
+          <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">
+            &rarr;
+          </div>
+          <div class="p-4 rounded-lg text-center flow-step">LLM 提供商</div>
+          <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">
+            &rarr;
+          </div>
+          <div class="p-4 rounded-lg text-center flow-step">WASM 转换</div>
+          <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">
+            &rarr;
+          </div>
+          <div class="p-4 rounded-lg text-center flow-step">客户端响应</div>
+        </div>
+      </section>
+
+      <!-- API Usage Section -->
+      <section class="mb-24">
+        <h2 class="text-3xl font-bold text-center mb-12">API 用法示例</h2>
+        <div x-data="{ tab: 'openai' }" class="max-w-4xl mx-auto">
+          <div class="flex border-b border-gray-700">
+            <button
+              @click="tab = 'openai'"
+              :class="{ 'bg-gray-800 text-indigo-400 border-indigo-400': tab === 'openai', 'text-gray-400 border-transparent': tab !== 'openai' }"
+              class="px-4 py-2 font-medium border-b-2 focus:outline-none"
+            >
+              OpenAI 格式
+            </button>
+            <button
+              @click="tab = 'gemini'"
+              :class="{ 'bg-gray-800 text-indigo-400 border-indigo-400': tab === 'gemini', 'text-gray-400 border-transparent': tab !== 'gemini' }"
+              class="px-4 py-2 font-medium border-b-2 focus:outline-none"
+            >
+              Gemini 格式
+            </button>
+            <button
+              @click="tab = 'claude'"
+              :class="{ 'bg-gray-800 text-indigo-400 border-indigo-400': tab === 'claude', 'text-gray-400 border-transparent': tab !== 'claude' }"
+              class="px-4 py-2 font-medium border-b-2 focus:outline-none"
+            >
+              Claude 格式
+            </button>
+          </div>
+          <div class="bg-gray-800 rounded-b-lg p-1">
+            <pre class="language-bash p-4 rounded-lg text-sm overflow-x-auto">
+<code x-show="tab === 'openai'" class="block">curl --request POST \
   --url http://localhost:3000/v1/chat/completions \
   --header 'content-type: application/json' \
   --data '{
@@ -168,56 +317,113 @@
     "max_tokens": 512,
     "messages": [{"role": "user", "content": "你是什么大模型?"}]
   }'</code></pre>
-                </div>
-            </div>
-        </section>
+          </div>
+        </div>
+      </section>
 
-        <!-- Tech Stack Section -->
-        <section class="mb-16">
-            <h2 class="text-3xl font-bold text-center mb-12">核心技术栈</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                <div class="p-6 rounded-lg feature-card text-center">
-                    <svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="h-16 mx-auto mb-4 typescript-logo" fill="black"><title>Hono</title><path d="M12 0L3.5 5v14l8.5 5 8.5-5V5L12 0zm6.5 17.5L12 21.25 5.5 17.5V6.5L12 2.75 18.5 6.5v11z"/></svg>
-                    <h3 class="text-xl font-semibold mb-2">Hono</h3>
-                    <p class="text-gray-400">一个为边缘计算设计的、轻量且超快速的 Web 框架，构成了我们代理服务器的基础。</p>
-                </div>
-                <div class="p-6 rounded-lg feature-card text-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 441 441" class="h-16 mx-auto mb-4 typescript-logo" fill="black" fill-rule="evenodd" clip-rule="evenodd" stroke-linejoin="round" stroke-miterlimit="2"><g transform="matrix(1.02631 0 0 1.02631 -.525826 -.525138)"><path d="M37.965 296.635c-11.524-24.869-17.956-52.57-17.956-81.762 0-7.555.43-15.01 1.269-22.342.851-7.408 2.112-14.679 3.758-21.789 9.25-39.89 30.765-75.102 60.348-101.441C110.233 47.207 140.674 31.444 174.043 24.3c13.169-2.813 26.829-4.293 40.832-4.293 4.908.005 9.852.195 14.826.574 23.584 1.799 45.87 7.736 66.203 17.044 16.401 7.518 31.582 17.245 45.16 28.801 34.106 28.955 57.893 69.428 65.803 114.844 1.89 10.886 2.875 22.081 2.875 33.504 0 4.916-.19 9.867-.57 14.848-1.437 18.824-5.509 36.821-11.828 53.658-8.819 23.451-22.032 44.757-38.634 62.915-21.593 22.048-49.033 31.858-71.951 31.45-16.665-.3-32.971-6.931-44.239-16.633-16.096-13.861-22.598-29.705-24.826-47.385-.554-4.395-.229-16.371 2.058-24.663 1.705-6.181 6.029-18.118 12.352-23.339-7.397-3.186-16.917-10.123-19.918-13.453-.737-.819-.642-2.099.219-2.981.861-.882 2.02-1.23 2.957-.857 6.359 2.183 14.104 4.336 22.27 5.702 10.74 1.795 24.1 4.057 37.631 4.722 33.001 1.62 67.452-13.199 78.148-42.662 10.695-29.463 6.546-58.605-31.824-76.086-38.37-17.48-56.094-38.264-87.096-50.8-20.249-8.189-42.787-3.328-65.926 9.46-62.326 34.443-118.165 143.268-92.424 244.093.368 1.379-.253 2.832-1.505 3.519-1.172.644-2.615.46-3.587-.43-7.491-8.231-14.287-17.105-20.296-26.529-4.649-7.294-8.822-14.909-12.48-22.799z"/></g></svg>
-                    <h3 class="text-xl font-semibold mb-2">Deno</h3>
-                    <p class="text-gray-400">一个现代化的 JavaScript/TypeScript 运行时，提供了安全和高效的后端环境，并内置了 Cron 等强大功能。</p>
-                </div>
-                <div class="p-6 rounded-lg feature-card text-center">
-                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/bun/bun-original.svg" alt="Bun Logo" class="h-16 mx-auto mb-4 typescript-logo">
-                    <h3 class="text-xl font-semibold mb-2">Bun</h3>
-                    <p class="text-gray-400">一个极速的 JavaScript 多合一工具包，我们用它来简化开发、测试和打包流程。</p>
-                </div>
-                <div class="p-6 rounded-lg feature-card text-center">
-                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg" alt="TypeScript Logo" class="h-16 mx-auto mb-4 typescript-logo">
-                    <h3 class="text-xl font-semibold mb-2">TypeScript</h3>
-                    <p class="text-gray-400">通过为 JavaScript 添加静态类型，我们保证了代码的健壮性、可读性和可维护性。</p>
-                </div>
-                <div class="p-6 rounded-lg feature-card text-center">
-                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/rust/rust-original.svg" alt="Rust Logo" class="h-16 mx-auto mb-4 typescript-logo">
-                    <h3 class="text-xl font-semibold mb-2">Rust</h3>
-                    <p class="text-gray-400">一种以性能和安全著称的系统编程语言，用于实现性能关键的模块。</p>
-                </div>
-                <div class="p-6 rounded-lg feature-card text-center">
-                    <img src="https://cdn.jsdelivr.net/npm/simple-icons@v3/icons/webassembly.svg" alt="WebAssembly Logo" class="h-16 mx-auto mb-4 logo-monochrome">
-                    <h3 class="text-xl font-semibold mb-2">WebAssembly</h3>
-                    <p class="text-gray-400">一种可移植的二进制指令格式，让 Rust 代码能以接近原生的速度在 Web 环境中运行。</p>
-                </div>
-            </div>
-        </section>
-
+      <!-- Tech Stack Section -->
+      <section class="mb-16">
+        <h2 class="text-3xl font-bold text-center mb-12">核心技术栈</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div class="p-6 rounded-lg feature-card text-center">
+            <svg
+              role="img"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-16 mx-auto mb-4 typescript-logo"
+              fill="black"
+            >
+              <title>Hono</title>
+              <path d="M12 0L3.5 5v14l8.5 5 8.5-5V5L12 0zm6.5 17.5L12 21.25 5.5 17.5V6.5L12 2.75 18.5 6.5v11z" />
+            </svg>
+            <h3 class="text-xl font-semibold mb-2">Hono</h3>
+            <p class="text-gray-400">
+              一个为边缘计算设计的、轻量且超快速的 Web
+              框架，构成了我们代理服务器的基础。
+            </p>
+          </div>
+          <div class="p-6 rounded-lg feature-card text-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 441 441"
+              class="h-16 mx-auto mb-4 typescript-logo"
+              fill="black"
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              stroke-linejoin="round"
+              stroke-miterlimit="2"
+            >
+              <g transform="matrix(1.02631 0 0 1.02631 -.525826 -.525138)">
+                <path d="M37.965 296.635c-11.524-24.869-17.956-52.57-17.956-81.762 0-7.555.43-15.01 1.269-22.342.851-7.408 2.112-14.679 3.758-21.789 9.25-39.89 30.765-75.102 60.348-101.441C110.233 47.207 140.674 31.444 174.043 24.3c13.169-2.813 26.829-4.293 40.832-4.293 4.908.005 9.852.195 14.826.574 23.584 1.799 45.87 7.736 66.203 17.044 16.401 7.518 31.582 17.245 45.16 28.801 34.106 28.955 57.893 69.428 65.803 114.844 1.89 10.886 2.875 22.081 2.875 33.504 0 4.916-.19 9.867-.57 14.848-1.437 18.824-5.509 36.821-11.828 53.658-8.819 23.451-22.032 44.757-38.634 62.915-21.593 22.048-49.033 31.858-71.951 31.45-16.665-.3-32.971-6.931-44.239-16.633-16.096-13.861-22.598-29.705-24.826-47.385-.554-4.395-.229-16.371 2.058-24.663 1.705-6.181 6.029-18.118 12.352-23.339-7.397-3.186-16.917-10.123-19.918-13.453-.737-.819-.642-2.099.219-2.981.861-.882 2.02-1.23 2.957-.857 6.359 2.183 14.104 4.336 22.27 5.702 10.74 1.795 24.1 4.057 37.631 4.722 33.001 1.62 67.452-13.199 78.148-42.662 10.695-29.463 6.546-58.605-31.824-76.086-38.37-17.48-56.094-38.264-87.096-50.8-20.249-8.189-42.787-3.328-65.926 9.46-62.326 34.443-118.165 143.268-92.424 244.093.368 1.379-.253 2.832-1.505 3.519-1.172.644-2.615.46-3.587-.43-7.491-8.231-14.287-17.105-20.296-26.529-4.649-7.294-8.822-14.909-12.48-22.799z" />
+              </g>
+            </svg>
+            <h3 class="text-xl font-semibold mb-2">Deno</h3>
+            <p class="text-gray-400">
+              一个现代化的 JavaScript/TypeScript
+              运行时，提供了安全和高效的后端环境，并内置了 Cron 等强大功能。
+            </p>
+          </div>
+          <div class="p-6 rounded-lg feature-card text-center">
+            <img
+              src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/bun/bun-original.svg"
+              alt="Bun Logo"
+              class="h-16 mx-auto mb-4 typescript-logo"
+            >
+            <h3 class="text-xl font-semibold mb-2">Bun</h3>
+            <p class="text-gray-400">
+              一个极速的 JavaScript
+              多合一工具包，我们用它来简化开发、测试和打包流程。
+            </p>
+          </div>
+          <div class="p-6 rounded-lg feature-card text-center">
+            <img
+              src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg"
+              alt="TypeScript Logo"
+              class="h-16 mx-auto mb-4 typescript-logo"
+            >
+            <h3 class="text-xl font-semibold mb-2">TypeScript</h3>
+            <p class="text-gray-400">
+              通过为 JavaScript
+              添加静态类型，我们保证了代码的健壮性、可读性和可维护性。
+            </p>
+          </div>
+          <div class="p-6 rounded-lg feature-card text-center">
+            <img
+              src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/rust/rust-original.svg"
+              alt="Rust Logo"
+              class="h-16 mx-auto mb-4 typescript-logo"
+            >
+            <h3 class="text-xl font-semibold mb-2">Rust</h3>
+            <p class="text-gray-400">
+              一种以性能和安全著称的系统编程语言，用于实现性能关键的模块。
+            </p>
+          </div>
+          <div class="p-6 rounded-lg feature-card text-center">
+            <img
+              src="https://cdn.jsdelivr.net/npm/simple-icons@v3/icons/webassembly.svg"
+              alt="WebAssembly Logo"
+              class="h-16 mx-auto mb-4 logo-monochrome"
+            >
+            <h3 class="text-xl font-semibold mb-2">WebAssembly</h3>
+            <p class="text-gray-400">
+              一种可移植的二进制指令格式，让 Rust 代码能以接近原生的速度在 Web
+              环境中运行。
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
 
     <!-- Footer -->
     <footer class="border-t border-gray-800 py-8">
-        <div class="container mx-auto text-center text-gray-500">
-            <p>&copy; 2024 LLM Proxy. All Rights Reserved.</p>
-            <p class="mt-2">Generated by Claude Code.</p>
-        </div>
+      <div class="container mx-auto text-center text-gray-500">
+        <p>&copy; 2024 LLM Proxy. All Rights Reserved.</p>
+        <p class="mt-2">Generated by Claude Code.</p>
+      </div>
     </footer>
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-</body>
+    <script
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+      defer
+    ></script>
+  </body>
 </html>

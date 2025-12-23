@@ -1,18 +1,16 @@
-import { Context, Next } from 'hono';
-import { initConfig } from '../config.ts';
-import { iflowAuth } from '../providers/iflow/auth.ts';
-import initWasm from '../../pkg/converter_wasm.js';
-import * as fs from 'node:fs';
-import * as path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
+import { Context, Next } from "hono";
+import { initConfig } from "../config.ts";
+import initWasm from "../../pkg/converter_wasm.js";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 let isInitialized = false;
 let initPromise: Promise<void> | null = null;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const wasmPath = path.join(__dirname, '../..', 'pkg', 'converter_wasm_bg.wasm');
+const wasmPath = path.join(__dirname, "../..", "pkg", "converter_wasm_bg.wasm");
 const wasmBuffer = fs.readFileSync(wasmPath);
 
 const ensureInitialized = async (): Promise<void> => {
@@ -26,15 +24,14 @@ const ensureInitialized = async (): Promise<void> => {
 
   initPromise = (async () => {
     try {
-      console.log('Initializing WASM and config...');
+      console.log("Initializing WASM and config...");
       await initWasm({ module_or_path: wasmBuffer });
-      console.log('Initializing config...');
+      console.log("Initializing config...");
       await initConfig();
-      iflowAuth.init();
       isInitialized = true;
-      console.log('Initialization completed successfully');
+      console.log("Initialization completed successfully");
     } catch (error) {
-      console.error('Initialization failed:', error);
+      console.error("Initialization failed:", error);
       initPromise = null; // 重置，允许重试
       throw error;
     }
@@ -51,12 +48,12 @@ export const initMiddleware = async (c: Context, next: Next) => {
       await ensureInitialized();
     } catch (error) {
       return c.json({
-        error: 'Service initialization failed',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        error: "Service initialization failed",
+        message: error instanceof Error ? error.message : "Unknown error",
       }, 500);
     }
   }
 
-  c.set('initialized', true);
+  c.set("initialized", true);
   await next();
 };

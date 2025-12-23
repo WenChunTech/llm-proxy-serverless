@@ -1,32 +1,31 @@
-import { iFlowAuthManager } from "./providers/iflow/authManager.ts";
-import app from './server.ts'
-import { getCredentials, updateCredentials } from './services/credentials.ts';
+import { getAccessToken } from "./providers/iflow/auth.ts";
+import app from "./server.ts";
+import { getCredentials, updateCredentials } from "./services/credentials.ts";
 import { IFlowConfig } from "./types/config.ts";
 
 export default {
   hostname: "0.0.0.0",
   port: 3000,
   fetch: app.fetch,
-}
+};
 
 Deno.cron("Iflow Auth refresh", "0 */6 * * *", async () => {
-    const appConfig = "APP_CONFIG"
-    let config: any = await getCredentials(appConfig);
-    if (typeof config === "string") {
-         config = JSON.parse(config);
-    }
-    const iflow: IFlowConfig[] = config.iflow;
-    const iflowClient =  iFlowAuthManager;
-    try {
-      const newIflow = iflow.map(async (configToRefresh) => {
-          return await iflowClient.refreshToken(configToRefresh);
-      })
-      config.iflow = await Promise.all(newIflow);
-    }catch (error) {
-      console.log(error);
-    }
-    if (config.iflow.length > 0) {
-      await updateCredentials(appConfig, config);
-      console.log("new config saved");
-    }
-})
+  const appConfig = "APP_CONFIG";
+  let config: any = await getCredentials(appConfig);
+  if (typeof config === "string") {
+    config = JSON.parse(config);
+  }
+  const iflow: IFlowConfig[] = config.iflow;
+  try {
+    const newIflow = iflow.map(async (configToRefresh) => {
+      return await getAccessToken(configToRefresh.auth);
+    });
+    config.iflow = await Promise.all(newIflow);
+  } catch (error) {
+    console.log(error);
+  }
+  if (config.iflow.length > 0) {
+    await updateCredentials(appConfig, config);
+    console.log("new config saved");
+  }
+});
