@@ -47,6 +47,7 @@ export interface IFlowAuth {
     email: string | null;
     phone: string;
     apiKey: string;
+    cookie: string | null;
 }
 
 export interface OpenAIConfig {

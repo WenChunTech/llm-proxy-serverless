@@ -1,6 +1,6 @@
 import { appConfig } from '../config.js';
-import { refreshAccessToken as refreshIflowToken } from '../providers/iflow/auth.js';
-import { refreshAccessToken as refreshQwenToken } from '../providers/qwen/auth.js';
+import { isAccessTokenExpired, refreshAccessToken as refreshIflowToken } from '../providers/iflow/auth.js';
+import { refreshAccessToken as refreshQwenToken, isAccessTokenExpired as isQwenAccessTokenExpired } from '../providers/qwen/auth.js';
 
 export const refreshAllTokens = async () => {
     const results = {
@@ -12,7 +12,9 @@ export const refreshAllTokens = async () => {
     for (const iflowConfig of appConfig.iflow) {
         if (iflowConfig.auth) {
             try {
-                await refreshIflowToken(iflowConfig.auth);
+                if (isAccessTokenExpired(iflowConfig.auth)) {
+                    await refreshIflowToken(iflowConfig.auth);
+                }
                 results.iflow.success++;
             } catch (error: any) {
                 results.iflow.failed++;
@@ -26,7 +28,9 @@ export const refreshAllTokens = async () => {
     for (const qwenConfig of appConfig.qwen) {
         if (qwenConfig.auth) {
             try {
-                await refreshQwenToken(qwenConfig.auth);
+                if (isQwenAccessTokenExpired(qwenConfig.auth)) {
+                    await refreshQwenToken(qwenConfig.auth);
+                }
                 results.qwen.success++;
             } catch (error: any) {
                 results.qwen.failed++;

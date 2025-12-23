@@ -1,6 +1,7 @@
 import { appConfig, updateConfig } from '../../config.js';
 import { IFlowAuth } from '../../types/config.js';
 import { URLSearchParams } from 'url';
+import { authenticateWithCookie } from './auth_cookie.js';
 
 // --- iFlow Constants (from cmd/iflow.js) ---
 const IFLOW_OAUTH_TOKEN_ENDPOINT = "https://iflow.cn/oauth/token";
@@ -22,11 +23,39 @@ export function isAccessTokenExpired(auth: IFlowAuth) {
     return Date.now() >= auth.expiry_date - 60000;
 }
 
+async function updateAndStoreCredentials(originalAuth: IFlowAuth, updatedCreds: IFlowAuth): Promise<IFlowAuth> {
+    const newConfig = {
+        ...appConfig,
+        iflow: appConfig.iflow.map((c) =>
+            c.auth?.refresh_token === originalAuth.refresh_token ? { ...c, auth: updatedCreds } : c
+        ),
+    };
+
+    await updateConfig(newConfig);
+    console.log('[iFlow Auth] Access token refreshed and stored successfully.');
+    return updatedCreds;
+}
+
 /**
  * Refreshes the access token using the refresh token.
  * @returns {Promise<object>} A promise that resolves with the new token data.
  */
 export async function refreshAccessToken(auth: IFlowAuth) {
+    if (auth.cookie) {
+        try {
+            console.info('[iFlow Auth] Refreshing access token with cookie...');
+            const newAuth = await authenticateWithCookie(auth.cookie);
+            const updatedCreds = {
+                ...auth,
+            };
+            updatedCreds.apiKey = newAuth.apiKey;
+            updatedCreds.expiry_date = newAuth.expiry_date;
+            updatedCreds.userName = newAuth.userName;
+            return await updateAndStoreCredentials(auth, updatedCreds);
+        } catch (error) {
+            console.error('[iFlow Auth] Failed to refresh access token with cookie. error:', error);
+        }
+    }
     console.log('[iFlow Auth] Refreshing access token...');
     const body = new URLSearchParams({
         grant_type: 'refresh_token',
@@ -48,12 +77,14 @@ export async function refreshAccessToken(auth: IFlowAuth) {
 
     if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`[iFlow Auth] Token refresh failed: ${response.status} ${errorText}`);
+        console.error(`[iFlow Auth] Failed to refresh access token: ${errorText}`);
+        return auth
     }
 
     const newTokenData = await response.json();
     if (!newTokenData.access_token || !newTokenData.refresh_token) {
-        throw new Error('[iFlow Auth] Missing access token or refresh token in refresh response.');
+        console.error('[iFlow Auth] Missing access token or refresh token in refresh response. error:', newTokenData);
+        return auth
     }
     newTokenData.expiry_date = Date.now() + newTokenData.expires_in * 1000;
     // Fetch user info to get the latest API Key, similar to the Go implementation
@@ -63,16 +94,7 @@ export async function refreshAccessToken(auth: IFlowAuth) {
         ...newTokenData,
         ...userInfo
     };
-    const newConfig = {
-        ...appConfig,
-        iflow: appConfig.iflow.map((c) =>
-            c.auth?.refresh_token === auth.refresh_token ? { ...c, auth: updatedCreds } : c
-        ),
-    };
-
-    await updateConfig(newConfig);
-    console.log('[iFlow Auth] Access token refreshed and stored successfully.');
-    return updatedCreds;
+    return await updateAndStoreCredentials(auth, updatedCreds);
 }
 
 /**
@@ -87,6 +109,8 @@ export async function getAccessToken(auth: IFlowAuth) {
         auth.refresh_token = newAuth.refresh_token;
         auth.expiry_date = newAuth.expiry_date;
         auth.apiKey = newAuth.apiKey;
+        auth.cookie = newAuth.cookie;
+        auth.userName = newAuth.userName;
     }
 
     return auth.apiKey;
