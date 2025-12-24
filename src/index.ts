@@ -1,4 +1,4 @@
-import { getAccessToken } from "./providers/iflow/auth.ts";
+import { refreshAccessToken } from "./providers/iflow/auth.ts";
 import app from "./server.ts";
 import { getCredentials, updateCredentials } from "./services/credentials.ts";
 import { IFlowConfig } from "./types/config.ts";
@@ -18,7 +18,9 @@ Deno.cron("Iflow Auth refresh", "0 */6 * * *", async () => {
   const iflow: IFlowConfig[] = config.iflow;
   try {
     const newIflow = iflow.map(async (configToRefresh) => {
-      return await getAccessToken(configToRefresh.auth);
+      const newAuth =  await refreshAccessToken(configToRefresh.auth);
+      configToRefresh.auth = newAuth;
+      return configToRefresh;
     });
     config.iflow = await Promise.all(newIflow);
   } catch (error) {

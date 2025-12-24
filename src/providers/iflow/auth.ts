@@ -36,7 +36,7 @@ async function updateAndStoreCredentials(
     ),
   };
 
-  await updateConfig(newConfig);
+  // await updateConfig(newConfig);
   console.log("[iFlow Auth] Access token refreshed and stored successfully.");
   return updatedCreds;
 }
