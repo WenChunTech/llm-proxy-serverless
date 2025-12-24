@@ -30,6 +30,7 @@ const configKeyMap: { [key: string]: string } = {
   [PROVIDERS.OPENAI]: "openai",
   [PROVIDERS.CLAUDE]: "claude",
   [PROVIDERS.QWEN]: "qwen",
+  [PROVIDERS.IFLOW]: "iflow",
 };
 
 const providerNameMap: { [key: string]: string } = {

@@ -15,12 +15,17 @@ class Poller<T extends HasModel> {
     if (this.items.length === 0) {
       throw new Error("No items to poll.");
     }
-    const item = this.items[this.currentIndex];
-    this.currentIndex = (this.currentIndex + 1) % this.items.length;
-    if (!item.models.includes(model)) {
-      return this.getNext(model);
+
+    const maxAttempts = this.items.length;
+    for (let i = 0; i < maxAttempts; i++) {
+      const item = this.items[this.currentIndex];
+      this.currentIndex = (this.currentIndex + 1) % this.items.length;
+      if (item.models.includes(model)) {
+        return item;
+      }
     }
-    return item;
+
+    throw new Error(`No provider found for model: ${model}`);
   }
 }
 
