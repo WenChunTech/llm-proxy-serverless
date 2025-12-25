@@ -1,7 +1,8 @@
 import { refreshAccessToken } from "./providers/iflow/auth.ts";
+import { refreshAccessToken as refreshQwenAccessToken } from "./providers/qwen/auth.ts";
 import app from "./server.ts";
 import { getCredentials, updateCredentials } from "./services/credentials.ts";
-import { IFlowConfig } from "./types/config.ts";
+import { IFlowConfig, QwenConfig } from "./types/config.ts";
 
 export default {
   hostname: "0.0.0.0",
@@ -15,6 +16,22 @@ Deno.cron("Iflow Auth refresh", "0 */6 * * *", async () => {
   if (typeof config === "string") {
     config = JSON.parse(config);
   }
+  const qwen: QwenConfig[] = config.qwen;
+  try {
+    const newQwen = qwen.map(async (configToRefresh) => {
+      const newAuth = await refreshQwenAccessToken(configToRefresh.auth);
+      configToRefresh.auth = newAuth;
+      return configToRefresh;
+    });
+    config.qwen = await Promise.all(newQwen);
+  } catch (error) {
+    console.log(error);
+  }
+  if (config.qwen.length > 0) {
+    await updateCredentials(appConfig, config);
+    console.log("new qwen config saved");
+  }
+
   const iflow: IFlowConfig[] = config.iflow;
   try {
     const newIflow = iflow.map(async (configToRefresh) => {
@@ -26,8 +43,9 @@ Deno.cron("Iflow Auth refresh", "0 */6 * * *", async () => {
   } catch (error) {
     console.log(error);
   }
+
   if (config.iflow.length > 0) {
     await updateCredentials(appConfig, config);
-    console.log("new config saved");
+    console.log("new iflow config saved");
   }
 });

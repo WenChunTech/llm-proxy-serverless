@@ -36,9 +36,7 @@ export async function refreshAccessToken(auth: QwenAuth): Promise<QwenAuth> {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     console.error("[Qwen Auth] Token refresh failed:", errorData);
-    throw new Error(
-      `Failed to refresh Qwen access token: ${response.statusText}`,
-    );
+    return auth;
   }
 
   const tokenResponse = await response.json();
@@ -50,16 +48,15 @@ export async function refreshAccessToken(auth: QwenAuth): Promise<QwenAuth> {
     expiry_date: Date.now() + tokenResponse.expires_in * 1000,
   };
 
-  const newConfig = {
-    ...appConfig,
-    qwen: appConfig.qwen.map((c) =>
-      c.auth?.refresh_token === auth.refresh_token
-        ? { ...c, auth: updatedAuth }
-        : c
-    ),
-  };
-
-  await updateConfig(newConfig);
+  // const newConfig = {
+  //   ...appConfig,
+  //   qwen: appConfig.qwen.map((c) =>
+  //     c.auth?.refresh_token === auth.refresh_token
+  //       ? { ...c, auth: updatedAuth }
+  //       : c
+  //   ),
+  // };
+  // await updateConfig(newConfig);
   console.log("[Qwen Auth] Refreshed Token");
 
   return updatedAuth;

@@ -108,15 +108,14 @@ async function authWithQwenDeviceFlow() {
 
     if (!deviceAuthResponse.device_code) {
       throw new Error(
-        `Device authorization failed: ${
-          deviceAuthResponse?.error || "Unknown error"
+        `Device authorization failed: ${deviceAuthResponse?.error || "Unknown error"
         }`,
       );
     }
 
     authEvents.emit(AuthEvent.AuthUri, deviceAuthResponse);
     await openUrlInBrowser(deviceAuthResponse.verification_uri_complete).catch(
-      () => {},
+      () => { },
     );
 
     authEvents.emit(
@@ -166,8 +165,7 @@ async function authWithQwenDeviceFlow() {
           errorData.error !== "slow_down"
         ) {
           throw new Error(
-            `Token polling failed: ${
-              errorData.error_description || error.message
+            `Token polling failed: ${errorData.error_description || error.message
             }`,
           );
         }
