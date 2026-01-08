@@ -46,6 +46,19 @@ export function collectAllModels(): ModelInfo[] {
     });
   }
 
+  if (appConfig.gemini) {
+    appConfig.gemini.forEach((config) => {
+      config.models.forEach((model) => {
+        models.push({
+          id: model,
+          object: "model",
+          created: Date.now(),
+          owned_by: "gemini",
+        });
+      });
+    });
+  }
+
   if (appConfig.qwen) {
     appConfig.qwen.forEach(config => {
       config.models.forEach(model => {
