@@ -1,20 +1,30 @@
-import fs from 'fs';
+import fs from "fs";
 import { getCredentials, updateCredentials } from './services/credentials.js';
-import { Config, GeminiCliConfig, QwenConfig, OpenAIConfig, ClaudeConfig, IFlowConfig } from './types/config.js';
-import Poller from './services/polling.js';
+import {
+  ClaudeConfig,
+  Config,
+  GeminiCliConfig,
+  GeminiConfig,
+  IFlowConfig,
+  OpenAIConfig,
+  QwenConfig,
+} from "./types/config.js";
+import Poller from "./services/polling.js";
 
 export let appConfig: Config = {
-    gemini_cli: [],
-    qwen: [],
-    openai: [],
-    claude: [],
-    iflow: [],
-    model_priority: [],
+  gemini_cli: [],
+  gemini: [],
+  qwen: [],
+  openai: [],
+  claude: [],
+  iflow: [],
+  model_priority: [],
 };
 export const APP_CONFIG = "APP_CONFIG";
 const CONFIG_FILE = "config.json";
 
 export let geminiCliPoller: Poller<GeminiCliConfig>;
+export let geminiPoller: Poller<GeminiConfig>;
 export let qwenPoller: Poller<QwenConfig>;
 export let openAIPoller: Poller<OpenAIConfig>;
 export let claudePoller: Poller<ClaudeConfig>;
@@ -31,16 +41,16 @@ export const initConfig = async () => {
         console.log("Load config from kv store Successfully");
     }
 
-    if (loadedConfig) {
-        appConfig = { ...appConfig, ...loadedConfig };
-    }
-    geminiCliPoller = new Poller(appConfig.gemini_cli || []);
-    qwenPoller = new Poller(appConfig.qwen || []);
-    openAIPoller = new Poller(appConfig.openai || []);
-    claudePoller = new Poller(appConfig.claude || []);
-    iflowPoller = new Poller(appConfig.iflow || []);
-}
-
+  if (loadedConfig) {
+    appConfig = loadedConfig;
+  }
+  geminiCliPoller = new Poller(appConfig.gemini_cli || []);
+  geminiPoller = new Poller(appConfig.gemini || []);
+  qwenPoller = new Poller(appConfig.qwen || []);
+  openAIPoller = new Poller(appConfig.openai || []);
+  claudePoller = new Poller(appConfig.claude || []);
+  iflowPoller = new Poller(appConfig.iflow || []);
+};
 
 export const updateConfig = async (config: Config) => {
     if (fs.existsSync(CONFIG_FILE)) {

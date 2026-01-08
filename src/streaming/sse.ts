@@ -1,14 +1,20 @@
-import { claudeStreamWrapperConvertTo, geminiCliResponseConvertToGeminiResponse, geminiCliStreamWrapperConvertTo, getDefaultStreamState, openaiStreamWrapperConvertTo, TargetType } from "converter-wasm";
+import { claudeStreamWrapperConvertTo, geminiCliResponseConvertToGeminiResponse, geminiCliStreamWrapperConvertTo,geminiStreamWrapperConvertTo, getDefaultStreamState, openaiStreamWrapperConvertTo, TargetType } from "converter-wasm";
 
-const responseConvert = (wrapper: any, sourceType: TargetType, targetType: TargetType) => {
-    if (sourceType === TargetType.GeminiCli) {
-        return geminiCliStreamWrapperConvertTo(wrapper, targetType);
-    } else if (sourceType === TargetType.OpenAI) {
-        return openaiStreamWrapperConvertTo(wrapper, targetType);
-    } else if (sourceType === TargetType.Claude) {
-        return claudeStreamWrapperConvertTo(wrapper, targetType);
-    }
-}
+const responseConvert = (
+  wrapper: any,
+  sourceType: TargetType,
+  targetType: TargetType,
+) => {
+  if (sourceType === TargetType.GeminiCli) {
+    return geminiCliStreamWrapperConvertTo(wrapper, targetType);
+  } else if (sourceType === TargetType.Gemini) {
+    return geminiStreamWrapperConvertTo(wrapper, targetType);
+  } else if (sourceType === TargetType.OpenAI) {
+    return openaiStreamWrapperConvertTo(wrapper, targetType);
+  } else if (sourceType === TargetType.Claude) {
+    return claudeStreamWrapperConvertTo(wrapper, targetType);
+  }
+};
 
 export const StreamEvent = async (stream: any, response: Response, sourceType: TargetType, targetType: TargetType) => {
     if (!response.body) {

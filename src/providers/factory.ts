@@ -1,14 +1,16 @@
 import { PROVIDERS } from './_base/index.js';
 import { GeminiCliProvider } from './gemini_cli/index.js';
+import { GeminiProvider } from './gemini/index.js';
 import { OpenAIProvider } from './openai/index.js';
 import { ClaudeProvider } from './claude/index.js';
 import { QwenProvider } from './qwen/index.js';
 import { IflowProvider } from './iflow/index.js';
 import { appConfig } from '../config.js';
-import { QwenConfig, OpenAIConfig, ClaudeConfig, GeminiCliConfig, IFlowConfig } from '../types/config.js';
+import { QwenConfig, OpenAIConfig, ClaudeConfig, GeminiCliConfig,GeminiConfig, IFlowConfig } from '../types/config.js';
 
 const providerClasses = {
   [PROVIDERS.GEMINICLI]: (model: string) => new GeminiCliProvider(model),
+  [PROVIDERS.GEMINI]: (model: string) => new GeminiProvider(model),
   [PROVIDERS.OPENAI]: (model: string) => new OpenAIProvider(model),
   [PROVIDERS.CLAUDE]: (model: string) => new ClaudeProvider(model),
   [PROVIDERS.QWEN]: (model: string) => new QwenProvider(model),
@@ -21,6 +23,7 @@ let modelToProvidersMap: Map<string, string[]>;
 
 const configKeyMap: { [key: string]: string } = {
   [PROVIDERS.GEMINICLI]: "gemini_cli",
+  [PROVIDERS.GEMINI]: "gemini",
   [PROVIDERS.QWEN]: "qwen",
   [PROVIDERS.IFLOW]: "iflow",
   [PROVIDERS.GEMINI]: "gemini",
@@ -30,6 +33,7 @@ const configKeyMap: { [key: string]: string } = {
 
 const providerNameMap: { [key: string]: string } = {
   gemini_cli: PROVIDERS.GEMINICLI,
+  gemini: PROVIDERS.GEMINI,
   openai: PROVIDERS.OPENAI,
   claude: PROVIDERS.CLAUDE,
   qwen: PROVIDERS.QWEN,
@@ -44,9 +48,16 @@ function buildModelToProvidersMap() {
   const config = appConfig;
 
   const providerConfigs: {
-    [key: string]: (GeminiCliConfig | QwenConfig | OpenAIConfig | ClaudeConfig | IFlowConfig)[]
+    [key: string]: (
+      | GeminiCliConfig
+      | QwenConfig
+      | OpenAIConfig
+      | ClaudeConfig
+      | IFlowConfig
+    )[];
   } = {
     gemini_cli: config.gemini_cli,
+    gemini: config.gemini,
     qwen: config.qwen,
     openai: config.openai,
     claude: config.claude,
