@@ -19,6 +19,12 @@ export interface GeminiConfig {
   api_key: string;
 }
 
+export interface GeminiConfig {
+  models: string[];
+  base_url: string;
+  api_key: string;
+}
+
 export interface QwenAuth {
     access_token: string;
     refresh_token: string;
