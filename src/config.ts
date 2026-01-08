@@ -4,6 +4,7 @@ import {
   ClaudeConfig,
   Config,
   GeminiCliConfig,
+  GeminiConfig,
   IFlowConfig,
   OpenAIConfig,
   QwenConfig,
@@ -12,6 +13,7 @@ import Poller from "./services/polling.ts";
 
 export let appConfig: Config = {
   gemini_cli: [],
+  gemini: [],
   qwen: [],
   openai: [],
   claude: [],
@@ -22,6 +24,7 @@ export const APP_CONFIG = "APP_CONFIG";
 const CONFIG_FILE = "config.json";
 
 export let geminiCliPoller: Poller<GeminiCliConfig>;
+export let geminiPoller: Poller<GeminiConfig>;
 export let qwenPoller: Poller<QwenConfig>;
 export let openAIPoller: Poller<OpenAIConfig>;
 export let claudePoller: Poller<ClaudeConfig>;
@@ -46,6 +49,7 @@ export const initConfig = async () => {
     appConfig = loadedConfig;
   }
   geminiCliPoller = new Poller(appConfig.gemini_cli || []);
+  geminiPoller = new Poller(appConfig.gemini || []);
   qwenPoller = new Poller(appConfig.qwen || []);
   openAIPoller = new Poller(appConfig.openai || []);
   claudePoller = new Poller(appConfig.claude || []);

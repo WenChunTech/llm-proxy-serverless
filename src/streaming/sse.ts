@@ -2,6 +2,7 @@ import {
   claudeStreamWrapperConvertTo,
   geminiCliResponseConvertToGeminiResponse,
   geminiCliStreamWrapperConvertTo,
+  geminiStreamWrapperConvertTo,
   getDefaultStreamState,
   openaiStreamWrapperConvertTo,
   TargetType,
@@ -14,6 +15,8 @@ const responseConvert = (
 ) => {
   if (sourceType === TargetType.GeminiCli) {
     return geminiCliStreamWrapperConvertTo(wrapper, targetType);
+  } else if (sourceType === TargetType.Gemini) {
+    return geminiStreamWrapperConvertTo(wrapper, targetType);
   } else if (sourceType === TargetType.OpenAI) {
     return openaiStreamWrapperConvertTo(wrapper, targetType);
   } else if (sourceType === TargetType.Claude) {

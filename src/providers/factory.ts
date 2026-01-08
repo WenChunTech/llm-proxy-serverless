@@ -1,5 +1,6 @@
 import { PROVIDERS } from "./_base/index.ts  ";
 import { GeminiCliProvider } from "./gemini_cli/index.ts";
+import { GeminiProvider } from "./gemini/index.ts";
 import { OpenAIProvider } from "./openai/index.ts";
 import { ClaudeProvider } from "./claude/index.ts";
 import { QwenProvider } from "./qwen/index.ts";
@@ -8,6 +9,7 @@ import { appConfig } from "../config.ts";
 import {
   ClaudeConfig,
   GeminiCliConfig,
+  GeminiConfig,
   IFlowConfig,
   OpenAIConfig,
   QwenConfig,
@@ -15,6 +17,7 @@ import {
 
 const providerClasses = {
   [PROVIDERS.GEMINICLI]: (model: string) => new GeminiCliProvider(model),
+  [PROVIDERS.GEMINI]: (model: string) => new GeminiProvider(model),
   [PROVIDERS.OPENAI]: (model: string) => new OpenAIProvider(model),
   [PROVIDERS.CLAUDE]: (model: string) => new ClaudeProvider(model),
   [PROVIDERS.QWEN]: (model: string) => new QwenProvider(model),
@@ -27,6 +30,7 @@ let modelToProvidersMap: Map<string, string[]>;
 
 const configKeyMap: { [key: string]: string } = {
   [PROVIDERS.GEMINICLI]: "gemini_cli",
+  [PROVIDERS.GEMINI]: "gemini",
   [PROVIDERS.OPENAI]: "openai",
   [PROVIDERS.CLAUDE]: "claude",
   [PROVIDERS.QWEN]: "qwen",
@@ -35,6 +39,7 @@ const configKeyMap: { [key: string]: string } = {
 
 const providerNameMap: { [key: string]: string } = {
   gemini_cli: PROVIDERS.GEMINICLI,
+  gemini: PROVIDERS.GEMINI,
   openai: PROVIDERS.OPENAI,
   claude: PROVIDERS.CLAUDE,
   qwen: PROVIDERS.QWEN,
@@ -51,6 +56,7 @@ function buildModelToProvidersMap() {
   const providerConfigs: {
     [key: string]: (
       | GeminiCliConfig
+      | GeminiConfig
       | QwenConfig
       | OpenAIConfig
       | ClaudeConfig
@@ -58,6 +64,7 @@ function buildModelToProvidersMap() {
     )[];
   } = {
     gemini_cli: config.gemini_cli,
+    gemini: config.gemini,
     qwen: config.qwen,
     openai: config.openai,
     claude: config.claude,

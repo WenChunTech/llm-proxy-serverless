@@ -12,6 +12,12 @@ export interface GeminiCliConfig {
   models: string[];
 }
 
+export interface GeminiConfig {
+  models: string[];
+  base_url: string;
+  api_key: string;
+}
+
 export interface QwenAuth {
   access_token: string;
   refresh_token: string;
@@ -63,6 +69,7 @@ export interface ClaudeConfig {
 
 export interface Config {
   gemini_cli: GeminiCliConfig[];
+  gemini: GeminiConfig[];
   qwen: QwenConfig[];
   openai: OpenAIConfig[];
   claude: ClaudeConfig[];

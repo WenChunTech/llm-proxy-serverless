@@ -1,5 +1,6 @@
 export const PROVIDERS = {
-  GEMINICLI: "gemini",
+  GEMINICLI: "gemini_cli",
+  GEMINI: "gemini",
   QWEN: "qwen",
   OPENAI: "openai",
   CLAUDE: "claude",
