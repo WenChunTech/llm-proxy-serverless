@@ -30,11 +30,11 @@ let modelToProvidersMap: Map<string, string[]>;
 
 const configKeyMap: { [key: string]: string } = {
   [PROVIDERS.GEMINICLI]: "gemini_cli",
+  [PROVIDERS.QWEN]: "qwen",
+  [PROVIDERS.IFLOW]: "iflow",
   [PROVIDERS.GEMINI]: "gemini",
   [PROVIDERS.OPENAI]: "openai",
   [PROVIDERS.CLAUDE]: "claude",
-  [PROVIDERS.QWEN]: "qwen",
-  [PROVIDERS.IFLOW]: "iflow",
 };
 
 const providerNameMap: { [key: string]: string } = {
