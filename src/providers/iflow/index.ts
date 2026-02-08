@@ -29,6 +29,7 @@ export class IflowProvider {
     const headers: any = {
       "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
+      "User-Agent": "iFlow-Cli",
     };
 
     const fetcher = async () =>
