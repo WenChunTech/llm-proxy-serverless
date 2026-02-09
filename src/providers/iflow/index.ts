@@ -6,7 +6,7 @@ import {
   convertToIFlowRequestTo,
 } from "./adapter.ts";
 import { TargetType } from "../../../pkg/converter_wasm.js";
-import { getAccessToken } from "./auth.ts";
+import { getAccessToken, iflowHeaderSign } from "./auth.ts";
 
 export class IflowProvider {
   model: string;
@@ -26,10 +26,12 @@ export class IflowProvider {
     const iflowConfig = iflowPoller.getNext(this.model);
     const token = await getAccessToken(iflowConfig.auth);
     const endpoint = "https://apis.iflow.cn/v1/chat/completions";
+    const headerSign = iflowHeaderSign(token);
     const headers: any = {
       "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
       "User-Agent": "iFlow-Cli",
+      ...headerSign,
     };
 
     const fetcher = async () =>

@@ -3,6 +3,7 @@ import { IFlowAuth } from "../../types/config.ts";
 import { URLSearchParams } from "node:url";
 import { authenticateWithCookie } from "./auth_cookie.ts";
 import { Buffer } from "node:buffer";
+import { createHmac, randomUUID } from "node:crypto";
 
 // --- iFlow Constants (from cmd/iflow.js) ---
 const IFLOW_OAUTH_TOKEN_ENDPOINT = "https://iflow.cn/oauth/token";
@@ -159,4 +160,37 @@ async function fetchUserInfo(accessToken: string) {
     );
   }
   return result.data;
+}
+
+function createIFlowSignature(
+  userAgent: string,
+  sessionID: string,
+  timestamp: number,
+  apiKey: string,
+) {
+  const payload = `${userAgent}:${sessionID}:${timestamp}`;
+  const hmac = createHmac("sha256", apiKey);
+  hmac.update(payload);
+  return hmac.digest("hex");
+}
+
+function generateUUID() {
+  return randomUUID();
+}
+
+export function iflowHeaderSign(apiKey: string) {
+  const iflowUserAgent = "iFlow-Cli";
+  const sessionID = "session-" + generateUUID();
+  const timestamp = Date.now();
+  const signature = createIFlowSignature(
+    iflowUserAgent,
+    sessionID,
+    timestamp,
+    apiKey,
+  );
+  return {
+    "session-id": sessionID,
+    "x-iflow-timestamp": String(timestamp),
+    "x-iflow-signature": signature,
+  };
 }
