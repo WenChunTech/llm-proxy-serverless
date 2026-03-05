@@ -26,7 +26,7 @@ export class OpenAIProvider {
   }
 
   async fetchResponse(_is_streaming: boolean, reqData: any) {
-    const url = `${this.baseUrl}/v1/chat/completions`;
+    const url = `${this.baseUrl}/chat/completions`;
     const headers = {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${this.apiKey}`,
