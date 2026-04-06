@@ -5,6 +5,7 @@ import {
   TargetType,
 } from "../../../pkg/converter_wasm.js";
 import { StreamEvent } from "../../streaming/sse.ts";
+import { RequestLogger } from "../../utils/logger.ts";
 
 export function convertToOpenAIRequestTo(body: any, source: any) {
   switch (source) {
@@ -33,6 +34,7 @@ export async function convertOpenAIStreamResponseTo(
   stream: any,
   response: Response,
   target: any,
+  requestLogger?: RequestLogger,
 ) {
-  return StreamEvent(stream, response, TargetType.OpenAI, target);
+  return StreamEvent(stream, response, TargetType.OpenAI, target, requestLogger);
 }

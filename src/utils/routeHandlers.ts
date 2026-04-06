@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { streamSSE } from "hono/streaming";
 import { TargetType } from "../../pkg/converter_wasm.js";
 import { getProvider } from "../providers/factory.ts";
+import { RequestLogger, logger } from "./logger.ts";
 
 function proxyResponse(response: Response) {
   const newHeaders = new Headers(response.headers);
@@ -20,6 +21,11 @@ export async function handleModelRequest(
   targetType: TargetType,
 ) {
   const body = await c.req.json();
+  
+  const requestLogger = new RequestLogger();
+  
+  requestLogger.saveRequestBody(JSON.parse(JSON.stringify(body)));
+  
   let is_streaming = body.stream;
   let model = body.model;
   if (targetType === TargetType.Gemini) {
@@ -43,12 +49,20 @@ export async function handleModelRequest(
   }
 
   if (targetType == provider.getProviderType()) {
+    const clonedResp = resp.clone();
+    const responseText = await clonedResp.text();
+    requestLogger.saveRawResponse(responseText);
     return proxyResponse(resp);
   }
   if (is_streaming) {
     return streamSSE(c, async (stream) => {
-      return provider.convertStreamResponseTo(stream, resp, targetType);
+      return provider.convertStreamResponseTo(stream, resp, targetType, requestLogger);
     });
   }
+  
+  const clonedResp = resp.clone();
+  const responseText = await clonedResp.text();
+  requestLogger.saveRawResponse(responseText);
+  
   return provider.convertResponseTo(c, resp, targetType);
 }

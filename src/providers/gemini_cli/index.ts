@@ -12,6 +12,7 @@ import {
   convertToGeminiCliRequestTo,
 } from "./adapter.ts";
 import { TargetType } from "../../../pkg/converter_wasm.js";
+import { RequestLogger } from "../../utils/logger.ts";
 
 export class GeminiCliProvider {
   geminiConfig: GeminiCliConfig;
@@ -56,7 +57,7 @@ export class GeminiCliProvider {
     return convertGeminiCliResponseTo(c, response, target);
   }
 
-  async convertStreamResponseTo(stream: any, response: Response, target: any) {
-    return convertGeminiStreamResponseTo(stream, response, target);
+  async convertStreamResponseTo(stream: any, response: Response, target: any, requestLogger?: RequestLogger) {
+    return convertGeminiStreamResponseTo(stream, response, target, requestLogger);
   }
 }

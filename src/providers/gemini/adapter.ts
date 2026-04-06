@@ -6,6 +6,7 @@ import {
   TargetType,
 } from "../../../pkg/converter_wasm.js";
 import { StreamEvent } from "../../streaming/sse.ts";
+import { RequestLogger } from "../../utils/logger.ts";
 
 export function convertToGeminiRequestTo(body: any, source: any) {
   switch (source) {
@@ -36,6 +37,7 @@ export async function convertGeminiStreamResponseTo(
   stream: any,
   response: Response,
   target: any,
+  requestLogger?: RequestLogger,
 ) {
-  return StreamEvent(stream, response, TargetType.Gemini, target);
+  return StreamEvent(stream, response, TargetType.Gemini, target, requestLogger);
 }

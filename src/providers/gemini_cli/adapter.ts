@@ -9,6 +9,7 @@ import {
   geminiCliStreamResponseConvertToGeminiStreamResponse,
   StreamEvent,
 } from "../../streaming/sse.ts";
+import { RequestLogger } from "../../utils/logger.ts";
 
 export function convertToGeminiCliRequestTo(body: any, source: any) {
   switch (source) {
@@ -37,12 +38,14 @@ export async function convertGeminiStreamResponseTo(
   stream: any,
   response: Response,
   target: any,
+  requestLogger?: RequestLogger,
 ) {
   if (target === TargetType.Gemini) {
     return geminiCliStreamResponseConvertToGeminiStreamResponse(
       stream,
       response,
+      requestLogger,
     );
   }
-  return StreamEvent(stream, response, TargetType.GeminiCli, target);
+  return StreamEvent(stream, response, TargetType.GeminiCli, target, requestLogger);
 }

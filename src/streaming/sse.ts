@@ -7,6 +7,7 @@ import {
   openaiStreamWrapperConvertTo,
   TargetType,
 } from "../../pkg/converter_wasm.js";
+import { RequestLogger } from "../utils/logger.ts";
 
 const responseConvert = (
   wrapper: any,
@@ -29,6 +30,7 @@ export const StreamEvent = async (
   response: Response,
   sourceType: TargetType,
   targetType: TargetType,
+  requestLogger?: RequestLogger,
 ) => {
   if (!response.body) {
     return;
@@ -37,12 +39,14 @@ export const StreamEvent = async (
   const decoder = new TextDecoder();
   let state = getDefaultStreamState();
   let buffer = "";
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) {
       break;
     }
-    buffer += decoder.decode(value, { stream: true });
+    const chunkText = decoder.decode(value, { stream: true });
+    buffer += chunkText;
     const lines = buffer.split("\n");
     const lastLine = lines.pop();
     if (lastLine !== undefined) {
@@ -50,6 +54,9 @@ export const StreamEvent = async (
     }
     for (const line of lines) {
       if (line.startsWith("data:")) {
+        if (requestLogger) {
+          requestLogger.saveSSEDataLine(line);
+        }
         const data = line.substring(5).trim();
         if (data) {
           let wrapper = {
@@ -75,6 +82,9 @@ export const StreamEvent = async (
   }
 
   if (buffer.startsWith("data:")) {
+    if (requestLogger) {
+      requestLogger.saveSSEDataLine(buffer);
+    }
     const data = buffer.substring(5).trim();
     if (data) {
       let wrapper = {
@@ -97,6 +107,7 @@ export const StreamEvent = async (
 export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (
   stream: any,
   response: Response,
+  requestLogger?: RequestLogger,
 ) => {
   if (!response.body) {
     return;
@@ -104,12 +115,14 @@ export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) {
       break;
     }
-    buffer += decoder.decode(value, { stream: true });
+    const chunkText = decoder.decode(value, { stream: true });
+    buffer += chunkText;
     const lines = buffer.split("\n");
     const lastLine = lines.pop();
     if (lastLine !== undefined) {
@@ -117,6 +130,9 @@ export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (
     }
     for (const line of lines) {
       if (line.startsWith("data:")) {
+        if (requestLogger) {
+          requestLogger.saveSSEDataLine(line);
+        }
         const data = line.substring(5).trim();
         if (data) {
           const responseData = geminiCliResponseConvertToGeminiResponse(
@@ -129,7 +145,11 @@ export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (
       }
     }
   }
+
   if (buffer.startsWith("data:")) {
+    if (requestLogger) {
+      requestLogger.saveSSEDataLine(buffer);
+    }
     const data = buffer.substring(5).trim();
     if (data) {
       const responseData = geminiCliResponseConvertToGeminiResponse(

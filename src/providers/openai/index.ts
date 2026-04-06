@@ -6,6 +6,7 @@ import {
   convertToOpenAIRequestTo,
 } from "./adapter.ts";
 import { TargetType } from "../../../pkg/converter_wasm.js";
+import { RequestLogger } from "../../utils/logger.ts";
 
 export class OpenAIProvider {
   apiKey: string;
@@ -46,7 +47,7 @@ export class OpenAIProvider {
     return convertOpenAIResponseTo(c, response, target);
   }
 
-  async convertStreamResponseTo(stream: any, response: Response, target: any) {
-    return convertOpenAIStreamResponseTo(stream, response, target);
+  async convertStreamResponseTo(stream: any, response: Response, target: any, requestLogger?: RequestLogger) {
+    return convertOpenAIStreamResponseTo(stream, response, target, requestLogger);
   }
 }

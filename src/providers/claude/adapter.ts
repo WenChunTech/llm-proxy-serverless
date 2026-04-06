@@ -5,6 +5,7 @@ import {
   TargetType,
 } from "../../../pkg/converter_wasm.js";
 import { StreamEvent } from "../../streaming/sse.ts";
+import { RequestLogger } from "../../utils/logger.ts";
 
 export function convertToClaudeRequestTo(body: any, source: any) {
   switch (source) {
@@ -33,6 +34,7 @@ export async function convertClaudeStreamResponseTo(
   stream: any,
   response: Response,
   target: any,
+  requestLogger?: RequestLogger,
 ) {
-  return StreamEvent(stream, response, TargetType.Claude, target);
+  return StreamEvent(stream, response, TargetType.Claude, target, requestLogger);
 }

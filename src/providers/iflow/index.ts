@@ -7,6 +7,7 @@ import {
 } from "./adapter.ts";
 import { TargetType } from "../../../pkg/converter_wasm.js";
 import { getAccessToken, iflowHeaderSign } from "./auth.ts";
+import { RequestLogger } from "../../utils/logger.ts";
 
 export class IflowProvider {
   model: string;
@@ -48,7 +49,7 @@ export class IflowProvider {
     return convertIFlowResponseTo(c, response, target);
   }
 
-  async convertStreamResponseTo(stream: any, response: any, target: any) {
-    return convertIFlowStreamResponseTo(stream, response, target);
+  async convertStreamResponseTo(stream: any, response: any, target: any, requestLogger?: RequestLogger) {
+    return convertIFlowStreamResponseTo(stream, response, target, requestLogger);
   }
 }

@@ -7,6 +7,7 @@ import {
   convertToQwenRequestTo,
 } from "./adapter.ts";
 import { getAccessToken } from "./auth.ts";
+import { RequestLogger } from "../../utils/logger.ts";
 
 export class QwenProvider {
   model: string;
@@ -46,7 +47,7 @@ export class QwenProvider {
     return convertQwenResponseTo(c, response, target);
   }
 
-  async convertStreamResponseTo(stream: any, response: any, target: any) {
-    return convertQwenStreamResponseTo(stream, response, target);
+  async convertStreamResponseTo(stream: any, response: any, target: any, requestLogger?: RequestLogger) {
+    return convertQwenStreamResponseTo(stream, response, target, requestLogger);
   }
 }

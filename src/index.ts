@@ -35,7 +35,7 @@ Deno.cron("Iflow Auth refresh", "0 */6 * * *", async () => {
   const iflow: IFlowConfig[] = config.iflow;
   try {
     const newIflow = iflow.map(async (configToRefresh) => {
-      const newAuth =  await refreshAccessToken(configToRefresh.auth);
+      const newAuth = await refreshAccessToken(configToRefresh.auth);
       configToRefresh.auth = newAuth;
       return configToRefresh;
     });

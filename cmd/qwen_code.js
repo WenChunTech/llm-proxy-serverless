@@ -1,9 +1,9 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 import path from "node:path";
 import { promises as fs } from "node:fs";
-import * as os from "os";
-import { exec } from "child_process";
-import { EventEmitter } from "events";
+import * as os from "node:os";
+import { exec } from "node:child_process";
+import { EventEmitter } from "node:events";
 
 // --- Constants ---
 const QWEN_DIR = ".qwen";

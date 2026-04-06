@@ -6,6 +6,7 @@ import {
   convertToClaudeRequestTo,
 } from "./adapter.ts";
 import { TargetType } from "../../../pkg/converter_wasm.js";
+import { RequestLogger } from "../../utils/logger.ts";
 
 export class ClaudeProvider {
   apiKey: string;
@@ -48,7 +49,7 @@ export class ClaudeProvider {
     return convertClaudeResponseTo(c, response, target);
   }
 
-  async convertStreamResponseTo(stream: any, response: Response, target: any) {
-    return convertClaudeStreamResponseTo(stream, response, target);
+  async convertStreamResponseTo(stream: any, response: Response, target: any, requestLogger?: RequestLogger) {
+    return convertClaudeStreamResponseTo(stream, response, target, requestLogger);
   }
 }
