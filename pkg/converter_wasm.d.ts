@@ -2,10 +2,11 @@
 /* eslint-disable */
 
 export enum TargetType {
-    OpenAI = 0,
-    Gemini = 1,
-    GeminiCli = 2,
-    Claude = 3,
+    OpenAIChat = 0,
+    OpenAIResponses = 1,
+    Gemini = 2,
+    GeminiCli = 3,
+    Claude = 4,
 }
 
 export function claudeRequestConvertTo(req: any, target: TargetType): any;
@@ -30,11 +31,17 @@ export function geminiStreamWrapperConvertTo(resp: any, target: TargetType): any
 
 export function getDefaultStreamState(): any;
 
-export function openaiRequestConvertTo(req: any, target: TargetType): any;
+export function openAIResponsesRequestConvertTo(req: any, target: TargetType): any;
 
-export function openaiResponseConvertTo(req: any, target: TargetType): any;
+export function openAIResponsesResponseConvertTo(resp: any, target: TargetType): any;
 
-export function openaiStreamWrapperConvertTo(resp: any, target: TargetType): any;
+export function openAIResponsesStreamWrapperConvertTo(resp: any, target: TargetType): any;
+
+export function openaiChatRequestConvertTo(req: any, target: TargetType): any;
+
+export function openaiChatResponseConvertTo(req: any, target: TargetType): any;
+
+export function openaiChatStreamWrapperConvertTo(resp: any, target: TargetType): any;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -51,9 +58,12 @@ export interface InitOutput {
     readonly geminiResponseConvertTo: (a: any, b: number) => [number, number, number];
     readonly geminiStreamWrapperConvertTo: (a: any, b: number) => [number, number, number];
     readonly getDefaultStreamState: () => [number, number, number];
-    readonly openaiRequestConvertTo: (a: any, b: number) => [number, number, number];
-    readonly openaiResponseConvertTo: (a: any, b: number) => [number, number, number];
-    readonly openaiStreamWrapperConvertTo: (a: any, b: number) => [number, number, number];
+    readonly openAIResponsesRequestConvertTo: (a: any, b: number) => [number, number, number];
+    readonly openAIResponsesResponseConvertTo: (a: any, b: number) => [number, number, number];
+    readonly openAIResponsesStreamWrapperConvertTo: (a: any, b: number) => [number, number, number];
+    readonly openaiChatRequestConvertTo: (a: any, b: number) => [number, number, number];
+    readonly openaiChatResponseConvertTo: (a: any, b: number) => [number, number, number];
+    readonly openaiChatStreamWrapperConvertTo: (a: any, b: number) => [number, number, number];
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;

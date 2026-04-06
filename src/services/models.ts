@@ -59,8 +59,8 @@ export function collectAllModels(): ModelInfo[] {
     });
   }
 
-  if (appConfig.openai) {
-    appConfig.openai.forEach((config) => {
+  if (appConfig.openai_chat) {
+    appConfig.openai_chat.forEach((config) => {
       config.models.forEach((model) => {
         models.push({
           id: model,

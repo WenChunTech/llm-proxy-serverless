@@ -20,7 +20,7 @@ export class QwenProvider {
   }
 
   getProviderType() {
-    return TargetType.OpenAI;
+    return TargetType.OpenAIChat;
   }
 
   async fetchResponse(_is_streaming: boolean, reqData: any) {
@@ -47,7 +47,12 @@ export class QwenProvider {
     return convertQwenResponseTo(c, response, target);
   }
 
-  async convertStreamResponseTo(stream: any, response: any, target: any, requestLogger?: RequestLogger) {
+  async convertStreamResponseTo(
+    stream: any,
+    response: any,
+    target: any,
+    requestLogger?: RequestLogger,
+  ) {
     return convertQwenStreamResponseTo(stream, response, target, requestLogger);
   }
 }

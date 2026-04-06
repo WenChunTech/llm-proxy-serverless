@@ -1,7 +1,7 @@
 import { PROVIDERS } from "./_base/index.ts  ";
 import { GeminiCliProvider } from "./gemini_cli/index.ts";
 import { GeminiProvider } from "./gemini/index.ts";
-import { OpenAIProvider } from "./openai/index.ts";
+import { OpenAIProvider } from "./openai_chat/index.ts";
 import { ClaudeProvider } from "./claude/index.ts";
 import { QwenProvider } from "./qwen/index.ts";
 import { IflowProvider } from "./iflow/index.ts";
@@ -11,14 +11,14 @@ import {
   GeminiCliConfig,
   GeminiConfig,
   IFlowConfig,
-  OpenAIConfig,
+  OpenAIChatConfig,
   QwenConfig,
 } from "../types/config.ts";
 
 const providerClasses = {
-  [PROVIDERS.GEMINICLI]: (model: string) => new GeminiCliProvider(model),
+  [PROVIDERS.GEMINI_CLI]: (model: string) => new GeminiCliProvider(model),
   [PROVIDERS.GEMINI]: (model: string) => new GeminiProvider(model),
-  [PROVIDERS.OPENAI]: (model: string) => new OpenAIProvider(model),
+  [PROVIDERS.OPENAI_CHAT]: (model: string) => new OpenAIProvider(model),
   [PROVIDERS.CLAUDE]: (model: string) => new ClaudeProvider(model),
   [PROVIDERS.QWEN]: (model: string) => new QwenProvider(model),
   [PROVIDERS.IFLOW]: (model: string) => new IflowProvider(model),
@@ -29,18 +29,18 @@ const providerInstances: { [key: string]: any } = {};
 let modelToProvidersMap: Map<string, string[]>;
 
 const configKeyMap: { [key: string]: string } = {
-  [PROVIDERS.GEMINICLI]: "gemini_cli",
+  [PROVIDERS.GEMINI_CLI]: "gemini_cli",
   [PROVIDERS.QWEN]: "qwen",
   [PROVIDERS.IFLOW]: "iflow",
   [PROVIDERS.GEMINI]: "gemini",
-  [PROVIDERS.OPENAI]: "openai",
+  [PROVIDERS.OPENAI_CHAT]: "openai_chat",
   [PROVIDERS.CLAUDE]: "claude",
 };
 
 const providerNameMap: { [key: string]: string } = {
-  gemini_cli: PROVIDERS.GEMINICLI,
+  gemini_cli: PROVIDERS.GEMINI_CLI,
   gemini: PROVIDERS.GEMINI,
-  openai: PROVIDERS.OPENAI,
+  openai: PROVIDERS.OPENAI_CHAT,
   claude: PROVIDERS.CLAUDE,
   qwen: PROVIDERS.QWEN,
   iflow: PROVIDERS.IFLOW,
@@ -58,7 +58,7 @@ function buildModelToProvidersMap() {
       | GeminiCliConfig
       | GeminiConfig
       | QwenConfig
-      | OpenAIConfig
+      | OpenAIChatConfig
       | ClaudeConfig
       | IFlowConfig
     )[];
@@ -66,7 +66,7 @@ function buildModelToProvidersMap() {
     gemini_cli: config.gemini_cli,
     gemini: config.gemini,
     qwen: config.qwen,
-    openai: config.openai,
+    openai_chat: config.openai_chat,
     claude: config.claude,
     iflow: config.iflow,
   };
@@ -99,7 +99,7 @@ export function getProvider(model: string) {
   const providers = modelToProvidersMap.get(model);
 
   if (!providers || providers.length === 0) {
-    const providerName = PROVIDERS.OPENAI;
+    const providerName = PROVIDERS.OPENAI_CHAT;
     if (!providerInstances[providerName]) {
       const ProviderClass = providerClasses[providerName];
       if (ProviderClass) {

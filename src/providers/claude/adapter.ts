@@ -1,7 +1,7 @@
 import {
   geminiRequestConvertTo,
-  openaiRequestConvertTo,
-  openaiResponseConvertTo,
+  openaiChatRequestConvertTo,
+  openaiChatResponseConvertTo,
   TargetType,
 } from "../../../pkg/converter_wasm.js";
 import { StreamEvent } from "../../streaming/sse.ts";
@@ -11,8 +11,8 @@ export function convertToClaudeRequestTo(body: any, source: any) {
   switch (source) {
     case TargetType.Gemini:
       return geminiRequestConvertTo(body, TargetType.Claude);
-    case TargetType.OpenAI:
-      return openaiRequestConvertTo(body, TargetType.Claude);
+    case TargetType.OpenAIChat:
+      return openaiChatRequestConvertTo(body, TargetType.Claude);
     case TargetType.Claude:
       return body;
     default:
@@ -26,7 +26,7 @@ export async function convertClaudeResponseTo(
   target: any,
 ) {
   const data = await response.json();
-  const resp = openaiResponseConvertTo(data, target);
+  const resp = openaiChatResponseConvertTo(data, target);
   return c.json(resp);
 }
 
@@ -36,5 +36,11 @@ export async function convertClaudeStreamResponseTo(
   target: any,
   requestLogger?: RequestLogger,
 ) {
-  return StreamEvent(stream, response, TargetType.Claude, target, requestLogger);
+  return StreamEvent(
+    stream,
+    response,
+    TargetType.Claude,
+    target,
+    requestLogger,
+  );
 }

@@ -6,7 +6,7 @@ import {
   GeminiCliConfig,
   GeminiConfig,
   IFlowConfig,
-  OpenAIConfig,
+  OpenAIChatConfig,
   QwenConfig,
 } from "./types/config.ts";
 import Poller from "./services/polling.ts";
@@ -26,7 +26,7 @@ const CONFIG_FILE = "config.json";
 export let geminiCliPoller: Poller<GeminiCliConfig>;
 export let geminiPoller: Poller<GeminiConfig>;
 export let qwenPoller: Poller<QwenConfig>;
-export let openAIPoller: Poller<OpenAIConfig>;
+export let openAIPoller: Poller<OpenAIChatConfig>;
 export let claudePoller: Poller<ClaudeConfig>;
 export let iflowPoller: Poller<IFlowConfig>;
 

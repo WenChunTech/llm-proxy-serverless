@@ -20,7 +20,7 @@ export class IflowProvider {
   }
 
   getProviderType() {
-    return TargetType.OpenAI;
+    return TargetType.OpenAIChat;
   }
 
   async fetchResponse(_is_streaming: boolean, reqData: any) {
@@ -49,7 +49,17 @@ export class IflowProvider {
     return convertIFlowResponseTo(c, response, target);
   }
 
-  async convertStreamResponseTo(stream: any, response: any, target: any, requestLogger?: RequestLogger) {
-    return convertIFlowStreamResponseTo(stream, response, target, requestLogger);
+  async convertStreamResponseTo(
+    stream: any,
+    response: any,
+    target: any,
+    requestLogger?: RequestLogger,
+  ) {
+    return convertIFlowStreamResponseTo(
+      stream,
+      response,
+      target,
+      requestLogger,
+    );
   }
 }

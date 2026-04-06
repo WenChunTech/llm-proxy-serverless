@@ -55,7 +55,7 @@ export interface IFlowAuth {
   cookie: string | null;
 }
 
-export interface OpenAIConfig {
+export interface OpenAIChatConfig {
   base_url: string;
   api_key: string;
   models: string[];
@@ -71,7 +71,7 @@ export interface Config {
   gemini_cli: GeminiCliConfig[];
   gemini: GeminiConfig[];
   qwen: QwenConfig[];
-  openai: OpenAIConfig[];
+  openai_chat: OpenAIChatConfig[];
   claude: ClaudeConfig[];
   iflow: IFlowConfig[];
   model_priority: string[];

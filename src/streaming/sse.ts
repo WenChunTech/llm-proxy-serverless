@@ -4,7 +4,7 @@ import {
   geminiCliStreamWrapperConvertTo,
   geminiStreamWrapperConvertTo,
   getDefaultStreamState,
-  openaiStreamWrapperConvertTo,
+  openaiChatStreamWrapperConvertTo,
   TargetType,
 } from "../../pkg/converter_wasm.js";
 import { RequestLogger } from "../utils/logger.ts";
@@ -18,8 +18,8 @@ const responseConvert = (
     return geminiCliStreamWrapperConvertTo(wrapper, targetType);
   } else if (sourceType === TargetType.Gemini) {
     return geminiStreamWrapperConvertTo(wrapper, targetType);
-  } else if (sourceType === TargetType.OpenAI) {
-    return openaiStreamWrapperConvertTo(wrapper, targetType);
+  } else if (sourceType === TargetType.OpenAIChat) {
+    return openaiChatStreamWrapperConvertTo(wrapper, targetType);
   } else if (sourceType === TargetType.Claude) {
     return claudeStreamWrapperConvertTo(wrapper, targetType);
   }

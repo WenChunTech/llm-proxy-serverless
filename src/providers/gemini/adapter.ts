@@ -2,7 +2,7 @@ import {
   claudeRequestConvertTo,
   geminiCliResponseConvertTo,
   geminiResponseConvertTo,
-  openaiRequestConvertTo,
+  openaiChatRequestConvertTo,
   TargetType,
 } from "../../../pkg/converter_wasm.js";
 import { StreamEvent } from "../../streaming/sse.ts";
@@ -10,8 +10,8 @@ import { RequestLogger } from "../../utils/logger.ts";
 
 export function convertToGeminiRequestTo(body: any, source: any) {
   switch (source) {
-    case TargetType.OpenAI:
-      return openaiRequestConvertTo(body, TargetType.Gemini);
+    case TargetType.OpenAIChat:
+      return openaiChatRequestConvertTo(body, TargetType.Gemini);
     case TargetType.Claude:
       return claudeRequestConvertTo(body, TargetType.Gemini);
     case TargetType.GeminiCli:
@@ -39,5 +39,11 @@ export async function convertGeminiStreamResponseTo(
   target: any,
   requestLogger?: RequestLogger,
 ) {
-  return StreamEvent(stream, response, TargetType.Gemini, target, requestLogger);
+  return StreamEvent(
+    stream,
+    response,
+    TargetType.Gemini,
+    target,
+    requestLogger,
+  );
 }

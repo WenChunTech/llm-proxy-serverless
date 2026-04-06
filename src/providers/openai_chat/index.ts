@@ -19,7 +19,7 @@ export class OpenAIProvider {
   }
 
   getProviderType() {
-    return TargetType.OpenAI;
+    return TargetType.OpenAIChat;
   }
 
   async convertRequestTo(body: any, source: any) {
@@ -47,7 +47,17 @@ export class OpenAIProvider {
     return convertOpenAIResponseTo(c, response, target);
   }
 
-  async convertStreamResponseTo(stream: any, response: Response, target: any, requestLogger?: RequestLogger) {
-    return convertOpenAIStreamResponseTo(stream, response, target, requestLogger);
+  async convertStreamResponseTo(
+    stream: any,
+    response: Response,
+    target: any,
+    requestLogger?: RequestLogger,
+  ) {
+    return convertOpenAIStreamResponseTo(
+      stream,
+      response,
+      target,
+      requestLogger,
+    );
   }
 }
