@@ -1,13 +1,14 @@
 /* @ts-self-types="./converter_wasm.d.ts" */
 
 /**
- * @enum {0 | 1 | 2 | 3}
+ * @enum {0 | 1 | 2 | 3 | 4}
  */
 export const TargetType = Object.freeze({
-    OpenAI: 0, "0": "OpenAI",
-    Gemini: 1, "1": "Gemini",
-    GeminiCli: 2, "2": "GeminiCli",
-    Claude: 3, "3": "Claude",
+    OpenAIChat: 0, "0": "OpenAIChat",
+    OpenAIResponses: 1, "1": "OpenAIResponses",
+    Gemini: 2, "2": "Gemini",
+    GeminiCli: 3, "3": "GeminiCli",
+    Claude: 4, "4": "Claude",
 });
 
 /**
@@ -154,21 +155,8 @@ export function getDefaultStreamState() {
  * @param {TargetType} target
  * @returns {any}
  */
-export function openaiRequestConvertTo(req, target) {
-    const ret = wasm.openaiRequestConvertTo(req, target);
-    if (ret[2]) {
-        throw takeFromExternrefTable0(ret[1]);
-    }
-    return takeFromExternrefTable0(ret[0]);
-}
-
-/**
- * @param {any} req
- * @param {TargetType} target
- * @returns {any}
- */
-export function openaiResponseConvertTo(req, target) {
-    const ret = wasm.openaiResponseConvertTo(req, target);
+export function openAIResponsesRequestConvertTo(req, target) {
+    const ret = wasm.openAIResponsesRequestConvertTo(req, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -180,8 +168,60 @@ export function openaiResponseConvertTo(req, target) {
  * @param {TargetType} target
  * @returns {any}
  */
-export function openaiStreamWrapperConvertTo(resp, target) {
-    const ret = wasm.openaiStreamWrapperConvertTo(resp, target);
+export function openAIResponsesResponseConvertTo(resp, target) {
+    const ret = wasm.openAIResponsesResponseConvertTo(resp, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} resp
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function openAIResponsesStreamWrapperConvertTo(resp, target) {
+    const ret = wasm.openAIResponsesStreamWrapperConvertTo(resp, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} req
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function openaiChatRequestConvertTo(req, target) {
+    const ret = wasm.openaiChatRequestConvertTo(req, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} req
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function openaiChatResponseConvertTo(req, target) {
+    const ret = wasm.openaiChatResponseConvertTo(req, target);
+    if (ret[2]) {
+        throw takeFromExternrefTable0(ret[1]);
+    }
+    return takeFromExternrefTable0(ret[0]);
+}
+
+/**
+ * @param {any} resp
+ * @param {TargetType} target
+ * @returns {any}
+ */
+export function openaiChatStreamWrapperConvertTo(resp, target) {
+    const ret = wasm.openaiChatStreamWrapperConvertTo(resp, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
