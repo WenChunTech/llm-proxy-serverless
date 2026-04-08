@@ -3,6 +3,7 @@ import {
   geminiCliResponseConvertTo,
   geminiRequestConvertToGeminiCliRequest,
   openaiChatRequestConvertTo,
+  openAIResponsesRequestConvertTo,
   TargetType,
 } from "../../../pkg/converter_wasm.js";
 import {
@@ -19,6 +20,8 @@ export function convertToGeminiCliRequestTo(body: any, source: any) {
       return claudeRequestConvertTo(body, TargetType.GeminiCli);
     case TargetType.Gemini:
       return geminiRequestConvertToGeminiCliRequest(body);
+    case TargetType.OpenAIResponses:
+      return openAIResponsesRequestConvertTo(body, TargetType.GeminiCli);
     default:
       throw new Error(`Unsupported source type for Gemini provider: ${source}`);
   }

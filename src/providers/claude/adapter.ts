@@ -2,6 +2,7 @@ import {
   geminiRequestConvertTo,
   openaiChatRequestConvertTo,
   openaiChatResponseConvertTo,
+  openAIResponsesRequestConvertTo,
   TargetType,
 } from "../../../pkg/converter_wasm.js";
 import { StreamEvent } from "../../streaming/sse.ts";
@@ -15,6 +16,8 @@ export function convertToClaudeRequestTo(body: any, source: any) {
       return openaiChatRequestConvertTo(body, TargetType.Claude);
     case TargetType.Claude:
       return body;
+    case TargetType.OpenAIResponses:
+      return openAIResponsesRequestConvertTo(body, TargetType.Claude);
     default:
       throw new Error(`Unsupported source type for Claude provider: ${source}`);
   }

@@ -61,6 +61,12 @@ export interface OpenAIChatConfig {
   models: string[];
 }
 
+export interface OpenAIResponsesConfig {
+  base_url: string;
+  api_key: string;
+  models: string[];
+}
+
 export interface ClaudeConfig {
   base_url: string;
   api_key: string;
@@ -72,6 +78,7 @@ export interface Config {
   gemini: GeminiConfig[];
   qwen: QwenConfig[];
   openai_chat: OpenAIChatConfig[];
+  openai_responses: OpenAIResponsesConfig[];
   claude: ClaudeConfig[];
   iflow: IFlowConfig[];
   model_priority: string[];

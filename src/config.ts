@@ -7,6 +7,7 @@ import {
   GeminiConfig,
   IFlowConfig,
   OpenAIChatConfig,
+  OpenAIResponsesConfig,
   QwenConfig,
 } from "./types/config.ts";
 import Poller from "./services/polling.ts";
@@ -15,7 +16,8 @@ export let appConfig: Config = {
   gemini_cli: [],
   gemini: [],
   qwen: [],
-  openai: [],
+  openai_chat: [],
+  openai_responses: [],
   claude: [],
   iflow: [],
   model_priority: [],
@@ -27,6 +29,7 @@ export let geminiCliPoller: Poller<GeminiCliConfig>;
 export let geminiPoller: Poller<GeminiConfig>;
 export let qwenPoller: Poller<QwenConfig>;
 export let openAIPoller: Poller<OpenAIChatConfig>;
+export let openAIResponsesPoller: Poller<OpenAIResponsesConfig>;
 export let claudePoller: Poller<ClaudeConfig>;
 export let iflowPoller: Poller<IFlowConfig>;
 
@@ -51,7 +54,8 @@ export const initConfig = async () => {
   geminiCliPoller = new Poller(appConfig.gemini_cli || []);
   geminiPoller = new Poller(appConfig.gemini || []);
   qwenPoller = new Poller(appConfig.qwen || []);
-  openAIPoller = new Poller(appConfig.openai || []);
+  openAIPoller = new Poller(appConfig.openai_chat || []);
+  openAIResponsesPoller = new Poller(appConfig.openai_responses || []);
   claudePoller = new Poller(appConfig.claude || []);
   iflowPoller = new Poller(appConfig.iflow || []);
 };

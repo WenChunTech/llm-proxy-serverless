@@ -32,15 +32,19 @@ app.use(
 );
 
 app.post("/v1/chat/completions", async (c) => {
-  return handleModelRequest(c, TargetType.OpenAI);
+  return handleModelRequest(c, TargetType.OpenAIChat);
 });
 
-app.post("/v1beta/models/:modelName", async (c) => {
-  return handleModelRequest(c, TargetType.Gemini);
+app.post("/v1/responses", async (c) => {
+  return handleModelRequest(c, TargetType.OpenAIResponses);
 });
 
 app.post("/v1/messages", async (c) => {
   return handleModelRequest(c, TargetType.Claude);
+});
+
+app.post("/v1beta/models/:modelName", async (c) => {
+  return handleModelRequest(c, TargetType.Gemini);
 });
 
 app.get("/v1/models", async (c) => {

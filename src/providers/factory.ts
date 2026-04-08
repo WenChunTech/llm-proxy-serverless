@@ -1,7 +1,8 @@
-import { PROVIDERS } from "./_base/index.ts  ";
+import { PROVIDERS } from "./_base/index.ts";
 import { GeminiCliProvider } from "./gemini_cli/index.ts";
 import { GeminiProvider } from "./gemini/index.ts";
 import { OpenAIProvider } from "./openai_chat/index.ts";
+import { OpenAIResponsesProvider } from "./openai_responses/index.ts";
 import { ClaudeProvider } from "./claude/index.ts";
 import { QwenProvider } from "./qwen/index.ts";
 import { IflowProvider } from "./iflow/index.ts";
@@ -12,6 +13,7 @@ import {
   GeminiConfig,
   IFlowConfig,
   OpenAIChatConfig,
+  OpenAIResponsesConfig,
   QwenConfig,
 } from "../types/config.ts";
 
@@ -19,6 +21,7 @@ const providerClasses = {
   [PROVIDERS.GEMINI_CLI]: (model: string) => new GeminiCliProvider(model),
   [PROVIDERS.GEMINI]: (model: string) => new GeminiProvider(model),
   [PROVIDERS.OPENAI_CHAT]: (model: string) => new OpenAIProvider(model),
+  [PROVIDERS.OPENAI_RESPONSES]: (model: string) => new OpenAIResponsesProvider(model),
   [PROVIDERS.CLAUDE]: (model: string) => new ClaudeProvider(model),
   [PROVIDERS.QWEN]: (model: string) => new QwenProvider(model),
   [PROVIDERS.IFLOW]: (model: string) => new IflowProvider(model),
@@ -34,6 +37,7 @@ const configKeyMap: { [key: string]: string } = {
   [PROVIDERS.IFLOW]: "iflow",
   [PROVIDERS.GEMINI]: "gemini",
   [PROVIDERS.OPENAI_CHAT]: "openai_chat",
+  [PROVIDERS.OPENAI_RESPONSES]: "openai_responses",
   [PROVIDERS.CLAUDE]: "claude",
 };
 
@@ -41,6 +45,7 @@ const providerNameMap: { [key: string]: string } = {
   gemini_cli: PROVIDERS.GEMINI_CLI,
   gemini: PROVIDERS.GEMINI,
   openai: PROVIDERS.OPENAI_CHAT,
+  openai_responses: PROVIDERS.OPENAI_RESPONSES,
   claude: PROVIDERS.CLAUDE,
   qwen: PROVIDERS.QWEN,
   iflow: PROVIDERS.IFLOW,
@@ -59,6 +64,7 @@ function buildModelToProvidersMap() {
       | GeminiConfig
       | QwenConfig
       | OpenAIChatConfig
+      | OpenAIResponsesConfig
       | ClaudeConfig
       | IFlowConfig
     )[];
@@ -67,6 +73,7 @@ function buildModelToProvidersMap() {
     gemini: config.gemini,
     qwen: config.qwen,
     openai_chat: config.openai_chat,
+    openai_responses: config.openai_responses,
     claude: config.claude,
     iflow: config.iflow,
   };

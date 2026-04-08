@@ -1,6 +1,7 @@
 import {
   claudeRequestConvertTo,
   geminiRequestConvertTo,
+  openAIResponsesRequestConvertTo,
   openaiChatResponseConvertTo,
   TargetType,
 } from "../../../pkg/converter_wasm.js";
@@ -15,6 +16,8 @@ export function convertToIFlowRequestTo(body: any, source: any) {
       return geminiRequestConvertTo(body, TargetType.OpenAIChat);
     case TargetType.OpenAIChat:
       return body;
+    case TargetType.OpenAIResponses:
+      return openAIResponsesRequestConvertTo(body, TargetType.OpenAIChat);
     default:
       throw new Error(`Unsupported source type for IFlow provider: ${source}`);
   }
