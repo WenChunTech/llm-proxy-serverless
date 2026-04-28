@@ -1,7 +1,7 @@
 import {
+  claudeResponseConvertTo,
   geminiRequestConvertTo,
   openaiChatRequestConvertTo,
-  openaiChatResponseConvertTo,
   openAIResponsesRequestConvertTo,
   TargetType,
 } from "../../../pkg/converter_wasm.js";
@@ -29,7 +29,7 @@ export async function convertClaudeResponseTo(
   target: any,
 ) {
   const data = await response.json();
-  const resp = openaiChatResponseConvertTo(data, target);
+  const resp = claudeResponseConvertTo(data, target);
   return c.json(resp);
 }
 
