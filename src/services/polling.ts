@@ -11,6 +11,14 @@ class Poller<T extends HasModel> {
     this.currentIndex = 0;
   }
 
+  public peek(index: number): T | null {
+    if (this.items.length === 0) {
+      return null;
+    }
+    const normalizedIndex = index % this.items.length;
+    return this.items[normalizedIndex];
+  }
+
   public getNext(model: string): T {
     if (this.items.length === 0) {
       throw new Error("No items to poll.");
@@ -26,6 +34,10 @@ class Poller<T extends HasModel> {
     }
 
     throw new Error(`No provider found for model: ${model}`);
+  }
+
+  public get length(): number {
+    return this.items.length;
   }
 }
 

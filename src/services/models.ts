@@ -85,6 +85,19 @@ export function collectAllModels(): ModelInfo[] {
     });
   }
 
+  if (appConfig.openai_responses) {
+    appConfig.openai_responses.forEach((config) => {
+      config.models.forEach((model) => {
+        models.push({
+          id: model,
+          object: "model",
+          created: Date.now(),
+          owned_by: "openai",
+        });
+      });
+    });
+  }
+
   if (appConfig.claude) {
     appConfig.claude.forEach(config => {
       config.models.forEach(model => {
