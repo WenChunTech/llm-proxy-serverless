@@ -21,7 +21,8 @@ const providerClasses = {
   [PROVIDERS.GEMINI_CLI]: (model: string) => new GeminiCliProvider(model),
   [PROVIDERS.GEMINI]: (model: string) => new GeminiProvider(model),
   [PROVIDERS.OPENAI_CHAT]: (model: string) => new OpenAIProvider(model),
-  [PROVIDERS.OPENAI_RESPONSES]: (model: string) => new OpenAIResponsesProvider(model),
+  [PROVIDERS.OPENAI_RESPONSES]: (model: string) =>
+    new OpenAIResponsesProvider(model),
   [PROVIDERS.CLAUDE]: (model: string) => new ClaudeProvider(model),
   [PROVIDERS.QWEN]: (model: string) => new QwenProvider(model),
   [PROVIDERS.IFLOW]: (model: string) => new IflowProvider(model),
@@ -155,5 +156,98 @@ export function getProvider(model: string) {
     }
   }
   console.log(`Selected provider for model ${model}: ${providerName}`);
+  return providerInstances[providerName];
+}
+
+export function getProvidersListForModel(model: string): string[] {
+  buildModelToProvidersMap();
+  const providers = modelToProvidersMap.get(model);
+  if (!providers || providers.length === 0) {
+    return [PROVIDERS.OPENAI_CHAT];
+  }
+
+  const priority = appConfig.model_priority ||
+    ["gemini_cli", "iflow", "openai", "qwen", "claude"];
+
+  const sortedProviders: string[] = [];
+  const remainingProviders = [...providers];
+
+  for (const p of priority) {
+    const configKey = configKeyMap[p];
+    const idx = remainingProviders.findIndex(
+      (rp) => providerNameMap[configKey] === rp,
+    );
+    if (idx !== -1) {
+      sortedProviders.push(remainingProviders[idx]);
+      remainingProviders.splice(idx, 1);
+    }
+  }
+
+  if (remainingProviders.length > 0) {
+    sortedProviders.push(...remainingProviders);
+  }
+
+  return sortedProviders;
+}
+
+export function getProviderConfigs(
+  providerName: string,
+): (
+  | GeminiCliConfig
+  | GeminiConfig
+  | QwenConfig
+  | OpenAIChatConfig
+  | OpenAIResponsesConfig
+  | ClaudeConfig
+  | IFlowConfig
+)[] {
+  const configKey = configKeyMap[providerName];
+  if (!configKey) return [];
+
+  const providerConfigs: {
+    [key: string]: (
+      | GeminiCliConfig
+      | GeminiConfig
+      | QwenConfig
+      | OpenAIChatConfig
+      | OpenAIResponsesConfig
+      | ClaudeConfig
+      | IFlowConfig
+    )[];
+  } = {
+    gemini_cli: appConfig.gemini_cli,
+    gemini: appConfig.gemini,
+    qwen: appConfig.qwen,
+    openai_chat: appConfig.openai_chat,
+    openai_responses: appConfig.openai_responses,
+    claude: appConfig.claude,
+    iflow: appConfig.iflow,
+  };
+
+  return providerConfigs[configKey] || [];
+}
+
+export function getConfigForProvider(
+  providerName: string,
+  model: string,
+): any {
+  const configs = getProviderConfigs(providerName);
+  return configs.find((c) => c.models.includes(model));
+}
+
+export function isProviderGeminiCli(providerName: string): boolean {
+  return providerName === PROVIDERS.GEMINI_CLI;
+}
+
+export function getProviderInstance(
+  providerName: string,
+  model: string,
+): any {
+  if (!providerInstances[providerName]) {
+    const ProviderClass = providerClasses[providerName];
+    if (ProviderClass) {
+      providerInstances[providerName] = ProviderClass(model);
+    }
+  }
   return providerInstances[providerName];
 }

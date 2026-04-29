@@ -1,6 +1,5 @@
 import { geminiPoller } from "../../config.ts";
 import { GeminiConfig } from "../../types/config.ts";
-import { fetchWithRetry } from "../../utils/fetch.ts";
 import {
   convertGeminiResponseTo,
   convertGeminiStreamResponseTo,
@@ -10,11 +9,9 @@ import { TargetType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
 
 export class GeminiProvider {
-  geminiConfig: GeminiConfig;
   model: string;
   constructor(model: string) {
     this.model = model;
-    this.geminiConfig = geminiPoller.getNext(model);
   }
 
   getProviderType() {
@@ -25,41 +22,40 @@ export class GeminiProvider {
     return convertToGeminiRequestTo(body, source);
   }
 
-  async fetchResponse(is_streaming: boolean, reqData: any) {
+  async fetchResponse(
+    is_streaming: boolean,
+    reqData: any,
+    config?: GeminiConfig,
+  ) {
+    const geminiConfig = config || geminiPoller.getNext(this.model);
     if (is_streaming) {
       const url =
-        `${this.geminiConfig.base_url}/v1beta/models/${this.model}:streamGenerateContent?alt=sse`;
+        `${geminiConfig.base_url}/v1beta/models/${this.model}:streamGenerateContent?alt=sse`;
       const headers = {
         "Content-Type": "application/json",
-        "x-goog-api-key": this.geminiConfig.api_key,
-        "Authorization": `Bearer ${this.geminiConfig.api_key}`,
+        "x-goog-api-key": geminiConfig.api_key,
+        "Authorization": `Bearer ${geminiConfig.api_key}`,
       };
-      const body = JSON.stringify(reqData);
-      const fetcher = async () =>
-        fetch(url, {
-          method: "POST",
-          headers: headers,
-          body: body,
-        });
 
-      return fetchWithRetry(fetcher, {});
+      return fetch(url, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(reqData),
+      });
     } else {
       const url =
-        `${this.geminiConfig.base_url}/v1beta/models/${this.model}:generateContent`;
+        `${geminiConfig.base_url}/v1beta/models/${this.model}:generateContent`;
       const headers = {
         "Content-Type": "application/json",
-        "x-goog-api-key": this.geminiConfig.api_key,
-        "Authorization": `Bearer ${this.geminiConfig.api_key}`,
+        "x-goog-api-key": geminiConfig.api_key,
+        "Authorization": `Bearer ${geminiConfig.api_key}`,
       };
-      const body = JSON.stringify(reqData);
-      const fetcher = async () =>
-        fetch(url, {
-          method: "POST",
-          headers: headers,
-          body: body,
-        });
 
-      return fetchWithRetry(fetcher, {});
+      return fetch(url, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(reqData),
+      });
     }
   }
 
@@ -70,10 +66,20 @@ export class GeminiProvider {
     return convertGeminiResponseTo(c, response, target);
   }
 
-  async convertStreamResponseTo(stream: any, response: Response, target: any, requestLogger?: RequestLogger) {
+  async convertStreamResponseTo(
+    stream: any,
+    response: Response,
+    target: any,
+    requestLogger?: RequestLogger,
+  ) {
     if (target === TargetType.Gemini) {
       return response;
     }
-    return convertGeminiStreamResponseTo(stream, response, target, requestLogger);
+    return convertGeminiStreamResponseTo(
+      stream,
+      response,
+      target,
+      requestLogger,
+    );
   }
 }

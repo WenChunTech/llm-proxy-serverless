@@ -1,5 +1,5 @@
-import { fetchWithRetry } from "../../utils/fetch.ts";
 import { qwenPoller } from "../../config.ts";
+import { QwenConfig } from "../../types/config.ts";
 import { TargetType } from "../../../pkg/converter_wasm.js";
 import {
   convertQwenResponseTo,
@@ -23,8 +23,12 @@ export class QwenProvider {
     return TargetType.OpenAIChat;
   }
 
-  async fetchResponse(_is_streaming: boolean, reqData: any) {
-    const qwenConfig = qwenPoller.getNext(this.model);
+  async fetchResponse(
+    _is_streaming: boolean,
+    reqData: any,
+    config?: QwenConfig,
+  ) {
+    const qwenConfig = config || qwenPoller.getNext(this.model);
     const token = await getAccessToken(qwenConfig.auth);
     const endpoint =
       `https://${qwenConfig.auth.resource_url}/v1/chat/completions`;
@@ -33,14 +37,11 @@ export class QwenProvider {
       "Content-Type": "application/json",
     };
 
-    const fetcher = async () =>
-      fetch(endpoint, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify(reqData),
-      });
-
-    return fetchWithRetry(fetcher, {});
+    return fetch(endpoint, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(reqData),
+    });
   }
 
   async convertResponseTo(c: any, response: any, target: any) {

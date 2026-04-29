@@ -1,5 +1,5 @@
-import { fetchWithRetry } from "../../utils/fetch.ts";
 import { openAIResponsesPoller } from "../../config.ts";
+import { OpenAIResponsesConfig } from "../../types/config.ts";
 import {
   convertOpenAIResponsesResponseTo,
   convertOpenAIResponsesStreamResponseTo,
@@ -9,13 +9,9 @@ import { TargetType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
 
 export class OpenAIResponsesProvider {
-  apiKey: string;
-  baseUrl: string;
-
+  model: string;
   constructor(model: string) {
-    const config = openAIResponsesPoller.getNext(model);
-    this.apiKey = config.api_key;
-    this.baseUrl = config.base_url;
+    this.model = model;
   }
 
   getProviderType() {
@@ -26,21 +22,23 @@ export class OpenAIResponsesProvider {
     return convertToOpenAIResponsesRequestTo(body, source);
   }
 
-  async fetchResponse(_is_streaming: boolean, reqData: any) {
-    const url = `${this.baseUrl}/responses`;
+  async fetchResponse(
+    _is_streaming: boolean,
+    reqData: any,
+    config?: OpenAIResponsesConfig,
+  ) {
+    const openaiConfig = config || openAIResponsesPoller.getNext(this.model);
+    const url = `${openaiConfig.base_url}/responses`;
     const headers = {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${this.apiKey}`,
+      "Authorization": `Bearer ${openaiConfig.api_key}`,
     };
-    const body = JSON.stringify(reqData);
-    const fetcher = async () =>
-      fetch(url, {
-        method: "POST",
-        headers: headers,
-        body: body,
-      });
 
-    return fetchWithRetry(fetcher, {});
+    return fetch(url, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(reqData),
+    });
   }
 
   async convertResponseTo(c: any, response: Response, target: any) {

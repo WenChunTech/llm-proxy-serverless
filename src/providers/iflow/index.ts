@@ -1,5 +1,5 @@
-import { fetchWithRetry } from "../../utils/fetch.ts";
 import { iflowPoller } from "../../config.ts";
+import { IFlowConfig } from "../../types/config.ts";
 import {
   convertIFlowResponseTo,
   convertIFlowStreamResponseTo,
@@ -23,8 +23,12 @@ export class IflowProvider {
     return TargetType.OpenAIChat;
   }
 
-  async fetchResponse(_is_streaming: boolean, reqData: any) {
-    const iflowConfig = iflowPoller.getNext(this.model);
+  async fetchResponse(
+    _is_streaming: boolean,
+    reqData: any,
+    config?: IFlowConfig,
+  ) {
+    const iflowConfig = config || iflowPoller.getNext(this.model);
     const token = await getAccessToken(iflowConfig.auth);
     const endpoint = "https://apis.iflow.cn/v1/chat/completions";
     const headerSign = iflowHeaderSign(token);
@@ -35,14 +39,11 @@ export class IflowProvider {
       ...headerSign,
     };
 
-    const fetcher = async () =>
-      fetch(endpoint, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify(reqData),
-      });
-
-    return fetchWithRetry(fetcher, {});
+    return fetch(endpoint, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(reqData),
+    });
   }
 
   async convertResponseTo(c: any, response: any, target: any) {

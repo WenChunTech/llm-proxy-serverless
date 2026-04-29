@@ -73,6 +73,10 @@ export interface ClaudeConfig {
   models: string[];
 }
 
+export interface FallbackModelMap {
+  [model: string]: string;
+}
+
 export interface Config {
   gemini_cli: GeminiCliConfig[];
   gemini: GeminiConfig[];
@@ -82,4 +86,5 @@ export interface Config {
   claude: ClaudeConfig[];
   iflow: IFlowConfig[];
   model_priority: string[];
+  fallback_models?: FallbackModelMap;
 }

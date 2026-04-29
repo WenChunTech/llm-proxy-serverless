@@ -5,7 +5,6 @@ import {
   fetchGeminiCLiStreamResponse,
   getAccessToken,
 } from "./auth.ts";
-import { fetchWithRetry } from "../../utils/fetch.ts";
 import {
   convertGeminiCliResponseTo,
   convertGeminiStreamResponseTo,
@@ -15,13 +14,9 @@ import { TargetType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
 
 export class GeminiCliProvider {
-  geminiConfig: GeminiCliConfig;
-  projectCounter: number;
   model: string;
   constructor(model: string) {
     this.model = model;
-    this.geminiConfig = geminiCliPoller.getNext(model);
-    this.projectCounter = 0;
   }
 
   getProviderType() {
@@ -32,24 +27,25 @@ export class GeminiCliProvider {
     return convertToGeminiCliRequestTo(body, source);
   }
 
-  async fetchResponse(is_streaming: boolean, reqData: any) {
-    if (this.projectCounter >= this.geminiConfig.projects.length) {
-      this.geminiConfig = geminiCliPoller.getNext(this.model);
-      this.projectCounter = 0;
-    }
+  async fetchResponse(
+    is_streaming: boolean,
+    reqData: any,
+    config?: GeminiCliConfig,
+    project?: string,
+  ) {
+    const geminiConfig = config || geminiCliPoller.getNext(this.model);
+    const selectedProject =
+      project || geminiConfig.projects[0];
 
-    const project = this.geminiConfig.projects[this.projectCounter];
-    this.projectCounter++;
-
-    const token = await getAccessToken(this.geminiConfig.auth);
-    reqData.project = project;
+    const token = await getAccessToken(geminiConfig.auth);
+    reqData.project = selectedProject;
     if (is_streaming) {
-      return fetchWithRetry(fetchGeminiCLiStreamResponse, {
+      return fetchGeminiCLiStreamResponse({
         token,
         data: reqData,
       });
     } else {
-      return fetchWithRetry(fetchGeminiCLiResponse, { token, data: reqData });
+      return fetchGeminiCLiResponse({ token, data: reqData });
     }
   }
 
@@ -57,7 +53,17 @@ export class GeminiCliProvider {
     return convertGeminiCliResponseTo(c, response, target);
   }
 
-  async convertStreamResponseTo(stream: any, response: Response, target: any, requestLogger?: RequestLogger) {
-    return convertGeminiStreamResponseTo(stream, response, target, requestLogger);
+  async convertStreamResponseTo(
+    stream: any,
+    response: Response,
+    target: any,
+    requestLogger?: RequestLogger,
+  ) {
+    return convertGeminiStreamResponseTo(
+      stream,
+      response,
+      target,
+      requestLogger,
+    );
   }
 }
