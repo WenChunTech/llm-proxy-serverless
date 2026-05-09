@@ -6,9 +6,11 @@ import { OpenAIResponsesProvider } from "./openai_responses/index.ts";
 import { ClaudeProvider } from "./claude/index.ts";
 import { QwenProvider } from "./qwen/index.ts";
 import { IflowProvider } from "./iflow/index.ts";
+import { CodexProvider } from "./codex/index.ts";
 import { appConfig } from "../config.ts";
 import {
   ClaudeConfig,
+  CodexConfig,
   GeminiCliConfig,
   GeminiConfig,
   IFlowConfig,
@@ -26,6 +28,7 @@ const providerClasses = {
   [PROVIDERS.CLAUDE]: (model: string) => new ClaudeProvider(model),
   [PROVIDERS.QWEN]: (model: string) => new QwenProvider(model),
   [PROVIDERS.IFLOW]: (model: string) => new IflowProvider(model),
+  [PROVIDERS.CODEX]: (model: string) => new CodexProvider(model),
 };
 
 const providerInstances: { [key: string]: any } = {};
@@ -40,6 +43,7 @@ const configKeyMap: { [key: string]: string } = {
   [PROVIDERS.OPENAI_CHAT]: "openai_chat",
   [PROVIDERS.OPENAI_RESPONSES]: "openai_responses",
   [PROVIDERS.CLAUDE]: "claude",
+  [PROVIDERS.CODEX]: "codex",
 };
 
 const providerNameMap: { [key: string]: string } = {
@@ -50,6 +54,7 @@ const providerNameMap: { [key: string]: string } = {
   claude: PROVIDERS.CLAUDE,
   qwen: PROVIDERS.QWEN,
   iflow: PROVIDERS.IFLOW,
+  codex: PROVIDERS.CODEX,
 };
 
 function buildModelToProvidersMap() {
@@ -68,6 +73,7 @@ function buildModelToProvidersMap() {
       | OpenAIResponsesConfig
       | ClaudeConfig
       | IFlowConfig
+      | CodexConfig
     )[];
   } = {
     gemini_cli: config.gemini_cli,
@@ -77,6 +83,7 @@ function buildModelToProvidersMap() {
     openai_responses: config.openai_responses,
     claude: config.claude,
     iflow: config.iflow,
+    codex: config.codex,
   };
 
   for (const configKey of Object.keys(providerNameMap)) {
@@ -200,6 +207,7 @@ export function getProviderConfigs(
   | OpenAIResponsesConfig
   | ClaudeConfig
   | IFlowConfig
+  | CodexConfig
 )[] {
   const configKey = configKeyMap[providerName];
   if (!configKey) return [];
@@ -213,6 +221,7 @@ export function getProviderConfigs(
       | OpenAIResponsesConfig
       | ClaudeConfig
       | IFlowConfig
+      | CodexConfig
     )[];
   } = {
     gemini_cli: appConfig.gemini_cli,
@@ -222,6 +231,7 @@ export function getProviderConfigs(
     openai_responses: appConfig.openai_responses,
     claude: appConfig.claude,
     iflow: appConfig.iflow,
+    codex: appConfig.codex,
   };
 
   return providerConfigs[configKey] || [];

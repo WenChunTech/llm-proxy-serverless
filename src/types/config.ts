@@ -73,6 +73,22 @@ export interface ClaudeConfig {
   models: string[];
 }
 
+export interface CodexAuth {
+  id_token: string;
+  access_token: string;
+  refresh_token: string;
+  account_id: string;
+  email: string;
+  plan_type: string;
+  expiry_date: number;
+}
+
+export interface CodexConfig {
+  models: string[];
+  auth: CodexAuth;
+  base_url?: string;
+}
+
 export interface FallbackModelMap {
   [model: string]: string;
 }
@@ -85,6 +101,7 @@ export interface Config {
   openai_responses: OpenAIResponsesConfig[];
   claude: ClaudeConfig[];
   iflow: IFlowConfig[];
+  codex: CodexConfig[];
   model_priority: string[];
   fallback_models?: FallbackModelMap;
 }

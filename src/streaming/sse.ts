@@ -61,7 +61,7 @@ export const StreamEvent = async (
           requestLogger.saveSSEDataLine(line);
         }
         const data = line.substring(5).trim();
-        if (data) {
+        if (data && data !== "[DONE]") {
           let wrapper = {
             chunk: JSON.parse(data),
             state: state,
