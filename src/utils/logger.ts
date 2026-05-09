@@ -59,11 +59,27 @@ export const logger = {
 export class RequestLogger {
   private logDir: string;
   private requestId: string;
+  private readonly readOnly: boolean;
 
   constructor(requestId?: string) {
     this.requestId = requestId || this.generateRequestId();
-    this.logDir = this.createLogDir();
-    logger.debug(`[RequestLogger] Created log directory: ${this.logDir}`);
+    this.readOnly = this.detectReadOnlyFs();
+    this.logDir = this.readOnly ? "" : this.createLogDir();
+    if (!this.readOnly) {
+      logger.debug(`[RequestLogger] Created log directory: ${this.logDir}`);
+    }
+  }
+
+  private detectReadOnlyFs(): boolean {
+    try {
+      const testDir = path.join(process.cwd(), "logs", ".write_test");
+      fs.mkdirSync(testDir, { recursive: true });
+      fs.rmSync(testDir, { recursive: true, force: true });
+      return false;
+    } catch {
+      logger.info("[RequestLogger] Filesystem is read-only, file logging disabled");
+      return true;
+    }
   }
 
   private generateRequestId(): string {
@@ -92,7 +108,7 @@ export class RequestLogger {
   }
 
   saveRequestBody(body: any): void {
-    if (currentLogLevel < LogLevel.DEBUG) return;
+    if (currentLogLevel < LogLevel.DEBUG || this.readOnly) return;
     try {
       const filePath = path.join(this.logDir, "request.json");
       fs.writeFileSync(filePath, JSON.stringify(body, null, 2), "utf-8");
@@ -103,7 +119,7 @@ export class RequestLogger {
   }
 
   saveSSEDataLine(line: string): void {
-    if (currentLogLevel < LogLevel.DEBUG) return;
+    if (currentLogLevel < LogLevel.DEBUG || this.readOnly) return;
     try {
       const filePath = path.join(this.logDir, "response.log");
       fs.appendFileSync(filePath, line + "\n", "utf-8");
@@ -114,7 +130,7 @@ export class RequestLogger {
   }
 
   saveRawResponse(data: string): void {
-    if (currentLogLevel < LogLevel.DEBUG) return;
+    if (currentLogLevel < LogLevel.DEBUG || this.readOnly) return;
     try {
       const filePath = path.join(this.logDir, "response.json");
       fs.appendFileSync(filePath, data, "utf-8");
