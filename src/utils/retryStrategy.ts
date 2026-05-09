@@ -3,6 +3,7 @@ import { appConfig } from "../config.ts";
 import { FallbackModelMap } from "../types/config.ts";
 import {
   ClaudeConfig,
+  CodexConfig,
   GeminiCliConfig,
   GeminiConfig,
   IFlowConfig,
@@ -48,6 +49,7 @@ export function getAllProvidersForModel(model: string): string[] {
       | OpenAIResponsesConfig
       | ClaudeConfig
       | IFlowConfig
+      | CodexConfig
     )[];
   } = {
     gemini_cli: appConfig.gemini_cli,
@@ -57,6 +59,7 @@ export function getAllProvidersForModel(model: string): string[] {
     openai_responses: appConfig.openai_responses,
     claude: appConfig.claude,
     iflow: appConfig.iflow,
+    codex: appConfig.codex,
   };
 
   const providerNameMap: { [key: string]: string } = {
@@ -67,6 +70,7 @@ export function getAllProvidersForModel(model: string): string[] {
     claude: PROVIDERS.CLAUDE,
     qwen: PROVIDERS.QWEN,
     iflow: PROVIDERS.IFLOW,
+    codex: PROVIDERS.CODEX,
   };
 
   const result: string[] = [];
@@ -96,6 +100,7 @@ export function getProviderConfigs(providerName: string): any[] {
     [PROVIDERS.OPENAI_RESPONSES]: "openai_responses",
     [PROVIDERS.CLAUDE]: "claude",
     [PROVIDERS.IFLOW]: "iflow",
+    [PROVIDERS.CODEX]: "codex",
   };
 
   const configKey = configKeyMap[providerName];
@@ -111,6 +116,7 @@ export function getProviderConfigs(providerName: string): any[] {
     openai_responses: appConfig.openai_responses,
     claude: appConfig.claude,
     iflow: appConfig.iflow,
+    codex: appConfig.codex,
   };
 
   return providerConfigs[configKey] || [];

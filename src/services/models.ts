@@ -124,5 +124,18 @@ export function collectAllModels(): ModelInfo[] {
     });
   }
 
+  if (appConfig.codex) {
+    appConfig.codex.forEach((config) => {
+      config.models.forEach((model) => {
+        models.push({
+          id: model,
+          object: "model",
+          created: Date.now(),
+          owned_by: "codex",
+        });
+      });
+    });
+  }
+
   return models;
 }

@@ -2,6 +2,7 @@ import fs from "fs";
 import { getCredentials, updateCredentials } from './services/credentials.js';
 import {
   ClaudeConfig,
+  CodexConfig,
   Config,
   GeminiCliConfig,
   GeminiConfig,
@@ -20,6 +21,7 @@ export let appConfig: Config = {
   openai_responses: [],
   claude: [],
   iflow: [],
+  codex: [],
   model_priority: [],
 };
 export const APP_CONFIG = "APP_CONFIG";
@@ -32,6 +34,7 @@ export let openAIPoller: Poller<OpenAIChatConfig>;
 export let openAIResponsesPoller: Poller<OpenAIResponsesConfig>;
 export let claudePoller: Poller<ClaudeConfig>;
 export let iflowPoller: Poller<IFlowConfig>;
+export let codexPoller: Poller<CodexConfig>;
 
 export const initConfig = async () => {
     let loadedConfig: any;
@@ -54,6 +57,7 @@ export const initConfig = async () => {
   openAIResponsesPoller = new Poller(appConfig.openai_responses || []);
   claudePoller = new Poller(appConfig.claude || []);
   iflowPoller = new Poller(appConfig.iflow || []);
+  codexPoller = new Poller(appConfig.codex || []);
 };
 
 export const updateConfig = async (config: Config) => {
