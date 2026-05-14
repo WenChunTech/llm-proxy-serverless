@@ -1,5 +1,5 @@
 import { Context } from "hono";
-import { appConfig } from "../config.ts";
+import { getProviderDescriptors, getProviderConfigsById } from "../providers/registry.ts";
 
 export interface ModelInfo {
   id: string;
@@ -20,108 +20,18 @@ export function getModelsResponse(c: Context): Response {
 export function collectAllModels(): ModelInfo[] {
   const models: ModelInfo[] = [];
 
-  if (appConfig.gemini_cli) {
-    appConfig.gemini_cli.forEach((config) => {
-      config.models.forEach((model) => {
+  for (const descriptor of getProviderDescriptors()) {
+    const providerConfigs = getProviderConfigsById(descriptor.id);
+    for (const config of providerConfigs) {
+      for (const model of config.models) {
         models.push({
           id: model,
           object: "model",
           created: Date.now(),
-          owned_by: "gemini-cli",
+          owned_by: descriptor.ownedBy,
         });
-      });
-    });
-  }
-
-  if (appConfig.gemini) {
-    appConfig.gemini.forEach((config) => {
-      config.models.forEach((model) => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "gemini",
-        });
-      });
-    });
-  }
-
-  if (appConfig.qwen) {
-    appConfig.qwen.forEach((config) => {
-      config.models.forEach((model) => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "qwen",
-        });
-      });
-    });
-  }
-
-  if (appConfig.openai_chat) {
-    appConfig.openai_chat.forEach((config) => {
-      config.models.forEach((model) => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "openai",
-        });
-      });
-    });
-  }
-
-  if (appConfig.openai_responses) {
-    appConfig.openai_responses.forEach((config) => {
-      config.models.forEach((model) => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "openai",
-        });
-      });
-    });
-  }
-
-  if (appConfig.claude) {
-    appConfig.claude.forEach((config) => {
-      config.models.forEach((model) => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "claude",
-        });
-      });
-    });
-  }
-
-  if (appConfig.iflow) {
-    appConfig.iflow.forEach((config) => {
-      config.models.forEach((model) => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "iflow",
-        });
-      });
-    });
-  }
-
-  if (appConfig.codex) {
-    appConfig.codex.forEach((config) => {
-      config.models.forEach((model) => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "codex",
-        });
-      });
-    });
+      }
+    }
   }
 
   return models;

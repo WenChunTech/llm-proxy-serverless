@@ -93,6 +93,16 @@ export interface FallbackModelMap {
   [model: string]: string;
 }
 
+export type ProviderPriority =
+  | "gemini_cli"
+  | "codex"
+  | "gemini"
+  | "openai_chat"
+  | "openai_responses"
+  | "claude"
+  | "qwen"
+  | "iflow";
+
 export interface Config {
   api_key?: string;
   gemini_cli: GeminiCliConfig[];
@@ -103,6 +113,6 @@ export interface Config {
   claude: ClaudeConfig[];
   iflow: IFlowConfig[];
   codex: CodexConfig[];
-  model_priority: string[];
+  model_priority: ProviderPriority[];
   fallback_models?: FallbackModelMap;
 }

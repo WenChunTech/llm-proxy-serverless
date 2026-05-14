@@ -1,6 +1,7 @@
 import { OAuth2Client } from "google-auth-library";
 import { GeminiCliAuth } from "../../types/config.ts";
 import { appConfig, updateConfig } from "../../config.ts";
+import { logger } from "../../utils/logger.ts";
 
 // 定义本地类型以避免直接导入 gaxios
 interface GaxiosOptions {
@@ -67,10 +68,10 @@ function isAccessTokenExpired(auth: GeminiCliAuth) {
 }
 
 async function refreshAccessToken(auth: GeminiCliAuth) {
-  console.log("[Gemini Auth] Refreshing access token...");
+  logger.info("[Gemini Auth] Refreshing access token...");
   authClient.setCredentials(auth);
   const { credentials } = await authClient.refreshAccessToken();
-  console.log("[Gemini Auth] Refreshed Token");
+  logger.info("[Gemini Auth] Refreshed Token");
   const updatedAuth = {
     ...auth,
     access_token: credentials.access_token!,

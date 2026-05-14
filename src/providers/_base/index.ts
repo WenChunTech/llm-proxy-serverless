@@ -10,3 +10,4 @@ export const PROVIDERS = {
 };
 
 export type { Provider } from "./interface.ts";
+export type { ProviderId, ProviderDescriptor, ProviderConfig } from "../registry.ts";

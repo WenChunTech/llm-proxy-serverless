@@ -1,3 +1,5 @@
+import { logger } from "../utils/logger.ts";
+
 export class TokenRefresher {
   private task: () => Promise<number | null>;
   private timerId: ReturnType<typeof setTimeout> | null = null;
@@ -8,10 +10,10 @@ export class TokenRefresher {
 
   public start(initialDelay: number = 0): void {
     if (this.timerId) {
-      console.log("Token refresher is already running.");
+      logger.info("Token refresher is already running.");
       return;
     }
-    console.log(
+    logger.info(
       `Starting token refresher with an initial delay of ${initialDelay}ms.`,
     );
     this.timerId = setTimeout(() => this.run(), initialDelay);
@@ -24,10 +26,10 @@ export class TokenRefresher {
         this.timerId = setTimeout(() => this.run(), nextDelay);
       } else {
         this.stop();
-        console.log("Token refresher finished its schedule.");
+        logger.info("Token refresher finished its schedule.");
       }
     } catch (error) {
-      console.error("Error executing token refresh task:", error);
+      logger.error("Error executing token refresh task:", error);
       this.stop();
     }
   }
@@ -36,7 +38,7 @@ export class TokenRefresher {
     if (this.timerId) {
       clearTimeout(this.timerId);
       this.timerId = null;
-      console.log("Token refresher stopped.");
+      logger.info("Token refresher stopped.");
     }
   }
 }

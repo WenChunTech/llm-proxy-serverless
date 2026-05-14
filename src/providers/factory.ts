@@ -1,271 +1,98 @@
 import { PROVIDERS } from "./_base/index.ts";
-import { GeminiCliProvider } from "./gemini_cli/index.ts";
-import { GeminiProvider } from "./gemini/index.ts";
-import { OpenAIProvider } from "./openai_chat/index.ts";
-import { OpenAIResponsesProvider } from "./openai_responses/index.ts";
-import { ClaudeProvider } from "./claude/index.ts";
-import { QwenProvider } from "./qwen/index.ts";
-import { IflowProvider } from "./iflow/index.ts";
-import { CodexProvider } from "./codex/index.ts";
-import { appConfig } from "../config.ts";
+import type { Provider } from "./_base/interface.ts";
 import {
-  ClaudeConfig,
-  CodexConfig,
-  GeminiCliConfig,
-  GeminiConfig,
-  IFlowConfig,
-  OpenAIChatConfig,
-  OpenAIResponsesConfig,
-  QwenConfig,
-} from "../types/config.ts";
+  getProviderDescriptor,
+  getProviderDescriptors,
+  getProviderConfigsById,
+  getProvidersForModel,
+  type ProviderId,
+} from "./registry.ts";
 
-const providerClasses = {
-  [PROVIDERS.GEMINI_CLI]: (model: string) => new GeminiCliProvider(model),
-  [PROVIDERS.GEMINI]: (model: string) => new GeminiProvider(model),
-  [PROVIDERS.OPENAI_CHAT]: (model: string) => new OpenAIProvider(model),
-  [PROVIDERS.OPENAI_RESPONSES]: (model: string) =>
-    new OpenAIResponsesProvider(model),
-  [PROVIDERS.CLAUDE]: (model: string) => new ClaudeProvider(model),
-  [PROVIDERS.QWEN]: (model: string) => new QwenProvider(model),
-  [PROVIDERS.IFLOW]: (model: string) => new IflowProvider(model),
-  [PROVIDERS.CODEX]: (model: string) => new CodexProvider(model),
-};
+const providerInstances: Record<string, Provider> = {};
 
-const providerInstances: { [key: string]: any } = {};
+let modelToProvidersMap: Map<string, ProviderId[]> | null = null;
 
-let modelToProvidersMap: Map<string, string[]> | null = null;
+function createProviderInstance(providerId: ProviderId, model: string): Provider {
+  const descriptor = getProviderDescriptor(providerId);
+  if (!descriptor) {
+    throw new Error(`Provider descriptor not found for provider: ${providerId}`);
+  }
 
-export function invalidateModelMap() {
-  modelToProvidersMap = null;
-  Object.keys(providerInstances).forEach((key) => delete providerInstances[key]);
+  return descriptor.create(model) as Provider;
 }
-
-const configKeyMap: { [key: string]: string } = {
-  [PROVIDERS.GEMINI_CLI]: "gemini_cli",
-  [PROVIDERS.QWEN]: "qwen",
-  [PROVIDERS.IFLOW]: "iflow",
-  [PROVIDERS.GEMINI]: "gemini",
-  [PROVIDERS.OPENAI_CHAT]: "openai_chat",
-  [PROVIDERS.OPENAI_RESPONSES]: "openai_responses",
-  [PROVIDERS.CLAUDE]: "claude",
-  [PROVIDERS.CODEX]: "codex",
-};
-
-const providerNameMap: { [key: string]: string } = {
-  gemini_cli: PROVIDERS.GEMINI_CLI,
-  gemini: PROVIDERS.GEMINI,
-  openai: PROVIDERS.OPENAI_CHAT,
-  openai_responses: PROVIDERS.OPENAI_RESPONSES,
-  claude: PROVIDERS.CLAUDE,
-  qwen: PROVIDERS.QWEN,
-  iflow: PROVIDERS.IFLOW,
-  codex: PROVIDERS.CODEX,
-};
 
 function buildModelToProvidersMap() {
   if (modelToProvidersMap) {
     return;
   }
-  modelToProvidersMap = new Map<string, string[]>();
-  const config = appConfig;
 
-  const providerConfigs: {
-    [key: string]: (
-      | GeminiCliConfig
-      | GeminiConfig
-      | QwenConfig
-      | OpenAIChatConfig
-      | OpenAIResponsesConfig
-      | ClaudeConfig
-      | IFlowConfig
-      | CodexConfig
-    )[];
-  } = {
-    gemini_cli: config.gemini_cli,
-    gemini: config.gemini,
-    qwen: config.qwen,
-    openai_chat: config.openai_chat,
-    openai_responses: config.openai_responses,
-    claude: config.claude,
-    iflow: config.iflow,
-    codex: config.codex,
-  };
+  modelToProvidersMap = new Map<string, ProviderId[]>();
 
-  for (const configKey of Object.keys(providerNameMap)) {
-    const providerName = providerNameMap[configKey];
-    const configs = providerConfigs[configKey];
+  for (const descriptor of getProviderDescriptors()) {
+    const configs = getProviderConfigsById(descriptor.id);
+    for (const config of configs) {
+      for (const modelName of config.models) {
+        if (!modelToProvidersMap.has(modelName)) {
+          modelToProvidersMap.set(modelName, []);
+        }
 
-    if (configs && Array.isArray(configs)) {
-      for (const providerConfig of configs) {
-        if (providerConfig.models && Array.isArray(providerConfig.models)) {
-          for (const modelName of providerConfig.models) {
-            if (!modelToProvidersMap.has(modelName)) {
-              modelToProvidersMap.set(modelName, []);
-            }
-            const providers = modelToProvidersMap.get(modelName)!;
-            if (!providers.includes(providerName)) {
-              providers.push(providerName);
-            }
-          }
+        const providers = modelToProvidersMap.get(modelName)!;
+        if (!providers.includes(descriptor.id)) {
+          providers.push(descriptor.id);
         }
       }
     }
   }
 }
 
-export function getProvider(model: string) {
+export function invalidateModelMap() {
+  modelToProvidersMap = null;
+  Object.keys(providerInstances).forEach((key) => delete providerInstances[key]);
+}
+
+export function getProvider(model: string): Provider {
   buildModelToProvidersMap();
 
   const providers = modelToProvidersMap!.get(model);
+  const providerId = providers && providers.length > 0
+    ? getProvidersForModel(model)[0]
+    : PROVIDERS.OPENAI_CHAT;
 
-  if (!providers || providers.length === 0) {
-    const providerName = PROVIDERS.OPENAI_CHAT;
-    const cacheKey = `${providerName}:${model}`;
-    if (!providerInstances[cacheKey]) {
-      const ProviderClass = providerClasses[providerName];
-      if (ProviderClass) {
-        providerInstances[cacheKey] = ProviderClass(model);
-      } else {
-        throw new Error(
-          `Default provider class not found for provider: ${providerName}`,
-        );
-      }
-    }
-    return providerInstances[cacheKey];
-  }
-
-  let providerName: string;
-
-  if (providers.length === 1) {
-    providerName = providers[0];
-  } else {
-    const priority = appConfig.model_priority ||
-      ["gemini_cli", "iflow", "openai", "qwen", "claude"];
-    let bestProvider: string | null = null;
-    let bestPriority = Infinity;
-
-    for (const p of providers) {
-      const configKey = configKeyMap[p];
-      const pPriority = priority.indexOf(configKey);
-      if (pPriority !== -1 && pPriority < bestPriority) {
-        bestPriority = pPriority;
-        bestProvider = p;
-      }
-    }
-
-    if (bestProvider) {
-      providerName = bestProvider;
-    } else {
-      providerName = providers[0];
-    }
-  }
-
-  const cacheKey = `${providerName}:${model}`;
-  if (!providerInstances[cacheKey]) {
-    const ProviderClass = providerClasses[providerName];
-    if (ProviderClass) {
-      providerInstances[cacheKey] = ProviderClass(model);
-    } else {
-      throw new Error(`Provider class not found for provider: ${providerName}`);
-    }
-  }
-  console.log(`Selected provider for model ${model}: ${providerName}`);
-  return providerInstances[cacheKey];
+  return getProviderInstance(providerId, model);
 }
 
-export function getProvidersListForModel(model: string): string[] {
+export function getProvidersListForModel(model: string): ProviderId[] {
   buildModelToProvidersMap();
   const providers = modelToProvidersMap!.get(model);
   if (!providers || providers.length === 0) {
     return [PROVIDERS.OPENAI_CHAT];
   }
 
-  const priority = appConfig.model_priority ||
-    ["gemini_cli", "iflow", "openai", "qwen", "claude"];
+  return getProvidersForModel(model);
+}
 
-  const sortedProviders: string[] = [];
-  const remainingProviders = [...providers];
+export function getProviderConfigs(providerId: string) {
+  return getProviderConfigsById(providerId);
+}
 
-  for (const p of priority) {
-    const configKey = configKeyMap[p];
-    const idx = remainingProviders.findIndex(
-      (rp) => providerNameMap[configKey] === rp,
-    );
-    if (idx !== -1) {
-      sortedProviders.push(remainingProviders[idx]);
-      remainingProviders.splice(idx, 1);
-    }
+export function getConfigForProvider(providerId: string, model: string) {
+  return getProviderConfigsById(providerId).find((config) => config.models.includes(model));
+}
+
+export function isProviderGeminiCli(providerId: string): boolean {
+  return providerId === PROVIDERS.GEMINI_CLI;
+}
+
+export function getProviderInstance(providerId: string, model: string): Provider {
+  const descriptor = getProviderDescriptor(providerId);
+  if (!descriptor) {
+    throw new Error(`Provider descriptor not found for provider: ${providerId}`);
   }
 
-  if (remainingProviders.length > 0) {
-    sortedProviders.push(...remainingProviders);
-  }
-
-  return sortedProviders;
-}
-
-export function getProviderConfigs(
-  providerName: string,
-): (
-  | GeminiCliConfig
-  | GeminiConfig
-  | QwenConfig
-  | OpenAIChatConfig
-  | OpenAIResponsesConfig
-  | ClaudeConfig
-  | IFlowConfig
-  | CodexConfig
-)[] {
-  const configKey = configKeyMap[providerName];
-  if (!configKey) return [];
-
-  const providerConfigs: {
-    [key: string]: (
-      | GeminiCliConfig
-      | GeminiConfig
-      | QwenConfig
-      | OpenAIChatConfig
-      | OpenAIResponsesConfig
-      | ClaudeConfig
-      | IFlowConfig
-      | CodexConfig
-    )[];
-  } = {
-    gemini_cli: appConfig.gemini_cli,
-    gemini: appConfig.gemini,
-    qwen: appConfig.qwen,
-    openai_chat: appConfig.openai_chat,
-    openai_responses: appConfig.openai_responses,
-    claude: appConfig.claude,
-    iflow: appConfig.iflow,
-    codex: appConfig.codex,
-  };
-
-  return providerConfigs[configKey] || [];
-}
-
-export function getConfigForProvider(
-  providerName: string,
-  model: string,
-): any {
-  const configs = getProviderConfigs(providerName);
-  return configs.find((c) => c.models.includes(model));
-}
-
-export function isProviderGeminiCli(providerName: string): boolean {
-  return providerName === PROVIDERS.GEMINI_CLI;
-}
-
-export function getProviderInstance(
-  providerName: string,
-  model: string,
-): any {
-  const cacheKey = `${providerName}:${model}`;
+  const cacheKey = `${descriptor.id}:${model}`;
   if (!providerInstances[cacheKey]) {
-    const ProviderClass = providerClasses[providerName];
-    if (ProviderClass) {
-      providerInstances[cacheKey] = ProviderClass(model);
-    }
+    providerInstances[cacheKey] = createProviderInstance(descriptor.id, model);
   }
+
   return providerInstances[cacheKey];
 }
