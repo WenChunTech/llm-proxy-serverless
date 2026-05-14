@@ -7,6 +7,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { handleModelRequest } from "./utils/routeHandlers.ts";
 import { getModelsResponse } from "./services/models.ts";
 import { initMiddleware } from "./middleware/init.ts";
+import { authMiddleware } from "./middleware/auth.ts";
 
 const app = new Hono();
 
@@ -17,9 +18,15 @@ app.use("*", initMiddleware);
 app.use(async (c, next) => {
   c.header("Access-Control-Allow-Origin", "*");
   c.header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-  c.header("Access-Control-Allow-Headers", "Content-Type");
+  c.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, x-api-key, x-goog-api-key",
+  );
   await next();
 });
+
+app.use("/v1/*", authMiddleware);
+app.use("/v1beta/*", authMiddleware);
 
 const __filename = new URL(import.meta.url).pathname;
 const __dirname = path.dirname(__filename);

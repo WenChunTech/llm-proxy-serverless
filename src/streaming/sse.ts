@@ -92,10 +92,10 @@ export const StreamEvent = async (
     if (data) {
       let wrapper = {
         chunk: JSON.parse(data),
-        inner: state,
+        state: state,
       };
       const streams_wrapper = responseConvert(wrapper, sourceType, targetType);
-      state = streams_wrapper.inner;
+      state = streams_wrapper.state;
       let chunks = streams_wrapper.chunks;
       for (const chunk of chunks) {
         stream.writeSSE({

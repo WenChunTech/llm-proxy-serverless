@@ -7,8 +7,9 @@ import {
 } from "./adapter.ts";
 import { TargetType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
+import type { Provider } from "../_base/interface.ts";
 
-export class GeminiProvider {
+export class GeminiProvider implements Provider {
   model: string;
   constructor(model: string) {
     this.model = model;
@@ -28,35 +29,20 @@ export class GeminiProvider {
     config?: GeminiConfig,
   ) {
     const geminiConfig = config || geminiPoller.getNext(this.model);
-    if (is_streaming) {
-      const url =
-        `${geminiConfig.base_url}/v1beta/models/${this.model}:streamGenerateContent?alt=sse`;
-      const headers = {
-        "Content-Type": "application/json",
-        "x-goog-api-key": geminiConfig.api_key,
-        "Authorization": `Bearer ${geminiConfig.api_key}`,
-      };
+    const action = is_streaming ? "streamGenerateContent?alt=sse" : "generateContent";
+    const url =
+      `${geminiConfig.base_url}/v1beta/models/${this.model}:${action}`;
+    const headers = {
+      "Content-Type": "application/json",
+      "x-goog-api-key": geminiConfig.api_key,
+      "Authorization": `Bearer ${geminiConfig.api_key}`,
+    };
 
-      return fetch(url, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify(reqData),
-      });
-    } else {
-      const url =
-        `${geminiConfig.base_url}/v1beta/models/${this.model}:generateContent`;
-      const headers = {
-        "Content-Type": "application/json",
-        "x-goog-api-key": geminiConfig.api_key,
-        "Authorization": `Bearer ${geminiConfig.api_key}`,
-      };
-
-      return fetch(url, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify(reqData),
-      });
-    }
+    return fetch(url, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify(reqData),
+    });
   }
 
   async convertResponseTo(c: any, response: Response, target: any) {
@@ -73,7 +59,7 @@ export class GeminiProvider {
     requestLogger?: RequestLogger,
   ) {
     if (target === TargetType.Gemini) {
-      return response;
+      return;
     }
     return convertGeminiStreamResponseTo(
       stream,

@@ -8,8 +8,9 @@ import {
 } from "./adapter.ts";
 import { getAccessToken } from "./auth.ts";
 import { RequestLogger } from "../../utils/logger.ts";
+import type { Provider } from "../_base/interface.ts";
 
-export class QwenProvider {
+export class QwenProvider implements Provider {
   model: string;
   constructor(model: string) {
     this.model = model;

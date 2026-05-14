@@ -4,6 +4,7 @@ import initWasm from "../../pkg/converter_wasm.js";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { logger } from "../utils/logger.ts";
 
 let isInitialized = false;
 let initPromise: Promise<void> | null = null;
@@ -24,14 +25,14 @@ const ensureInitialized = async (): Promise<void> => {
 
   initPromise = (async () => {
     try {
-      console.log("Initializing WASM and config...");
+      logger.info("Initializing WASM and config...");
       await initWasm({ module_or_path: wasmBuffer });
-      console.log("Initializing config...");
+      logger.info("Initializing config...");
       await initConfig();
       isInitialized = true;
-      console.log("Initialization completed successfully");
+      logger.info("Initialization completed successfully");
     } catch (error) {
-      console.error("Initialization failed:", error);
+      logger.error("Initialization failed:", error);
       initPromise = null; // 重置，允许重试
       throw error;
     }

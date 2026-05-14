@@ -33,7 +33,12 @@ const providerClasses = {
 
 const providerInstances: { [key: string]: any } = {};
 
-let modelToProvidersMap: Map<string, string[]>;
+let modelToProvidersMap: Map<string, string[]> | null = null;
+
+export function invalidateModelMap() {
+  modelToProvidersMap = null;
+  Object.keys(providerInstances).forEach((key) => delete providerInstances[key]);
+}
 
 const configKeyMap: { [key: string]: string } = {
   [PROVIDERS.GEMINI_CLI]: "gemini_cli",
@@ -111,21 +116,22 @@ function buildModelToProvidersMap() {
 export function getProvider(model: string) {
   buildModelToProvidersMap();
 
-  const providers = modelToProvidersMap.get(model);
+  const providers = modelToProvidersMap!.get(model);
 
   if (!providers || providers.length === 0) {
     const providerName = PROVIDERS.OPENAI_CHAT;
-    if (!providerInstances[providerName]) {
+    const cacheKey = `${providerName}:${model}`;
+    if (!providerInstances[cacheKey]) {
       const ProviderClass = providerClasses[providerName];
       if (ProviderClass) {
-        providerInstances[providerName] = ProviderClass(model);
+        providerInstances[cacheKey] = ProviderClass(model);
       } else {
         throw new Error(
           `Default provider class not found for provider: ${providerName}`,
         );
       }
     }
-    return providerInstances[providerName];
+    return providerInstances[cacheKey];
   }
 
   let providerName: string;
@@ -154,21 +160,22 @@ export function getProvider(model: string) {
     }
   }
 
-  if (!providerInstances[providerName]) {
+  const cacheKey = `${providerName}:${model}`;
+  if (!providerInstances[cacheKey]) {
     const ProviderClass = providerClasses[providerName];
     if (ProviderClass) {
-      providerInstances[providerName] = ProviderClass(model);
+      providerInstances[cacheKey] = ProviderClass(model);
     } else {
       throw new Error(`Provider class not found for provider: ${providerName}`);
     }
   }
   console.log(`Selected provider for model ${model}: ${providerName}`);
-  return providerInstances[providerName];
+  return providerInstances[cacheKey];
 }
 
 export function getProvidersListForModel(model: string): string[] {
   buildModelToProvidersMap();
-  const providers = modelToProvidersMap.get(model);
+  const providers = modelToProvidersMap!.get(model);
   if (!providers || providers.length === 0) {
     return [PROVIDERS.OPENAI_CHAT];
   }
@@ -253,11 +260,12 @@ export function getProviderInstance(
   providerName: string,
   model: string,
 ): any {
-  if (!providerInstances[providerName]) {
+  const cacheKey = `${providerName}:${model}`;
+  if (!providerInstances[cacheKey]) {
     const ProviderClass = providerClasses[providerName];
     if (ProviderClass) {
-      providerInstances[providerName] = ProviderClass(model);
+      providerInstances[cacheKey] = ProviderClass(model);
     }
   }
-  return providerInstances[providerName];
+  return providerInstances[cacheKey];
 }

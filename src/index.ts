@@ -3,6 +3,7 @@ import { refreshAccessToken as refreshQwenAccessToken } from "./providers/qwen/a
 import app from "./server.ts";
 import { getCredentials, updateCredentials } from "./services/credentials.ts";
 import { IFlowConfig, QwenConfig } from "./types/config.ts";
+import { logger } from "./utils/logger.ts";
 
 export default {
   hostname: "0.0.0.0",
@@ -11,41 +12,46 @@ export default {
 };
 
 Deno.cron("Iflow Auth refresh", "0 */6 * * *", async () => {
-  const appConfig = "APP_CONFIG";
-  let config: any = await getCredentials(appConfig);
+  const configKey = "APP_CONFIG";
+  let config: any = await getCredentials(configKey);
   if (typeof config === "string") {
     config = JSON.parse(config);
   }
-  const qwen: QwenConfig[] = config.qwen;
-  try {
-    const newQwen = qwen.map(async (configToRefresh) => {
-      const newAuth = await refreshQwenAccessToken(configToRefresh.auth);
-      configToRefresh.auth = newAuth;
-      return configToRefresh;
-    });
-    config.qwen = await Promise.all(newQwen);
-  } catch (error) {
-    console.log(error);
-  }
-  if (config.qwen.length > 0) {
-    await updateCredentials(appConfig, config);
-    console.log("new qwen config saved");
+
+  let configChanged = false;
+
+  const qwen: QwenConfig[] = config.qwen || [];
+  if (qwen.length > 0) {
+    try {
+      const newQwen = qwen.map(async (configToRefresh) => {
+        const newAuth = await refreshQwenAccessToken(configToRefresh.auth);
+        configToRefresh.auth = newAuth;
+        return configToRefresh;
+      });
+      config.qwen = await Promise.all(newQwen);
+      configChanged = true;
+    } catch (error) {
+      logger.error("[Cron] Failed to refresh qwen tokens:", error);
+    }
   }
 
-  const iflow: IFlowConfig[] = config.iflow;
-  try {
-    const newIflow = iflow.map(async (configToRefresh) => {
-      const newAuth = await refreshAccessToken(configToRefresh.auth);
-      configToRefresh.auth = newAuth;
-      return configToRefresh;
-    });
-    config.iflow = await Promise.all(newIflow);
-  } catch (error) {
-    console.log(error);
+  const iflow: IFlowConfig[] = config.iflow || [];
+  if (iflow.length > 0) {
+    try {
+      const newIflow = iflow.map(async (configToRefresh) => {
+        const newAuth = await refreshAccessToken(configToRefresh.auth);
+        configToRefresh.auth = newAuth;
+        return configToRefresh;
+      });
+      config.iflow = await Promise.all(newIflow);
+      configChanged = true;
+    } catch (error) {
+      logger.error("[Cron] Failed to refresh iflow tokens:", error);
+    }
   }
 
-  if (config.iflow.length > 0) {
-    await updateCredentials(appConfig, config);
-    console.log("new iflow config saved");
+  if (configChanged) {
+    await updateCredentials(configKey, config);
+    logger.info("[Cron] Token refresh completed and config saved");
   }
 });

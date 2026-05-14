@@ -12,8 +12,10 @@ import {
   QwenConfig,
 } from "./types/config.ts";
 import Poller from "./services/polling.ts";
+import { invalidateModelMap } from "./providers/factory.ts";
 
 export let appConfig: Config = {
+  api_key: "",
   gemini_cli: [],
   gemini: [],
   qwen: [],
@@ -73,4 +75,5 @@ export const updateConfig = async (config: Config) => {
     console.log("Saved new config to kv store Successfully");
   }
   appConfig = config;
+  invalidateModelMap();
 };

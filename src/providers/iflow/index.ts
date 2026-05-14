@@ -8,8 +8,9 @@ import {
 import { TargetType } from "../../../pkg/converter_wasm.js";
 import { getAccessToken, iflowHeaderSign } from "./auth.ts";
 import { RequestLogger } from "../../utils/logger.ts";
+import type { Provider } from "../_base/interface.ts";
 
-export class IflowProvider {
+export class IflowProvider implements Provider {
   model: string;
   constructor(model: string) {
     this.model = model;
