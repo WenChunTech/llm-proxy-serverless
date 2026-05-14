@@ -59,13 +59,17 @@ export const logger = {
 export class RequestLogger {
   private logDir: string;
   private requestId: string;
-  private readonly readOnly: boolean;
+  private static _readOnlyChecked = false;
+  private static _readOnly = false;
 
   constructor(requestId?: string) {
     this.requestId = requestId || this.generateRequestId();
-    this.readOnly = this.detectReadOnlyFs();
-    this.logDir = this.readOnly ? "" : this.createLogDir();
-    if (!this.readOnly) {
+    if (!RequestLogger._readOnlyChecked) {
+      RequestLogger._readOnly = this.detectReadOnlyFs();
+      RequestLogger._readOnlyChecked = true;
+    }
+    this.logDir = RequestLogger._readOnly ? "" : this.createLogDir();
+    if (!RequestLogger._readOnly) {
       logger.debug(`[RequestLogger] Created log directory: ${this.logDir}`);
     }
   }
@@ -80,6 +84,10 @@ export class RequestLogger {
       logger.info("[RequestLogger] Filesystem is read-only, file logging disabled");
       return true;
     }
+  }
+
+  private get readOnly(): boolean {
+    return RequestLogger._readOnly;
   }
 
   private generateRequestId(): string {

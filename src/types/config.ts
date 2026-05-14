@@ -75,6 +75,7 @@ export interface ClaudeConfig {
 }
 
 export interface Config {
+  api_key?: string;
   gemini_cli: GeminiCliConfig[];
   gemini: GeminiConfig[];
   qwen: QwenConfig[];

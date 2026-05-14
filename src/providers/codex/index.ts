@@ -7,12 +7,13 @@ import {
   convertToCodexRequestTo,
 } from "./adapter.ts";
 import { TargetType } from "../../../pkg/converter_wasm.js";
-import { RequestLogger } from "../../utils/logger.ts";
+import { logger, RequestLogger } from "../../utils/logger.ts";
+import type { Provider } from "../_base/interface.ts";
 
 const CODEX_USER_AGENT =
   "codex-tui/0.118.0 (Mac OS 26.3.1; arm64) iTerm.app/3.6.9 (codex-tui; 0.118.0)";
 
-export class CodexProvider {
+export class CodexProvider implements Provider {
   model: string;
   constructor(model: string) {
     this.model = model;
@@ -23,7 +24,11 @@ export class CodexProvider {
   }
 
   async convertRequestTo(body: any, source: any) {
-    return convertToCodexRequestTo(body, source);
+    const req = convertToCodexRequestTo(body, source);
+    delete req.max_output_tokens;
+    delete req.temperature;
+    req.store = false;
+    return req;
   }
 
   async fetchResponse(
@@ -36,7 +41,7 @@ export class CodexProvider {
     // Ensure we have a valid access token
     let auth = codexConfig.auth;
     if (isTokenExpired(auth)) {
-      console.log("[Codex] Access token expired, refreshing...");
+      logger.info("[Codex] Access token expired, refreshing...");
       auth = await refreshCodexToken(auth);
       codexConfig.auth = auth;
     }
