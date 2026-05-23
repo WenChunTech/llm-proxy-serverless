@@ -1,13 +1,12 @@
 import { codexPoller } from "../../config.ts";
 import { CodexConfig } from "../../types/config.ts";
-import { isTokenExpired, refreshCodexToken } from "./auth.ts";
 import {
   convertCodexResponseTo,
   convertCodexStreamResponseTo,
   convertToCodexRequestTo,
 } from "./adapter.ts";
 import { TargetType } from "../../../pkg/converter_wasm.js";
-import { logger, RequestLogger } from "../../utils/logger.ts";
+import { RequestLogger } from "../../utils/logger.ts";
 import type { Provider } from "../_base/interface.ts";
 
 const CODEX_USER_AGENT =
@@ -39,12 +38,7 @@ export class CodexProvider implements Provider {
     const codexConfig = config || codexPoller.getNext(this.model);
 
     // Ensure we have a valid access token
-    let auth = codexConfig.auth;
-    if (isTokenExpired(auth)) {
-      logger.info("[Codex] Access token expired, refreshing...");
-      auth = await refreshCodexToken(auth);
-      codexConfig.auth = auth;
-    }
+    const auth = codexConfig.auth;
 
     const url = "https://chatgpt.com/backend-api/codex/responses";
     // Build request body in Responses API format

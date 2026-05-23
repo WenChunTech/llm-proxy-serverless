@@ -1,8 +1,7 @@
-import { refreshAccessToken } from "./providers/iflow/auth.ts";
-import { refreshAccessToken as refreshQwenAccessToken } from "./providers/qwen/auth.ts";
+import { refreshCodexToken } from "./providers/codex/auth.ts";
 import app from "./server.ts";
 import { getCredentials, updateCredentials } from "./services/credentials.ts";
-import { IFlowConfig, QwenConfig } from "./types/config.ts";
+import { CodexConfig } from "./types/config.ts";
 import { logger } from "./utils/logger.ts";
 
 export default {
@@ -11,7 +10,7 @@ export default {
   fetch: app.fetch,
 };
 
-Deno.cron("Iflow Auth refresh", "0 */6 * * *", async () => {
+Deno.cron("Codex Auth refresh", "0 */12 * * *", async () => {
   const configKey = "APP_CONFIG";
   let config: any = await getCredentials(configKey);
   if (typeof config === "string") {
@@ -20,33 +19,18 @@ Deno.cron("Iflow Auth refresh", "0 */6 * * *", async () => {
 
   let configChanged = false;
 
-  const qwen: QwenConfig[] = config.qwen || [];
-  if (qwen.length > 0) {
+  const codex: CodexConfig[] = config.codex || [];
+  if (codex.length > 0) {
     try {
-      const newQwen = qwen.map(async (configToRefresh) => {
-        const newAuth = await refreshQwenAccessToken(configToRefresh.auth);
+      const newCodex = codex.map(async (configToRefresh) => {
+        const newAuth = await refreshCodexToken(configToRefresh.auth);
         configToRefresh.auth = newAuth;
         return configToRefresh;
       });
-      config.qwen = await Promise.all(newQwen);
+      config.codex = await Promise.all(newCodex);
       configChanged = true;
     } catch (error) {
-      logger.error("[Cron] Failed to refresh qwen tokens:", error);
-    }
-  }
-
-  const iflow: IFlowConfig[] = config.iflow || [];
-  if (iflow.length > 0) {
-    try {
-      const newIflow = iflow.map(async (configToRefresh) => {
-        const newAuth = await refreshAccessToken(configToRefresh.auth);
-        configToRefresh.auth = newAuth;
-        return configToRefresh;
-      });
-      config.iflow = await Promise.all(newIflow);
-      configChanged = true;
-    } catch (error) {
-      logger.error("[Cron] Failed to refresh iflow tokens:", error);
+      logger.error("[Cron] Failed to refresh codex tokens:", error);
     }
   }
 
