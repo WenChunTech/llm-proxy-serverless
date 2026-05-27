@@ -116,7 +116,10 @@ async function executeSingleModelRequest(
 
     const config = configs[configIndex];
     if (!config || !config.models.includes(model)) {
-      state.providerIndex++;
+      state.configIndices.set(providerName, configIndex + 1);
+      if (configIndex + 1 >= configs.length) {
+        state.providerIndex++;
+      }
       continue;
     }
 
