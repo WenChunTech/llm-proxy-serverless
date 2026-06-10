@@ -1,47 +1,47 @@
 /* tslint:disable */
 /* eslint-disable */
 
-export enum TargetType {
-    OpenAIChat = 0,
-    OpenAIResponses = 1,
-    Gemini = 2,
-    GeminiCli = 3,
+export enum ProviderType {
+    Chat = 0,
+    Responses = 1,
+    GeminiCli = 2,
+    Gemini = 3,
     Claude = 4,
 }
 
-export function claudeRequestConvertTo(req: any, target: TargetType): any;
+export function claudeRequestConvertTo(req: any, target: ProviderType): any;
 
-export function claudeResponseConvertTo(req: any, target: TargetType): any;
+export function claudeResponseConvertTo(req: any, target: ProviderType): any;
 
-export function claudeStreamWrapperConvertTo(resp: any, target: TargetType): any;
+export function claudeStreamWrapperConvertTo(resp: any, target: ProviderType): any;
 
-export function geminiCliResponseConvertTo(req: any, target: TargetType): any;
+export function geminiCliResponseConvertTo(req: any, target: ProviderType): any;
 
 export function geminiCliResponseConvertToGeminiResponse(resp: any): any;
 
-export function geminiCliStreamWrapperConvertTo(resp: any, target: TargetType): any;
+export function geminiCliStreamWrapperConvertTo(resp: any, target: ProviderType): any;
 
-export function geminiRequestConvertTo(req: any, target: TargetType): any;
+export function geminiRequestConvertTo(req: any, target: ProviderType): any;
 
 export function geminiRequestConvertToGeminiCliRequest(req: any): any;
 
-export function geminiResponseConvertTo(req: any, target: TargetType): any;
+export function geminiResponseConvertTo(req: any, target: ProviderType): any;
 
-export function geminiStreamWrapperConvertTo(resp: any, target: TargetType): any;
+export function geminiStreamWrapperConvertTo(resp: any, target: ProviderType): any;
 
-export function getDefaultStreamState(): any;
+export function newStreamState(source: ProviderType, target: ProviderType): any;
 
-export function openAIResponsesRequestConvertTo(req: any, target: TargetType): any;
+export function openAIResponsesRequestConvertTo(req: any, target: ProviderType): any;
 
-export function openAIResponsesResponseConvertTo(resp: any, target: TargetType): any;
+export function openAIResponsesResponseConvertTo(resp: any, target: ProviderType): any;
 
-export function openAIResponsesStreamWrapperConvertTo(resp: any, target: TargetType): any;
+export function openAIResponsesStreamWrapperConvertTo(resp: any, target: ProviderType): any;
 
-export function openaiChatRequestConvertTo(req: any, target: TargetType): any;
+export function openaiChatRequestConvertTo(req: any, target: ProviderType): any;
 
-export function openaiChatResponseConvertTo(req: any, target: TargetType): any;
+export function openaiChatResponseConvertTo(req: any, target: ProviderType): any;
 
-export function openaiChatStreamWrapperConvertTo(resp: any, target: TargetType): any;
+export function openaiChatStreamWrapperConvertTo(resp: any, target: ProviderType): any;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
@@ -57,7 +57,7 @@ export interface InitOutput {
     readonly geminiRequestConvertToGeminiCliRequest: (a: any) => [number, number, number];
     readonly geminiResponseConvertTo: (a: any, b: number) => [number, number, number];
     readonly geminiStreamWrapperConvertTo: (a: any, b: number) => [number, number, number];
-    readonly getDefaultStreamState: () => [number, number, number];
+    readonly newStreamState: (a: number, b: number) => [number, number, number];
     readonly openAIResponsesRequestConvertTo: (a: any, b: number) => [number, number, number];
     readonly openAIResponsesResponseConvertTo: (a: any, b: number) => [number, number, number];
     readonly openAIResponsesStreamWrapperConvertTo: (a: any, b: number) => [number, number, number];
