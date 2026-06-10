@@ -3,24 +3,24 @@ import {
   geminiRequestConvertTo,
   openaiChatRequestConvertTo,
   openAIResponsesResponseConvertTo,
-  TargetType,
+  ProviderType,
 } from "../../../pkg/converter_wasm.js";
 import { StreamEvent } from "../../streaming/sse.ts";
 import { RequestLogger } from "../../utils/logger.ts";
 
 export function convertToOpenAIResponsesRequestTo(body: any, source: any) {
   switch (source) {
-    case TargetType.Claude:
-      return claudeRequestConvertTo(body, TargetType.OpenAIResponses);
-    case TargetType.Gemini:
-      return geminiRequestConvertTo(body, TargetType.OpenAIResponses);
-    case TargetType.OpenAIChat:
-      return openaiChatRequestConvertTo(body, TargetType.OpenAIResponses);
-    case TargetType.OpenAIResponses:
+    case ProviderType.Claude:
+      return claudeRequestConvertTo(body, ProviderType.Responses);
+    case ProviderType.Gemini:
+      return geminiRequestConvertTo(body, ProviderType.Responses);
+    case ProviderType.Chat:
+      return openaiChatRequestConvertTo(body, ProviderType.Responses);
+    case ProviderType.Responses:
       return body;
     default:
       throw new Error(
-        `Unsupported source type for OpenAI Responses provider: ${source}`,
+        `Unsupported source type for OpenAI Responses providerType: ${source}`,
       );
   }
 }
@@ -44,7 +44,7 @@ export async function convertOpenAIResponsesStreamResponseTo(
   return StreamEvent(
     stream,
     response,
-    TargetType.OpenAIResponses,
+    ProviderType.Responses,
     target,
     requestLogger,
   );
