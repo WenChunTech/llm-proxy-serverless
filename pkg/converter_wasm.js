@@ -3,17 +3,17 @@
 /**
  * @enum {0 | 1 | 2 | 3 | 4}
  */
-export const TargetType = Object.freeze({
-    OpenAIChat: 0, "0": "OpenAIChat",
-    OpenAIResponses: 1, "1": "OpenAIResponses",
-    Gemini: 2, "2": "Gemini",
-    GeminiCli: 3, "3": "GeminiCli",
+export const ProviderType = Object.freeze({
+    Chat: 0, "0": "Chat",
+    Responses: 1, "1": "Responses",
+    GeminiCli: 2, "2": "GeminiCli",
+    Gemini: 3, "3": "Gemini",
     Claude: 4, "4": "Claude",
 });
 
 /**
  * @param {any} req
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function claudeRequestConvertTo(req, target) {
@@ -26,7 +26,7 @@ export function claudeRequestConvertTo(req, target) {
 
 /**
  * @param {any} req
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function claudeResponseConvertTo(req, target) {
@@ -39,7 +39,7 @@ export function claudeResponseConvertTo(req, target) {
 
 /**
  * @param {any} resp
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function claudeStreamWrapperConvertTo(resp, target) {
@@ -52,7 +52,7 @@ export function claudeStreamWrapperConvertTo(resp, target) {
 
 /**
  * @param {any} req
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function geminiCliResponseConvertTo(req, target) {
@@ -77,7 +77,7 @@ export function geminiCliResponseConvertToGeminiResponse(resp) {
 
 /**
  * @param {any} resp
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function geminiCliStreamWrapperConvertTo(resp, target) {
@@ -90,7 +90,7 @@ export function geminiCliStreamWrapperConvertTo(resp, target) {
 
 /**
  * @param {any} req
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function geminiRequestConvertTo(req, target) {
@@ -115,7 +115,7 @@ export function geminiRequestConvertToGeminiCliRequest(req) {
 
 /**
  * @param {any} req
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function geminiResponseConvertTo(req, target) {
@@ -128,7 +128,7 @@ export function geminiResponseConvertTo(req, target) {
 
 /**
  * @param {any} resp
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function geminiStreamWrapperConvertTo(resp, target) {
@@ -140,10 +140,12 @@ export function geminiStreamWrapperConvertTo(resp, target) {
 }
 
 /**
+ * @param {ProviderType} source
+ * @param {ProviderType} target
  * @returns {any}
  */
-export function getDefaultStreamState() {
-    const ret = wasm.getDefaultStreamState();
+export function newStreamState(source, target) {
+    const ret = wasm.newStreamState(source, target);
     if (ret[2]) {
         throw takeFromExternrefTable0(ret[1]);
     }
@@ -152,7 +154,7 @@ export function getDefaultStreamState() {
 
 /**
  * @param {any} req
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function openAIResponsesRequestConvertTo(req, target) {
@@ -165,7 +167,7 @@ export function openAIResponsesRequestConvertTo(req, target) {
 
 /**
  * @param {any} resp
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function openAIResponsesResponseConvertTo(resp, target) {
@@ -178,7 +180,7 @@ export function openAIResponsesResponseConvertTo(resp, target) {
 
 /**
  * @param {any} resp
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function openAIResponsesStreamWrapperConvertTo(resp, target) {
@@ -191,7 +193,7 @@ export function openAIResponsesStreamWrapperConvertTo(resp, target) {
 
 /**
  * @param {any} req
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function openaiChatRequestConvertTo(req, target) {
@@ -204,7 +206,7 @@ export function openaiChatRequestConvertTo(req, target) {
 
 /**
  * @param {any} req
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function openaiChatResponseConvertTo(req, target) {
@@ -217,7 +219,7 @@ export function openaiChatResponseConvertTo(req, target) {
 
 /**
  * @param {any} resp
- * @param {TargetType} target
+ * @param {ProviderType} target
  * @returns {any}
  */
 export function openaiChatStreamWrapperConvertTo(resp, target) {
