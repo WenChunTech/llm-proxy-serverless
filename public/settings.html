@@ -277,6 +277,36 @@
 
       <!-- Main Content -->
       <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- General Settings -->
+        <section class="mb-8">
+          <div class="provider-card p-6">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div class="flex-1">
+                <h2 class="text-xl font-semibold mb-2">General Settings</h2>
+                <p class="text-gray-400 mb-4">
+                  Configure the global API key used to protect `/v1/*` and `/v1beta/*` endpoints.
+                  Leave it empty to disable global request authentication.
+                </p>
+                <label class="form-label" for="globalApiKey">Global API Key</label>
+                <input
+                  type="password"
+                  id="globalApiKey"
+                  class="form-input"
+                  placeholder="Enter global API key"
+                />
+              </div>
+              <div>
+                <button
+                  onclick="saveGlobalApiKey()"
+                  class="btn-primary text-white px-4 py-2 rounded-md"
+                >
+                  Save API Key
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Tabs -->
         <div class="flex space-x-1 border-b border-gray-800 mb-8">
           <button
@@ -503,6 +533,7 @@
             config = result.data;
             document.getElementById("loginScreen").style.display = "none";
             document.getElementById("mainApp").style.display = "block";
+            renderGeneralSettings();
             renderProviders();
             renderPriority();
             renderFallback();
@@ -537,6 +568,7 @@
             config = result.data;
             document.getElementById("loginScreen").style.display = "none";
             document.getElementById("mainApp").style.display = "block";
+            renderGeneralSettings();
             renderProviders();
             renderPriority();
             renderFallback();
@@ -565,12 +597,20 @@
           const result = await response.json();
           if (result.success) {
             config = result.data;
+            renderGeneralSettings();
             renderProviders();
             renderPriority();
             renderFallback();
           }
         } catch (error) {
           showAlert("Failed to load settings: " + error.message, "error");
+        }
+      }
+
+      function renderGeneralSettings() {
+        const globalApiKeyInput = document.getElementById("globalApiKey");
+        if (globalApiKeyInput) {
+          globalApiKeyInput.value = config?.api_key || "";
         }
       }
 
@@ -1179,6 +1219,38 @@
           showAlert("Error: " + error.message, "error");
         } finally {
           setButtonSavingState(button, false, "💾 Save Providers");
+        }
+      }
+
+      async function saveGlobalApiKey() {
+        const button = event?.currentTarget || null;
+        const globalApiKeyInput = document.getElementById("globalApiKey");
+        const nextApiKey = globalApiKeyInput ? globalApiKeyInput.value.trim() : "";
+        const updatedConfig = { ...config, api_key: nextApiKey };
+
+        setButtonSavingState(button, true, "Save API Key");
+        try {
+          const response = await authFetch("/api/settings", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ config: updatedConfig }),
+          });
+
+          const result = await parseApiResponse(response);
+          if (result.success) {
+            config = result.data;
+            settingsApiKey = config.api_key?.trim() || null;
+            renderGeneralSettings();
+            showAlert(result.message || "Global API key saved successfully!", "success");
+          } else {
+            showAlert("Failed to save global API key: " + result.error, "error");
+          }
+        } catch (error) {
+          showAlert("Error: " + error.message, "error");
+        } finally {
+          setButtonSavingState(button, false, "Save API Key");
         }
       }
 
