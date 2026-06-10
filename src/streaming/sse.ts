@@ -3,27 +3,27 @@ import {
   geminiCliResponseConvertToGeminiResponse,
   geminiCliStreamWrapperConvertTo,
   geminiStreamWrapperConvertTo,
-  getDefaultStreamState,
+  newStreamState,
   openaiChatStreamWrapperConvertTo,
   openAIResponsesStreamWrapperConvertTo,
-  TargetType,
+  ProviderType,
 } from "../../pkg/converter_wasm.js";
 import { RequestLogger } from "../utils/logger.ts";
 
 const responseConvert = (
   wrapper: any,
-  sourceType: TargetType,
-  targetType: TargetType,
+  sourceType: ProviderType,
+  targetType: ProviderType,
 ) => {
-  if (sourceType === TargetType.GeminiCli) {
+  if (sourceType === ProviderType.GeminiCli) {
     return geminiCliStreamWrapperConvertTo(wrapper, targetType);
-  } else if (sourceType === TargetType.Gemini) {
+  } else if (sourceType === ProviderType.Gemini) {
     return geminiStreamWrapperConvertTo(wrapper, targetType);
-  } else if (sourceType === TargetType.OpenAIChat) {
+  } else if (sourceType === ProviderType.Chat) {
     return openaiChatStreamWrapperConvertTo(wrapper, targetType);
-  } else if (sourceType === TargetType.Claude) {
+  } else if (sourceType === ProviderType.Claude) {
     return claudeStreamWrapperConvertTo(wrapper, targetType);
-  } else if (sourceType === TargetType.OpenAIResponses) {
+  } else if (sourceType === ProviderType.Responses) {
     return openAIResponsesStreamWrapperConvertTo(wrapper, targetType);
   }
 };
@@ -31,8 +31,8 @@ const responseConvert = (
 export const StreamEvent = async (
   stream: any,
   response: Response,
-  sourceType: TargetType,
-  targetType: TargetType,
+  sourceType: ProviderType,
+  targetType: ProviderType,
   requestLogger?: RequestLogger,
 ) => {
   if (!response.body) {
@@ -40,7 +40,10 @@ export const StreamEvent = async (
   }
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
-  let state = getDefaultStreamState();
+  console.log(
+    `StreamEvent sourceType: ${sourceType}, targetType: ${targetType}`,
+  );
+  let state = newStreamState(sourceType, targetType);
   let buffer = "";
 
   while (true) {

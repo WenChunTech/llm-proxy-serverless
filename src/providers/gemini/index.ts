@@ -5,7 +5,7 @@ import {
   convertGeminiStreamResponseTo,
   convertToGeminiRequestTo,
 } from "./adapter.ts";
-import { TargetType } from "../../../pkg/converter_wasm.js";
+import { ProviderType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
 import type { Provider } from "../_base/interface.ts";
 
@@ -16,7 +16,7 @@ export class GeminiProvider implements Provider {
   }
 
   getProviderType() {
-    return TargetType.Gemini;
+    return ProviderType.Gemini;
   }
 
   async convertRequestTo(body: any, source: any) {
@@ -29,7 +29,9 @@ export class GeminiProvider implements Provider {
     config?: GeminiConfig,
   ) {
     const geminiConfig = config || geminiPoller.getNext(this.model);
-    const action = is_streaming ? "streamGenerateContent?alt=sse" : "generateContent";
+    const action = is_streaming
+      ? "streamGenerateContent?alt=sse"
+      : "generateContent";
     const url =
       `${geminiConfig.base_url}/v1beta/models/${this.model}:${action}`;
     const headers = {
@@ -46,7 +48,7 @@ export class GeminiProvider implements Provider {
   }
 
   async convertResponseTo(c: any, response: Response, target: any) {
-    if (target === TargetType.Gemini) {
+    if (target === ProviderType.Gemini) {
       return response;
     }
     return convertGeminiResponseTo(c, response, target);
@@ -58,7 +60,7 @@ export class GeminiProvider implements Provider {
     target: any,
     requestLogger?: RequestLogger,
   ) {
-    if (target === TargetType.Gemini) {
+    if (target === ProviderType.Gemini) {
       return;
     }
     return convertGeminiStreamResponseTo(

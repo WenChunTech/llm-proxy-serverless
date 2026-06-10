@@ -1,25 +1,27 @@
 import {
   claudeRequestConvertTo,
   geminiRequestConvertTo,
-  openAIResponsesRequestConvertTo,
   openaiChatResponseConvertTo,
-  TargetType,
+  openAIResponsesRequestConvertTo,
+  ProviderType,
 } from "../../../pkg/converter_wasm.js";
 import { StreamEvent } from "../../streaming/sse.ts";
 import { RequestLogger } from "../../utils/logger.ts";
 
 export function convertToQwenRequestTo(body: any, source: any) {
   switch (source) {
-    case TargetType.Claude:
-      return claudeRequestConvertTo(body, TargetType.OpenAIChat);
-    case TargetType.Gemini:
-      return geminiRequestConvertTo(body, TargetType.OpenAIChat);
-    case TargetType.OpenAIChat:
+    case ProviderType.Claude:
+      return claudeRequestConvertTo(body, ProviderType.Chat);
+    case ProviderType.Gemini:
+      return geminiRequestConvertTo(body, ProviderType.Chat);
+    case ProviderType.Chat:
       return body;
-    case TargetType.OpenAIResponses:
-      return openAIResponsesRequestConvertTo(body, TargetType.OpenAIChat);
+    case ProviderType.Responses:
+      return openAIResponsesRequestConvertTo(body, ProviderType.Chat);
     default:
-      throw new Error(`Unsupported source type for OpenAI provider: ${source}`);
+      throw new Error(
+        `Unsupported source type for OpenAI providerType: ${source}`,
+      );
   }
 }
 
@@ -42,7 +44,7 @@ export async function convertQwenStreamResponseTo(
   return StreamEvent(
     stream,
     response,
-    TargetType.OpenAIChat,
+    ProviderType.Chat,
     target,
     requestLogger,
   );

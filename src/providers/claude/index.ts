@@ -5,7 +5,7 @@ import {
   convertClaudeStreamResponseTo,
   convertToClaudeRequestTo,
 } from "./adapter.ts";
-import { TargetType } from "../../../pkg/converter_wasm.js";
+import { ProviderType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
 import type { Provider } from "../_base/interface.ts";
 
@@ -16,7 +16,7 @@ export class ClaudeProvider implements Provider {
   }
 
   getProviderType() {
-    return TargetType.Claude;
+    return ProviderType.Claude;
   }
 
   async convertRequestTo(body: any, source: any) {

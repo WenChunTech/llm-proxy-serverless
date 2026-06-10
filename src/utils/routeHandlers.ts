@@ -1,6 +1,6 @@
 import { Context } from "hono";
 import { streamSSE } from "hono/streaming";
-import { TargetType } from "../../pkg/converter_wasm.js";
+import { ProviderType } from "../../pkg/converter_wasm.js";
 import { logger, RequestLogger } from "./logger.ts";
 import { executeModelRequest } from "../services/requestExecution.ts";
 
@@ -18,13 +18,13 @@ function proxyResponse(response: Response) {
 
 function parseModelRequest(
   c: Context,
-  targetType: TargetType,
+  targetType: ProviderType,
   body: Record<string, unknown>,
 ) {
   let isStreaming = body.stream;
   let model = body.model;
 
-  if (targetType === TargetType.Gemini) {
+  if (targetType === ProviderType.Gemini) {
     model = c.req.param("modelName").split(":")[0];
     isStreaming =
       c.req.param("modelName").split(":")[1] === "streamGenerateContent";
@@ -39,7 +39,7 @@ function parseModelRequest(
 
 export async function handleModelRequest(
   c: Context,
-  targetType: TargetType,
+  targetType: ProviderType,
 ) {
   const body = await c.req.json();
 
@@ -57,13 +57,14 @@ export async function handleModelRequest(
     isStreaming,
   });
 
-  const { response: resp, provider: actualProvider } = await executeModelRequest({
-    model,
-    targetType,
-    isStreaming,
-    body,
-    requestLogger,
-  });
+  const { response: resp, provider: actualProvider } =
+    await executeModelRequest({
+      model,
+      targetType,
+      isStreaming,
+      body,
+      requestLogger,
+    });
 
   if (!resp.ok) {
     return proxyResponse(resp);

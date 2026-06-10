@@ -5,7 +5,7 @@ import {
   convertIFlowStreamResponseTo,
   convertToIFlowRequestTo,
 } from "./adapter.ts";
-import { TargetType } from "../../../pkg/converter_wasm.js";
+import { ProviderType } from "../../../pkg/converter_wasm.js";
 import { getAccessToken, iflowHeaderSign } from "./auth.ts";
 import { RequestLogger } from "../../utils/logger.ts";
 import type { Provider } from "../_base/interface.ts";
@@ -21,7 +21,7 @@ export class IflowProvider implements Provider {
   }
 
   getProviderType() {
-    return TargetType.OpenAIChat;
+    return ProviderType.Chat;
   }
 
   async fetchResponse(

@@ -1,4 +1,4 @@
-import { appConfig, updateConfig } from "../../config.ts";
+import { appConfig } from "../../config.ts";
 import { IFlowAuth } from "../../types/config.ts";
 import { logger } from "../../utils/logger.ts";
 import { URLSearchParams } from "node:url";

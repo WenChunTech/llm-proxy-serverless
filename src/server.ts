@@ -1,13 +1,22 @@
 import * as path from "node:path";
 
 import { Hono } from "hono";
-import { TargetType } from "../pkg/converter_wasm.js";
+import { ProviderType } from "../pkg/converter_wasm.js";
 import { serveStatic } from "@hono/node-server/serve-static";
 
 import { handleModelRequest } from "./utils/routeHandlers.ts";
 import { getModelsResponse } from "./services/models.ts";
 import { initMiddleware } from "./middleware/init.ts";
 import { authMiddleware } from "./middleware/auth.ts";
+import {
+  handleAddProvider,
+  handleRemoveProvider,
+  handleSetFallbackModel,
+  handleSettingsGet,
+  handleSettingsPost,
+  handleSettingsVerify,
+  handleUpdateModelPriority,
+} from "./utils/settingsHandler.ts";
 
 const app = new Hono();
 
@@ -39,23 +48,52 @@ app.use(
 );
 
 app.post("/v1/chat/completions", async (c) => {
-  return handleModelRequest(c, TargetType.OpenAIChat);
+  return handleModelRequest(c, ProviderType.Chat);
 });
 
 app.post("/v1/responses", async (c) => {
-  return handleModelRequest(c, TargetType.OpenAIResponses);
+  return handleModelRequest(c, ProviderType.Responses);
 });
 
 app.post("/v1/messages", async (c) => {
-  return handleModelRequest(c, TargetType.Claude);
+  return handleModelRequest(c, ProviderType.Claude);
 });
 
 app.post("/v1beta/models/:modelName", async (c) => {
-  return handleModelRequest(c, TargetType.Gemini);
+  return handleModelRequest(c, ProviderType.Gemini);
 });
 
 app.get("/v1/models", async (c) => {
   return getModelsResponse(c);
+});
+
+// Settings routes
+app.get("/api/settings/verify", async (c) => {
+  return handleSettingsVerify(c);
+});
+
+app.get("/api/settings", async (c) => {
+  return handleSettingsGet(c);
+});
+
+app.post("/api/settings", async (c) => {
+  return handleSettingsPost(c);
+});
+
+app.post("/api/settings/provider/add", async (c) => {
+  return handleAddProvider(c);
+});
+
+app.post("/api/settings/provider/remove", async (c) => {
+  return handleRemoveProvider(c);
+});
+
+app.post("/api/settings/model-priority", async (c) => {
+  return handleUpdateModelPriority(c);
+});
+
+app.post("/api/settings/fallback-model", async (c) => {
+  return handleSetFallbackModel(c);
 });
 
 export default app;

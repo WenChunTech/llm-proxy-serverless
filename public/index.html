@@ -1,39 +1,112 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLM Proxy - The Universal API for Large Language Models</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      (() => {
+        const themeKey = "llm-proxy-theme";
+        const savedTheme = localStorage.getItem(themeKey);
+        const isDark = savedTheme ? savedTheme === "dark" : true;
+        document.documentElement.classList.toggle("dark", isDark);
+      })();
+    </script>
     <style>
       @import url("https://rsms.me/inter/inter.css");
       html {
         font-family: "Inter", sans-serif;
       }
+      body {
+        background:
+          radial-gradient(circle at top, rgba(99, 102, 241, 0.18), transparent 32%),
+          linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+        color: #111827;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+      html.dark body {
+        background:
+          radial-gradient(circle at top, rgba(99, 102, 241, 0.22), transparent 30%),
+          linear-gradient(180deg, #111827 0%, #030712 100%);
+        color: #e5e7eb;
+      }
       .feature-card {
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background-color: rgba(255, 255, 255, 0.8);
+        box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
+        transition: all 0.3s ease;
+        position: relative;
+        backdrop-filter: blur(14px);
+      }
+      html.dark .feature-card {
         border: 1px solid rgba(255, 255, 255, 0.1);
         background-color: rgba(255, 255, 255, 0.05);
-        transition: all 0.3s ease;
-        position: relative; /* Fix for hover overlap */
+        box-shadow: none;
       }
       .feature-card:hover {
         transform: translateY(-5px);
         border-color: rgba(99, 102, 241, 0.7);
-        z-index: 10; /* Fix for hover overlap */
+        z-index: 10;
+      }
+      .feature-card h3 {
+        color: #0f172a;
+      }
+      html.dark .feature-card h3 {
+        color: #f3f4f6;
       }
       .flow-step {
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background-color: rgba(255, 255, 255, 0.78);
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+      }
+      html.dark .flow-step {
         border: 1px solid rgba(255, 255, 255, 0.1);
         background-color: rgba(31, 41, 55, 0.5);
+        box-shadow: none;
       }
       .arrow {
         color: #4f46e5;
       }
       .logo-monochrome {
+        filter: none;
+      }
+      html.dark .logo-monochrome {
         filter: brightness(0) invert(1);
       }
       .typescript-logo {
         background-color: white;
         border-radius: 0.25rem;
+      }
+      .top-action {
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        background-color: rgba(255, 255, 255, 0.72);
+        color: #0f172a;
+        backdrop-filter: blur(12px);
+      }
+      .top-action:hover {
+        border-color: rgba(99, 102, 241, 0.55);
+      }
+      html.dark .top-action {
+        border-color: rgba(255, 255, 255, 0.12);
+        background-color: rgba(17, 24, 39, 0.72);
+        color: #f3f4f6;
+      }
+      html:not(.dark) .text-gray-400 {
+        color: #4b5563 !important;
+      }
+      html:not(.dark) .text-gray-500 {
+        color: #6b7280 !important;
+      }
+      html:not(.dark) .border-gray-700,
+      html:not(.dark) .border-gray-800 {
+        border-color: rgba(148, 163, 184, 0.25) !important;
+      }
+      html:not(.dark) .bg-gray-800 {
+        background-color: rgba(255, 255, 255, 0.86) !important;
+      }
+      html:not(.dark) .bg-gray-900 {
+        background-color: rgba(255, 255, 255, 0.8) !important;
       }
     </style>
     <script>
@@ -52,10 +125,26 @@
       };
     </script>
   </head>
-  <body class="bg-gray-900 text-gray-200">
+  <body>
     <div class="container mx-auto px-4 py-16">
       <!-- Header Section -->
       <header class="text-center mb-24">
+        <div class="flex justify-end gap-3 mb-10">
+          <a
+            href="/settings.html"
+            class="top-action inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition"
+          >
+            Settings
+          </a>
+          <button
+            id="themeToggle"
+            type="button"
+            onclick="toggleTheme()"
+            class="top-action inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition"
+          >
+            Dark Mode
+          </button>
+        </div>
         <h1 class="text-5xl md:text-6xl font-bold tracking-tight mb-4 bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">
           LLM Proxy
         </h1>
@@ -425,5 +514,26 @@
       src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
       defer
     ></script>
+    <script>
+      const THEME_KEY = "llm-proxy-theme";
+
+      function applyTheme(theme) {
+        const isDark = theme === "dark";
+        document.documentElement.classList.toggle("dark", isDark);
+        localStorage.setItem(THEME_KEY, theme);
+
+        const toggle = document.getElementById("themeToggle");
+        if (toggle) {
+          toggle.textContent = isDark ? "Light Mode" : "Dark Mode";
+        }
+      }
+
+      function toggleTheme() {
+        const isDark = document.documentElement.classList.contains("dark");
+        applyTheme(isDark ? "light" : "dark");
+      }
+
+      applyTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
+    </script>
   </body>
 </html>

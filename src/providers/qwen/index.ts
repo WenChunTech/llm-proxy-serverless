@@ -1,6 +1,6 @@
 import { qwenPoller } from "../../config.ts";
 import { QwenConfig } from "../../types/config.ts";
-import { TargetType } from "../../../pkg/converter_wasm.js";
+import { ProviderType } from "../../../pkg/converter_wasm.js";
 import {
   convertQwenResponseTo,
   convertQwenStreamResponseTo,
@@ -21,7 +21,7 @@ export class QwenProvider implements Provider {
   }
 
   getProviderType() {
-    return TargetType.OpenAIChat;
+    return ProviderType.Chat;
   }
 
   async fetchResponse(

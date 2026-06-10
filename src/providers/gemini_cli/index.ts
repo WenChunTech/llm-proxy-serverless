@@ -10,7 +10,7 @@ import {
   convertGeminiStreamResponseTo,
   convertToGeminiCliRequestTo,
 } from "./adapter.ts";
-import { TargetType } from "../../../pkg/converter_wasm.js";
+import { ProviderType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
 import type { Provider } from "../_base/interface.ts";
 
@@ -21,7 +21,7 @@ export class GeminiCliProvider implements Provider {
   }
 
   getProviderType() {
-    return TargetType.GeminiCli;
+    return ProviderType.GeminiCli;
   }
 
   async convertRequestTo(body: any, source: any) {
@@ -35,8 +35,7 @@ export class GeminiCliProvider implements Provider {
     project?: string,
   ) {
     const geminiConfig = config || geminiCliPoller.getNext(this.model);
-    const selectedProject =
-      project || geminiConfig.projects[0];
+    const selectedProject = project || geminiConfig.projects[0];
 
     const token = await getAccessToken(geminiConfig.auth);
     reqData.project = selectedProject;

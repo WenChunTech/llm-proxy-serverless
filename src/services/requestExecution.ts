@@ -1,4 +1,4 @@
-import { TargetType } from "../../pkg/converter_wasm.js";
+import { ProviderType } from "../../pkg/converter_wasm.js";
 import { getProvider, getProviderInstance } from "../providers/factory.ts";
 import type { Provider } from "../providers/_base/interface.ts";
 import { logger, RequestLogger } from "../utils/logger.ts";
@@ -13,7 +13,7 @@ import { supportsProjects } from "../providers/registry.ts";
 
 export interface ExecuteModelRequestParams {
   model: string;
-  targetType: TargetType;
+  targetType: ProviderType;
   isStreaming: boolean;
   body: Record<string, unknown>;
   requestLogger: RequestLogger;
@@ -30,8 +30,8 @@ function withStreamingFlag(
   isStreaming: boolean,
 ): Record<string, unknown> {
   if (
-    provider.getProviderType() !== TargetType.Gemini &&
-    provider.getProviderType() !== TargetType.GeminiCli
+    provider.getProviderType() !== ProviderType.Gemini &&
+    provider.getProviderType() !== ProviderType.GeminiCli
   ) {
     return { ...req, stream: isStreaming };
   }
@@ -42,7 +42,7 @@ function withStreamingFlag(
 async function buildProviderRequest(
   provider: Provider,
   body: Record<string, unknown>,
-  targetType: TargetType,
+  targetType: ProviderType,
   isStreaming: boolean,
 ) {
   const converted = await provider.convertRequestTo(body, targetType);
@@ -73,7 +73,7 @@ function logProviderAttempt(
 
 async function executeSingleModelRequest(
   model: string,
-  targetType: TargetType,
+  targetType: ProviderType,
   isStreaming: boolean,
   reqData: Record<string, unknown>,
   requestLogger: RequestLogger,

@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LLM Proxy - Settings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      (() => {
+        const themeKey = "llm-proxy-theme";
+        const savedTheme = localStorage.getItem(themeKey);
+        const isDark = savedTheme ? savedTheme === "dark" : true;
+        document.documentElement.classList.toggle("dark", isDark);
+      })();
+    </script>
+    <style>
+      @import url("https://rsms.me/inter/inter.css");
+      html {
+        font-family: "Inter", sans-serif;
+      }
+      body {
+        background:
+          radial-gradient(circle at top, rgba(99, 102, 241, 0.16), transparent 28%),
+          linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+        color: #111827;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+      html.dark body {
+        background:
+          radial-gradient(circle at top, rgba(99, 102, 241, 0.18), transparent 28%),
+          linear-gradient(180deg, #111827 0%, #030712 100%);
+        color: #f9fafb;
+      }
+      .provider-card {
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        background-color: rgba(255, 255, 255, 0.82);
+        border-radius: 0.5rem;
+        box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+      }
+      html.dark .provider-card {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.05);
+        box-shadow: none;
+      }
+      .provider-card:hover {
+        border-color: rgba(99, 102, 241, 0.7);
+      }
+      .btn-primary {
+        background-color: #4f46e5;
+      }
+      .btn-primary:hover {
+        background-color: #4338ca;
+      }
+      .btn-danger {
+        background-color: #ef4444;
+      }
+      .btn-danger:hover {
+        background-color: #dc2626;
+      }
+      .btn-secondary {
+        background-color: #6b7280;
+      }
+      .btn-secondary:hover {
+        background-color: #4b5563;
+      }
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+      .modal.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-content {
+        background-color: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(148, 163, 184, 0.24);
+        border-radius: 0.5rem;
+        padding: 2rem;
+        max-width: 600px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 28px 70px rgba(15, 23, 42, 0.18);
+      }
+      html.dark .modal-content {
+        background-color: #1f2937;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: none;
+      }
+      .form-group {
+        margin-bottom: 1.5rem;
+      }
+      .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #1f2937;
+      }
+      html.dark .form-label {
+        color: #e5e7eb;
+      }
+      .form-input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid rgba(148, 163, 184, 0.32);
+        border-radius: 0.375rem;
+        background-color: rgba(255, 255, 255, 0.96);
+        color: #111827;
+      }
+      .form-input:focus {
+        outline: none;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+      }
+      html.dark .form-input {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background-color: rgba(255, 255, 255, 0.05);
+        color: #e5e7eb;
+      }
+      .tab-button {
+        padding: 0.75rem 1.5rem;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+      .tab-button.active {
+        border-bottom-color: #4f46e5;
+        color: #4f46e5;
+      }
+      .tab-content {
+        display: none;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      .alert {
+        padding: 0.875rem 1rem;
+        border-radius: 0.375rem;
+        min-width: min(28rem, calc(100vw - 2rem));
+        box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
+      }
+      .alert-success {
+        background-color: rgba(34, 197, 94, 0.1);
+        color: #86efac;
+        border: 1px solid rgba(34, 197, 94, 0.3);
+      }
+      .alert-error {
+        background-color: rgba(239, 68, 68, 0.1);
+        color: #fca5a5;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
+      .dragging {
+        opacity: 0.5;
+      }
+      .toast-stack {
+        position: fixed;
+        right: 1rem;
+        bottom: 1rem;
+        z-index: 1100;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-end;
+        pointer-events: none;
+      }
+      .toast-stack .alert {
+        pointer-events: auto;
+      }
+      .top-action {
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        background-color: rgba(255, 255, 255, 0.78);
+        color: #0f172a;
+        backdrop-filter: blur(12px);
+      }
+      .top-action:hover {
+        border-color: rgba(99, 102, 241, 0.55);
+      }
+      html.dark .top-action {
+        border-color: rgba(255, 255, 255, 0.12);
+        background-color: rgba(17, 24, 39, 0.72);
+        color: #f3f4f6;
+      }
+      html:not(.dark) .bg-gray-900 {
+        background-color: rgba(255, 255, 255, 0.78) !important;
+      }
+      html:not(.dark) .bg-gray-800 {
+        background-color: rgba(226, 232, 240, 0.55) !important;
+      }
+      html:not(.dark) .bg-gray-950 {
+        background-color: transparent !important;
+      }
+      html:not(.dark) .border-gray-800,
+      html:not(.dark) .border-gray-700 {
+        border-color: rgba(148, 163, 184, 0.24) !important;
+      }
+      html:not(.dark) .text-gray-400 {
+        color: #4b5563 !important;
+      }
+      html:not(.dark) #mainApp,
+      html:not(.dark) #loginScreen {
+        color: #0f172a;
+      }
+      html:not(.dark) .provider-card h3,
+      html:not(.dark) .provider-card .text-sm,
+      html:not(.dark) .tab-button {
+        color: #0f172a;
+      }
+      html:not(.dark) .btn-primary,
+      html:not(.dark) .btn-secondary,
+      html:not(.dark) .btn-danger {
+        color: #ffffff !important;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="min-h-screen flex items-center justify-center" style="display: none;">
+      <div class="modal-content max-w-md">
+        <h2 class="text-2xl font-bold mb-2">🔒 Settings Access</h2>
+        <p class="text-gray-400 mb-6">Please enter the API key to access settings.</p>
+        <div class="form-group">
+          <label class="form-label">API Key</label>
+          <input
+            type="password"
+            id="loginApiKey"
+            class="form-input"
+            placeholder="Enter your API key"
+            onkeydown="if(event.key==='Enter') verifyApiKey()"
+          />
+        </div>
+        <button
+          onclick="verifyApiKey()"
+          class="btn-primary text-white px-4 py-2 rounded-md w-full"
+        >
+          Verify
+        </button>
+        <p id="loginError" class="text-red-400 text-sm mt-3" style="display: none;"></p>
+      </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="mainApp" class="min-h-screen" style="display: none;">
+      <!-- Header -->
+      <header class="bg-gray-900 border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div class="flex justify-between items-center">
+            <h1 class="text-3xl font-bold">LLM Proxy Settings</h1>
+            <div class="flex items-center gap-3">
+              <a
+                href="/"
+                class="top-action inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition"
+              >
+                ← Back to Home
+              </a>
+              <button
+                id="themeToggle"
+                type="button"
+                onclick="toggleTheme()"
+                class="top-action inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition"
+              >
+                Dark Mode
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Alert -->
+      <div id="alert" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
+
+      <!-- Main Content -->
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Tabs -->
+        <div class="flex space-x-1 border-b border-gray-800 mb-8">
+          <button
+            class="tab-button active"
+            data-tab="providers"
+            onclick="switchTab('providers')"
+          >
+            Providers
+          </button>
+          <button
+            class="tab-button"
+            data-tab="priority"
+            onclick="switchTab('priority')"
+          >
+            Model Priority
+          </button>
+          <button
+            class="tab-button"
+            data-tab="fallback"
+            onclick="switchTab('fallback')"
+          >
+            Fallback Models
+          </button>
+        </div>
+
+        <!-- Providers Tab -->
+        <div id="providers-tab" class="tab-content active">
+          <div class="space-y-6">
+            <!-- Providers List -->
+            <div id="providers-container" class="space-y-4"></div>
+
+            <!-- Add Provider Button -->
+            <div class="pt-4 flex space-x-2">
+              <button
+                onclick="openAddProviderModal()"
+                class="btn-primary text-white px-4 py-2 rounded-md"
+              >
+                + Add New Provider
+              </button>
+              <button
+                onclick="saveProviders()"
+                class="btn-secondary text-white px-4 py-2 rounded-md"
+              >
+                💾 Save Providers
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Model Priority Tab -->
+        <div id="priority-tab" class="tab-content">
+          <div class="space-y-4">
+            <p class="text-gray-400">
+              Drag to reorder providers by priority. The first provider in the
+              list has the highest priority.
+            </p>
+            <div
+              id="priority-container"
+              class="space-y-2 provider-card p-4"
+              ondrop="handlePriorityDrop(event)"
+              ondragover="handlePriorityDragOver(event)"
+            ></div>
+            <button
+              onclick="savePriority()"
+              class="btn-primary text-white px-4 py-2 rounded-md"
+            >
+              💾 Save Priority
+            </button>
+          </div>
+        </div>
+
+        <!-- Fallback Models Tab -->
+        <div id="fallback-tab" class="tab-content">
+          <div class="space-y-4">
+            <p class="text-gray-400">
+              Configure fallback models when the primary model is not available.
+            </p>
+            <div id="fallback-container" class="space-y-3"></div>
+            <div class="pt-4 flex space-x-2">
+              <button
+                onclick="addFallbackMapping()"
+                class="btn-primary text-white px-4 py-2 rounded-md"
+              >
+                + Add Fallback Mapping
+              </button>
+              <button
+                onclick="saveFallbackModels()"
+                class="btn-secondary text-white px-4 py-2 rounded-md"
+              >
+                💾 Save Fallback Models
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div> <!-- /mainApp -->
+
+    <!-- Add/Edit Provider Modal -->
+    <div id="addProviderModal" class="modal">
+      <div class="modal-content">
+        <h2 id="providerModalTitle" class="text-2xl font-bold mb-4">Add New Provider</h2>
+
+        <input type="hidden" id="editMode" value="false" />
+        <input type="hidden" id="editProviderType" value="" />
+        <input type="hidden" id="editProviderIndex" value="-1" />
+
+        <div class="form-group">
+          <label class="form-label">Provider Type</label>
+          <select
+            id="providerType"
+            class="form-input"
+            onchange="updateProviderFields()"
+          >
+            <option value="">Select a provider...</option>
+            <option value="gemini_cli">Gemini CLI</option>
+            <option value="gemini">Gemini</option>
+            <option value="qwen">Qwen</option>
+            <option value="openai_chat">OpenAI Chat</option>
+            <option value="openai_responses">OpenAI Responses</option>
+            <option value="claude">Claude</option>
+            <option value="iflow">IFlow</option>
+            <option value="codex">Codex</option>
+          </select>
+        </div>
+
+        <div id="providerFields" class="space-y-4"></div>
+
+        <div class="flex space-x-2 mt-6">
+          <button
+            id="providerModalSubmit"
+            onclick="submitProviderModal()"
+            class="btn-primary text-white px-4 py-2 rounded-md flex-1"
+          >
+            Add Provider
+          </button>
+          <button
+            onclick="closeAddProviderModal()"
+            class="btn-secondary text-white px-4 py-2 rounded-md flex-1"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let config = null;
+      let settingsApiKey = null;
+      const THEME_KEY = "llm-proxy-theme";
+      const PROVIDERS = [
+        "gemini_cli",
+        "gemini",
+        "qwen",
+        "openai_chat",
+        "openai_responses",
+        "claude",
+        "iflow",
+        "codex",
+      ];
+
+      function applyTheme(theme) {
+        const isDark = theme === "dark";
+        document.documentElement.classList.toggle("dark", isDark);
+        localStorage.setItem(THEME_KEY, theme);
+
+        const toggle = document.getElementById("themeToggle");
+        if (toggle) {
+          toggle.textContent = isDark ? "Light Mode" : "Dark Mode";
+        }
+      }
+
+      function toggleTheme() {
+        const isDark = document.documentElement.classList.contains("dark");
+        applyTheme(isDark ? "light" : "dark");
+      }
+
+      function setButtonSavingState(button, isSaving, idleText) {
+        if (!button) return;
+        button.disabled = isSaving;
+        button.dataset.idleText = idleText;
+        button.textContent = isSaving ? "Saving..." : idleText;
+        button.classList.toggle("opacity-70", isSaving);
+        button.classList.toggle("cursor-not-allowed", isSaving);
+      }
+
+      async function parseApiResponse(response) {
+        let result = null;
+        try {
+          result = await response.json();
+        } catch {
+          result = null;
+        }
+
+        if (!response.ok) {
+          return {
+            success: false,
+            error: result?.error || result?.message || `Request failed with status ${response.status}`,
+            data: result?.data,
+          };
+        }
+
+        return result || {
+          success: false,
+          error: "Invalid server response",
+        };
+      }
+
+      // ===== API Key Verification =====
+      async function verifyApiKey() {
+        const apiKey = document.getElementById("loginApiKey").value.trim();
+        if (!apiKey) {
+          showLoginError("Please enter an API key.");
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/settings/verify", {
+            headers: { "Authorization": "Bearer " + apiKey },
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            settingsApiKey = apiKey;
+            config = result.data;
+            document.getElementById("loginScreen").style.display = "none";
+            document.getElementById("mainApp").style.display = "block";
+            renderProviders();
+            renderPriority();
+            renderFallback();
+          } else {
+            showLoginError("Invalid API key. Please try again.");
+          }
+        } catch (error) {
+          showLoginError("Connection error. Please check if the server is running.");
+        }
+      }
+
+      function showLoginError(msg) {
+        const el = document.getElementById("loginError");
+        el.textContent = msg;
+        el.style.display = "block";
+      }
+
+      // Check if api_key is configured, show login if needed
+      async function initPage() {
+        try {
+          const response = await fetch("/api/settings/verify");
+          if (response.status === 401) {
+            // api_key is configured, show login
+            document.getElementById("loginScreen").style.display = "flex";
+            document.getElementById("mainApp").style.display = "none";
+            return;
+          }
+          const result = await response.json();
+          if (result.success) {
+            // No api_key configured, no auth needed
+            settingsApiKey = null;
+            config = result.data;
+            document.getElementById("loginScreen").style.display = "none";
+            document.getElementById("mainApp").style.display = "block";
+            renderProviders();
+            renderPriority();
+            renderFallback();
+          }
+        } catch (error) {
+          document.getElementById("loginScreen").style.display = "flex";
+          document.getElementById("mainApp").style.display = "none";
+        }
+      }
+
+      // Authenticated fetch helper
+      function authFetch(url, options = {}) {
+        if (settingsApiKey) {
+          options.headers = {
+            ...(options.headers || {}),
+            "Authorization": "Bearer " + settingsApiKey,
+          };
+        }
+        return fetch(url, options);
+      }
+
+      // Load settings on page load
+      async function loadSettings() {
+        try {
+          const response = await authFetch("/api/settings");
+          const result = await response.json();
+          if (result.success) {
+            config = result.data;
+            renderProviders();
+            renderPriority();
+            renderFallback();
+          }
+        } catch (error) {
+          showAlert("Failed to load settings: " + error.message, "error");
+        }
+      }
+
+      // Render providers
+      function renderProviders() {
+        const container = document.getElementById("providers-container");
+        container.innerHTML = "";
+
+        PROVIDERS.forEach((provider) => {
+          const configs = config[provider] || [];
+          const providerLabel =
+            provider.charAt(0).toUpperCase() + provider.slice(1).replace(/_/g, " ");
+
+          const section = document.createElement("div");
+          section.className = "provider-card p-4";
+
+          let content = `<h3 class="text-lg font-semibold mb-3">${providerLabel}</h3>`;
+
+          if (configs.length === 0) {
+            content += `<p class="text-gray-400">No configurations added yet.</p>`;
+          } else {
+            configs.forEach((cfg, index) => {
+              content += `
+                <div class="bg-gray-800 p-3 rounded mb-2 flex justify-between items-start">
+                  <div class="flex-1">
+                    ${cfg.base_url ? `<p class="text-sm">URL: ${cfg.base_url}</p>` : ""}
+                    ${cfg.api_key ? `<p class="text-sm">API Key: ${cfg.api_key.substring(0, 10)}***</p>` : ""}
+                    ${cfg.models ? `<p class="text-sm">Models: ${cfg.models.join(", ")}</p>` : ""}
+                  </div>
+                  <div class="flex space-x-2 ml-2">
+                    <button
+                      onclick="editProvider('${provider}', ${index})"
+                      class="btn-secondary text-white px-3 py-1 rounded text-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onclick="removeProvider('${provider}', ${index})"
+                      class="btn-danger text-white px-3 py-1 rounded text-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              `;
+            });
+          }
+
+          section.innerHTML = content;
+          container.appendChild(section);
+        });
+      }
+
+      // Render priority
+      function renderPriority() {
+        const container = document.getElementById("priority-container");
+        container.innerHTML = "";
+
+        const priority = config.model_priority || [];
+        const allProviders = PROVIDERS;
+
+        // Show selected providers
+        priority.forEach((provider, index) => {
+          const item = document.createElement("div");
+          item.className =
+            "bg-gray-900 p-3 rounded cursor-move border border-indigo-500 flex items-center";
+          item.draggable = true;
+          item.dataset.provider = provider;
+          // Only show 📌 for the first item (highest priority)
+          const icon = index === 0 ? "📌 " : "";
+          item.innerHTML = `
+            <span class="flex-1">${icon}${provider}</span>
+            <button onclick="removePriorityItem('${provider}')" class="btn-danger text-white px-2 py-1 rounded text-sm">×</button>
+          `;
+          container.appendChild(item);
+        });
+
+        // Show unselected providers
+        const unselected = allProviders.filter((p) => !priority.includes(p));
+        if (unselected.length > 0) {
+          const label = document.createElement("p");
+          label.className = "text-gray-400 text-sm mt-4";
+          label.textContent = "Available providers (drag to add):";
+          container.appendChild(label);
+
+          unselected.forEach((provider) => {
+            const item = document.createElement("div");
+            item.className =
+              "bg-gray-800 p-3 rounded cursor-move border border-gray-700 flex items-center";
+            item.draggable = true;
+            item.dataset.provider = provider;
+            item.innerHTML = `<span>${provider}</span>`;
+            container.appendChild(item);
+          });
+        }
+
+        setupDragListeners();
+      }
+
+      // Render fallback models
+      function renderFallback() {
+        const container = document.getElementById("fallback-container");
+        container.innerHTML = "";
+
+        const fallback = config.fallback_models || {};
+
+        if (Object.keys(fallback).length === 0) {
+          container.innerHTML =
+            "<p class='text-gray-400'>No fallback mappings configured yet.</p>";
+          return;
+        }
+
+        Object.entries(fallback).forEach(([model, fallbackModel]) => {
+          const row = document.createElement("div");
+          row.className = "provider-card p-4 flex items-end space-x-2";
+          row.innerHTML = `
+            <div class="flex-1">
+              <label class="form-label text-sm">Model</label>
+              <input
+                type="text"
+                value="${model}"
+                class="form-input"
+                disabled
+              />
+            </div>
+            <div class="flex-1">
+              <label class="form-label text-sm">Fallback Model</label>
+              <input
+                type="text"
+                value="${fallbackModel}"
+                class="form-input fallback-value"
+                data-model="${model}"
+              />
+            </div>
+            <button
+              onclick="deleteFallbackMapping('${model}')"
+              class="btn-danger text-white px-3 py-2 rounded"
+            >
+              Delete
+            </button>
+          `;
+          container.appendChild(row);
+        });
+      }
+
+      // Switch tabs
+      function switchTab(tab) {
+        // Hide all tabs
+        document.querySelectorAll(".tab-content").forEach((el) => {
+          el.classList.remove("active");
+        });
+        document.querySelectorAll(".tab-button").forEach((el) => {
+          el.classList.remove("active");
+        });
+
+        // Show selected tab
+        document.getElementById(`${tab}-tab`).classList.add("active");
+        document.querySelector(`[data-tab="${tab}"]`).classList.add("active");
+      }
+
+      // Provider fields
+      function updateProviderFields() {
+        const provider = document.getElementById("providerType").value;
+        const container = document.getElementById("providerFields");
+        container.innerHTML = "";
+
+        if (!provider) return;
+
+        const fields = {
+          gemini_cli: `
+            <div class="form-group">
+              <label class="form-label">Projects (comma-separated)</label>
+              <textarea
+                id="field-projects"
+                class="form-input"
+                placeholder="project1,project2,project3"
+                rows="3"
+              ></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Models (comma-separated)</label>
+              <textarea
+                id="field-models"
+                class="form-input"
+                placeholder="gemini-pro,gemini-pro-vision"
+                rows="3"
+              ></textarea>
+            </div>
+          `,
+          gemini: `
+            <div class="form-group">
+              <label class="form-label">Base URL</label>
+              <input
+                type="text"
+                id="field-base_url"
+                class="form-input"
+                placeholder="https://api.example.com"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">API Key</label>
+              <input
+                type="password"
+                id="field-api_key"
+                class="form-input"
+                placeholder="Enter API Key"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Models (comma-separated)</label>
+              <textarea
+                id="field-models"
+                class="form-input"
+                placeholder="gemini-pro,gemini-pro-vision"
+                rows="3"
+              ></textarea>
+            </div>
+          `,
+          qwen: `
+            <div class="form-group">
+              <label class="form-label">Models (comma-separated)</label>
+              <textarea
+                id="field-models"
+                class="form-input"
+                placeholder="qwen-max,qwen-plus"
+                rows="3"
+              ></textarea>
+            </div>
+          `,
+          openai_chat: `
+            <div class="form-group">
+              <label class="form-label">Base URL</label>
+              <input
+                type="text"
+                id="field-base_url"
+                class="form-input"
+                placeholder="https://api.openai.com/v1"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">API Key</label>
+              <input
+                type="password"
+                id="field-api_key"
+                class="form-input"
+                placeholder="Enter API Key"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Models (comma-separated)</label>
+              <textarea
+                id="field-models"
+                class="form-input"
+                placeholder="gpt-4,gpt-3.5-turbo"
+                rows="3"
+              ></textarea>
+            </div>
+          `,
+          openai_responses: `
+            <div class="form-group">
+              <label class="form-label">Base URL</label>
+              <input
+                type="text"
+                id="field-base_url"
+                class="form-input"
+                placeholder="https://api.openai.com/v1"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">API Key</label>
+              <input
+                type="password"
+                id="field-api_key"
+                class="form-input"
+                placeholder="Enter API Key"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Models (comma-separated)</label>
+              <textarea
+                id="field-models"
+                class="form-input"
+                placeholder="gpt-4,gpt-3.5-turbo"
+                rows="3"
+              ></textarea>
+            </div>
+          `,
+          claude: `
+            <div class="form-group">
+              <label class="form-label">Base URL</label>
+              <input
+                type="text"
+                id="field-base_url"
+                class="form-input"
+                placeholder="https://api.anthropic.com"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">API Key</label>
+              <input
+                type="password"
+                id="field-api_key"
+                class="form-input"
+                placeholder="Enter API Key"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Models (comma-separated)</label>
+              <textarea
+                id="field-models"
+                class="form-input"
+                placeholder="claude-3-opus,claude-3-sonnet"
+                rows="3"
+              ></textarea>
+            </div>
+          `,
+          iflow: `
+            <div class="form-group">
+              <label class="form-label">Models (comma-separated)</label>
+              <textarea
+                id="field-models"
+                class="form-input"
+                placeholder="iflow-model-1,iflow-model-2"
+                rows="3"
+              ></textarea>
+            </div>
+          `,
+          codex: `
+            <div class="form-group">
+              <label class="form-label">Models (comma-separated)</label>
+              <textarea
+                id="field-models"
+                class="form-input"
+                placeholder="codex-model-1,codex-model-2"
+                rows="3"
+              ></textarea>
+            </div>
+          `,
+        };
+
+        container.innerHTML = fields[provider] || "";
+      }
+
+      // Provider modal (add / edit)
+      function openAddProviderModal() {
+        document.getElementById("editMode").value = "false";
+        document.getElementById("editProviderType").value = "";
+        document.getElementById("editProviderIndex").value = "-1";
+        document.getElementById("providerModalTitle").textContent = "Add New Provider";
+        document.getElementById("providerModalSubmit").textContent = "Add Provider";
+        document.getElementById("providerType").value = "";
+        document.getElementById("providerType").disabled = false;
+        document.getElementById("providerFields").innerHTML = "";
+        document.getElementById("addProviderModal").classList.add("active");
+      }
+
+      function openEditProviderModal(provider, index) {
+        const cfg = config[provider][index];
+        document.getElementById("editMode").value = "true";
+        document.getElementById("editProviderType").value = provider;
+        document.getElementById("editProviderIndex").value = String(index);
+        document.getElementById("providerModalTitle").textContent = "Edit Provider";
+        document.getElementById("providerModalSubmit").textContent = "Save Changes";
+        document.getElementById("providerType").value = provider;
+        document.getElementById("providerType").disabled = true;
+        updateProviderFields();
+
+        // Fill in existing values
+        if (cfg.base_url) {
+          const el = document.getElementById("field-base_url");
+          if (el) el.value = cfg.base_url;
+        }
+        if (cfg.api_key) {
+          const el = document.getElementById("field-api_key");
+          if (el) el.value = cfg.api_key;
+        }
+        if (cfg.models) {
+          const el = document.getElementById("field-models");
+          if (el) el.value = cfg.models.join(", ");
+        }
+        if (cfg.projects) {
+          const el = document.getElementById("field-projects");
+          if (el) el.value = cfg.projects.join(", ");
+        }
+
+        document.getElementById("addProviderModal").classList.add("active");
+      }
+
+      function editProvider(provider, index) {
+        openEditProviderModal(provider, index);
+      }
+
+      function closeAddProviderModal() {
+        document.getElementById("addProviderModal").classList.remove("active");
+        document.getElementById("editMode").value = "false";
+        document.getElementById("providerType").value = "";
+        document.getElementById("providerType").disabled = false;
+        document.getElementById("providerFields").innerHTML = "";
+      }
+
+      function submitProviderModal() {
+        const isEdit = document.getElementById("editMode").value === "true";
+        if (isEdit) {
+          updateExistingProvider();
+        } else {
+          saveNewProvider();
+        }
+      }
+
+      function updateExistingProvider() {
+        const provider = document.getElementById("editProviderType").value;
+        const index = parseInt(document.getElementById("editProviderIndex").value);
+
+        if (!provider || isNaN(index) || index < 0) {
+          showAlert("Invalid edit state", "error");
+          return;
+        }
+
+        const providerConfig = {};
+        const baseUrlInput = document.getElementById("field-base_url");
+        if (baseUrlInput) {
+          providerConfig.base_url = baseUrlInput.value;
+        }
+
+        const apiKeyInput = document.getElementById("field-api_key");
+        if (apiKeyInput) {
+          providerConfig.api_key = apiKeyInput.value;
+        }
+
+        const modelsInput = document.getElementById("field-models");
+        if (modelsInput) {
+          providerConfig.models = modelsInput.value
+            .split(",")
+            .map((m) => m.trim())
+            .filter((m) => m);
+        }
+
+        const projectsInput = document.getElementById("field-projects");
+        if (projectsInput) {
+          providerConfig.projects = projectsInput.value
+            .split(",")
+            .map((p) => p.trim())
+            .filter((p) => p);
+        }
+
+        config[provider][index] = providerConfig;
+        renderProviders();
+        closeAddProviderModal();
+        showAlert("Provider updated. Click 'Save Providers' to apply changes.", "success");
+      }
+
+      async function saveNewProvider() {
+        const provider = document.getElementById("providerType").value;
+        if (!provider) {
+          showAlert("Please select a provider type", "error");
+          return;
+        }
+
+        const providerConfig = { models: [] };
+
+        // Get base_url if it exists
+        const baseUrlInput = document.getElementById("field-base_url");
+        if (baseUrlInput) {
+          providerConfig.base_url = baseUrlInput.value;
+        }
+
+        // Get api_key if it exists
+        const apiKeyInput = document.getElementById("field-api_key");
+        if (apiKeyInput) {
+          providerConfig.api_key = apiKeyInput.value;
+        }
+
+        // Get models
+        const modelsInput = document.getElementById("field-models");
+        if (modelsInput) {
+          providerConfig.models = modelsInput.value
+            .split(",")
+            .map((m) => m.trim())
+            .filter((m) => m);
+        }
+
+        // Get projects for gemini_cli
+        const projectsInput = document.getElementById("field-projects");
+        if (projectsInput) {
+          providerConfig.projects = projectsInput.value
+            .split(",")
+            .map((p) => p.trim())
+            .filter((p) => p);
+        }
+
+        // Add to local config, don't save yet
+        if (!config[provider]) {
+          config[provider] = [];
+        }
+        config[provider].push(providerConfig);
+        renderProviders();
+        closeAddProviderModal();
+        showAlert("Provider added. Click 'Save Providers' to apply changes.", "success");
+      }
+
+      async function removeProvider(provider, index) {
+        if (!confirm("Are you sure you want to delete this provider?")) {
+          return;
+        }
+
+        // Just remove from local config, don't save yet
+        const updatedConfig = { ...config };
+        const providerArray = updatedConfig[provider];
+        if (Array.isArray(providerArray) && index >= 0 && index < providerArray.length) {
+          providerArray.splice(index, 1);
+          config = updatedConfig;
+          renderProviders();
+          showAlert("Provider removed. Click 'Save Providers' to apply changes.", "success");
+        } else {
+          showAlert("Invalid provider or index", "error");
+        }
+      }
+
+      // Priority functions
+      let draggedElement = null;
+
+      function handlePriorityDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        const container = document.getElementById("priority-container");
+        const afterElement = getDragAfterElement(container, e.clientY);
+
+        if (afterElement == null) {
+          container.appendChild(draggedElement);
+        } else {
+          container.insertBefore(draggedElement, afterElement);
+        }
+      }
+
+      function handlePriorityDrop(e) {
+        e.preventDefault();
+      }
+
+      function getDragAfterElement(container, y) {
+        const draggableElements = [
+          ...container.querySelectorAll("[data-provider]:not(.dragging)"),
+        ];
+
+        return draggableElements.reduce(
+          (closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+
+            if (offset < 0 && offset > closest.offset) {
+              return { offset: offset, element: child };
+            } else {
+              return closest;
+            }
+          },
+          { offset: Number.NEGATIVE_INFINITY },
+        ).element;
+      }
+
+      function setupDragListeners() {
+        const items = document.querySelectorAll(
+          "#priority-container [data-provider]",
+        );
+        items.forEach((item) => {
+          item.ondragstart = (e) => {
+            draggedElement = item;
+            item.classList.add("dragging");
+            e.dataTransfer.effectAllowed = "move";
+          };
+
+          item.ondragend = (e) => {
+            item.classList.remove("dragging");
+            draggedElement = null;
+          };
+        });
+      }
+
+      function removePriorityItem(provider) {
+        const priority = config.model_priority || [];
+        const newPriority = priority.filter((p) => p !== provider);
+        config.model_priority = newPriority;
+        renderPriority();
+        showAlert("Priority updated. Click 'Save Priority' to apply changes.", "success");
+      }
+
+      async function saveProviders() {
+        const button = event?.currentTarget || null;
+        setButtonSavingState(button, true, "💾 Save Providers");
+        try {
+          const response = await authFetch("/api/settings", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ config }),
+          });
+
+          const result = await parseApiResponse(response);
+          if (result.success) {
+            config = result.data;
+            renderProviders();
+            showAlert(result.message || "Providers saved successfully!", "success");
+          } else {
+            showAlert("Failed to save providers: " + result.error, "error");
+          }
+        } catch (error) {
+          showAlert("Error: " + error.message, "error");
+        } finally {
+          setButtonSavingState(button, false, "💾 Save Providers");
+        }
+      }
+
+      async function savePriority() {
+        const button = event?.currentTarget || null;
+        setButtonSavingState(button, true, "💾 Save Priority");
+        const items = Array.from(
+          document.querySelectorAll(
+            "#priority-container [data-provider]",
+          ),
+        );
+        const priority = items
+          .map((item) => item.dataset.provider)
+          .filter((p) => PROVIDERS.includes(p));
+
+        try {
+          const response = await authFetch("/api/settings/model-priority", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ priority }),
+          });
+
+          const result = await parseApiResponse(response);
+          if (result.success) {
+            config = result.data;
+            renderPriority();
+            showAlert(result.message || "Model priority saved successfully!", "success");
+          } else {
+            showAlert("Failed to save priority: " + result.error, "error");
+          }
+        } catch (error) {
+          showAlert("Error: " + error.message, "error");
+        } finally {
+          setButtonSavingState(button, false, "💾 Save Priority");
+        }
+      }
+
+      async function saveFallbackModels() {
+        const button = event?.currentTarget || null;
+        setButtonSavingState(button, true, "💾 Save Fallback Models");
+        try {
+          // Collect all fallback mappings from UI
+          const fallbackInputs = document.querySelectorAll('.fallback-value');
+          const newFallbacks = {};
+          fallbackInputs.forEach((input) => {
+            const model = input.dataset.model;
+            if (model && input.value) {
+              newFallbacks[model] = input.value;
+            }
+          });
+
+          // Collect new fallback mappings from added rows
+          const newRows = document.querySelectorAll(
+            '#fallback-container .provider-card',
+          );
+          newRows.forEach((row) => {
+            const modelInput = row.querySelector('.fallback-model');
+            const replacementInput = row.querySelector('.fallback-replacement');
+            if (
+              modelInput &&
+              replacementInput &&
+              modelInput.value &&
+              replacementInput.value
+            ) {
+              newFallbacks[modelInput.value] = replacementInput.value;
+            }
+          });
+
+          const updatedConfig = { ...config, fallback_models: newFallbacks };
+
+          const response = await authFetch("/api/settings", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ config: updatedConfig }),
+          });
+
+          const result = await parseApiResponse(response);
+          if (result.success) {
+            config = result.data;
+            renderFallback();
+            showAlert(result.message || "Fallback models saved successfully!", "success");
+          } else {
+            showAlert("Failed to save fallback models: " + result.error, "error");
+          }
+        } catch (error) {
+          showAlert("Error: " + error.message, "error");
+        } finally {
+          setButtonSavingState(button, false, "💾 Save Fallback Models");
+        }
+      }
+
+      // Fallback functions
+      function addFallbackMapping() {
+        const container = document.getElementById("fallback-container");
+        const row = document.createElement("div");
+        row.className = "provider-card p-4 flex items-end space-x-2";
+        row.innerHTML = `
+          <div class="flex-1">
+            <label class="form-label text-sm">Model</label>
+            <input
+              type="text"
+              class="form-input fallback-model"
+              placeholder="e.g., gpt-4"
+            />
+          </div>
+          <div class="flex-1">
+            <label class="form-label text-sm">Fallback Model</label>
+            <input
+              type="text"
+              class="form-input fallback-replacement"
+              placeholder="e.g., gpt-3.5-turbo"
+            />
+          </div>
+          <button
+            onclick="this.parentElement.remove()"
+            class="btn-secondary text-white px-3 py-2 rounded"
+          >
+            Remove
+          </button>
+        `;
+        container.appendChild(row);
+      }
+
+      async function deleteFallbackMapping(model) {
+        if (!confirm("Are you sure you want to delete this mapping?")) {
+          return;
+        }
+
+        // Just remove from local config, don't save yet
+        if (config.fallback_models) {
+          delete config.fallback_models[model];
+          renderFallback();
+          showAlert("Fallback mapping removed. Click 'Save Fallback Models' to apply changes.", "success");
+        }
+      }
+
+      // Show alert
+      function showAlert(message, type) {
+        const alert = document.getElementById("alert");
+        const alertId = `alert-${Date.now()}`;
+        const wrapper = document.createElement("div");
+        wrapper.id = alertId;
+        wrapper.innerHTML = `
+          <div class="alert alert-${type}" role="status">
+            ${message}
+            <button onclick="document.getElementById('${alertId}')?.remove()" class="float-right ml-4">×</button>
+          </div>
+        `;
+        alert.appendChild(wrapper);
+        setTimeout(() => {
+          wrapper.remove();
+        }, 5000);
+      }
+
+      // Initialize
+      applyTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
+      initPage();
+    </script>
+  </body>
+</html>

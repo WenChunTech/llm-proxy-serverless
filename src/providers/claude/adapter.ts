@@ -3,23 +3,25 @@ import {
   geminiRequestConvertTo,
   openaiChatRequestConvertTo,
   openAIResponsesRequestConvertTo,
-  TargetType,
+  ProviderType,
 } from "../../../pkg/converter_wasm.js";
 import { StreamEvent } from "../../streaming/sse.ts";
 import { RequestLogger } from "../../utils/logger.ts";
 
 export function convertToClaudeRequestTo(body: any, source: any) {
   switch (source) {
-    case TargetType.Gemini:
-      return geminiRequestConvertTo(body, TargetType.Claude);
-    case TargetType.OpenAIChat:
-      return openaiChatRequestConvertTo(body, TargetType.Claude);
-    case TargetType.Claude:
+    case ProviderType.Gemini:
+      return geminiRequestConvertTo(body, ProviderType.Claude);
+    case ProviderType.Chat:
+      return openaiChatRequestConvertTo(body, ProviderType.Claude);
+    case ProviderType.Claude:
       return body;
-    case TargetType.OpenAIResponses:
-      return openAIResponsesRequestConvertTo(body, TargetType.Claude);
+    case ProviderType.Responses:
+      return openAIResponsesRequestConvertTo(body, ProviderType.Claude);
     default:
-      throw new Error(`Unsupported source type for Claude provider: ${source}`);
+      throw new Error(
+        `Unsupported source type for Claude providerType: ${source}`,
+      );
   }
 }
 
@@ -42,7 +44,7 @@ export async function convertClaudeStreamResponseTo(
   return StreamEvent(
     stream,
     response,
-    TargetType.Claude,
+    ProviderType.Claude,
     target,
     requestLogger,
   );
