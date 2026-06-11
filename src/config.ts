@@ -7,6 +7,7 @@ import {
   GeminiCliConfig,
   GeminiConfig,
   IFlowConfig,
+  isProviderConfigEnabled,
   OpenAIChatConfig,
   OpenAIResponsesConfig,
   QwenConfig,
@@ -40,14 +41,28 @@ export let iflowPoller: Poller<IFlowConfig>;
 export let codexPoller: Poller<CodexConfig>;
 
 function rebuildPollers(config: Config) {
-  geminiCliPoller = new Poller(config.gemini_cli || []);
-  geminiPoller = new Poller(config.gemini || []);
-  qwenPoller = new Poller(config.qwen || []);
-  openAIPoller = new Poller(config.openai_chat || []);
-  openAIResponsesPoller = new Poller(config.openai_responses || []);
-  claudePoller = new Poller(config.claude || []);
-  iflowPoller = new Poller(config.iflow || []);
-  codexPoller = new Poller(config.codex || []);
+  geminiCliPoller = new Poller(
+    (config.gemini_cli || []).filter(isProviderConfigEnabled),
+  );
+  geminiPoller = new Poller(
+    (config.gemini || []).filter(isProviderConfigEnabled),
+  );
+  qwenPoller = new Poller((config.qwen || []).filter(isProviderConfigEnabled));
+  openAIPoller = new Poller(
+    (config.openai_chat || []).filter(isProviderConfigEnabled),
+  );
+  openAIResponsesPoller = new Poller(
+    (config.openai_responses || []).filter(isProviderConfigEnabled),
+  );
+  claudePoller = new Poller(
+    (config.claude || []).filter(isProviderConfigEnabled),
+  );
+  iflowPoller = new Poller(
+    (config.iflow || []).filter(isProviderConfigEnabled),
+  );
+  codexPoller = new Poller(
+    (config.codex || []).filter(isProviderConfigEnabled),
+  );
 }
 
 function applyRuntimeConfig(config: Config) {

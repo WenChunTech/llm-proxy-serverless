@@ -10,6 +10,7 @@ import { initMiddleware } from "./middleware/init.ts";
 import { authMiddleware } from "./middleware/auth.ts";
 import {
   handleAddProvider,
+  handleFetchProviderModels,
   handleRemoveProvider,
   handleSetFallbackModel,
   handleSettingsGet,
@@ -82,6 +83,10 @@ app.post("/api/settings", async (c) => {
 
 app.post("/api/settings/provider/add", async (c) => {
   return handleAddProvider(c);
+});
+
+app.post("/api/settings/provider/models", async (c) => {
+  return handleFetchProviderModels(c);
 });
 
 app.post("/api/settings/provider/remove", async (c) => {

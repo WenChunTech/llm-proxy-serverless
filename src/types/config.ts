@@ -1,3 +1,14 @@
+export interface ProviderConfigBase {
+  models: string[];
+  enabled?: boolean;
+}
+
+export function isProviderConfigEnabled(
+  config: { enabled?: boolean } | null | undefined,
+): boolean {
+  return config?.enabled !== false;
+}
+
 export interface GeminiCliAuth {
   access_token: string;
   scope: string;
@@ -6,14 +17,12 @@ export interface GeminiCliAuth {
   refresh_token: string;
 }
 
-export interface GeminiCliConfig {
+export interface GeminiCliConfig extends ProviderConfigBase {
   projects: string[];
   auth: GeminiCliAuth;
-  models: string[];
 }
 
-export interface GeminiConfig {
-  models: string[];
+export interface GeminiConfig extends ProviderConfigBase {
   base_url: string;
   api_key: string;
 }
@@ -29,13 +38,11 @@ export interface QwenAuth {
   resource_url: string;
 }
 
-export interface QwenConfig {
-  models: string[];
+export interface QwenConfig extends ProviderConfigBase {
   auth: QwenAuth;
 }
 
-export interface IFlowConfig {
-  models: string[];
+export interface IFlowConfig extends ProviderConfigBase {
   auth: IFlowAuth;
 }
 
@@ -55,22 +62,19 @@ export interface IFlowAuth {
   cookie: string | null;
 }
 
-export interface OpenAIChatConfig {
+export interface OpenAIChatConfig extends ProviderConfigBase {
   base_url: string;
   api_key: string;
-  models: string[];
 }
 
-export interface OpenAIResponsesConfig {
+export interface OpenAIResponsesConfig extends ProviderConfigBase {
   base_url: string;
   api_key: string;
-  models: string[];
 }
 
-export interface ClaudeConfig {
+export interface ClaudeConfig extends ProviderConfigBase {
   base_url: string;
   api_key: string;
-  models: string[];
 }
 
 export interface CodexAuth {
@@ -83,8 +87,7 @@ export interface CodexAuth {
   expiry_date: number;
 }
 
-export interface CodexConfig {
-  models: string[];
+export interface CodexConfig extends ProviderConfigBase {
   auth: CodexAuth;
   base_url?: string;
 }

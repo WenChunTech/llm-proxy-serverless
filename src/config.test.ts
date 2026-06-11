@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { assertEquals } from "@std/assert";
 import {
   appConfig,
@@ -30,16 +31,34 @@ Deno.test("updateConfig refreshes runtime config and pollers", async () => {
       base_url: "https://example.com",
       api_key: "claude-key",
       models: ["claude-sonnet"],
+      enabled: false,
     }],
     iflow: [],
     codex: [],
-    model_priority: ["openai", "claude"],
+    model_priority: ["openai_chat", "claude"],
   };
+  const serializedNextConfig = JSON.stringify(nextConfig);
+  const configFile = "config.json";
+  const fileExisted = fs.existsSync(configFile);
+  const originalConfigFile = fileExisted
+    ? fs.readFileSync(configFile, "utf-8")
+    : null;
+  const shouldRestoreOriginal = fileExisted &&
+    originalConfigFile?.trim() !== serializedNextConfig;
 
-  await updateConfig(nextConfig);
+  try {
+    await updateConfig(nextConfig);
 
-  assertEquals(appConfig.api_key, "test-key");
-  assertEquals(geminiCliPoller.length, 1);
-  assertEquals(claudePoller.length, 1);
-  assertEquals(getProviderConfigsById("openai"), []);
+    assertEquals(appConfig.api_key, "test-key");
+    assertEquals(geminiCliPoller.length, 1);
+    assertEquals(claudePoller.length, 0);
+    assertEquals(getProviderConfigsById("openai"), []);
+    assertEquals(getProviderConfigsById("claude"), []);
+  } finally {
+    if (shouldRestoreOriginal && originalConfigFile !== null) {
+      fs.writeFileSync(configFile, originalConfigFile);
+    } else if (fs.existsSync(configFile)) {
+      fs.unlinkSync(configFile);
+    }
+  }
 });

@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLM Proxy - The Universal API for Large Language Models</title>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <title>LLM Proxy</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/shared-theme.css" />
     <script>
       (() => {
         const themeKey = "llm-proxy-theme";
@@ -14,526 +18,1242 @@
       })();
     </script>
     <style>
-      @import url("https://rsms.me/inter/inter.css");
-      html {
-        font-family: "Inter", sans-serif;
+      .pill {
+        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
       }
-      body {
-        background:
-          radial-gradient(circle at top, rgba(99, 102, 241, 0.18), transparent 32%),
-          linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
-        color: #111827;
-        transition: background-color 0.3s ease, color 0.3s ease;
-      }
-      html.dark body {
-        background:
-          radial-gradient(circle at top, rgba(99, 102, 241, 0.22), transparent 30%),
-          linear-gradient(180deg, #111827 0%, #030712 100%);
-        color: #e5e7eb;
-      }
-      .feature-card {
-        border: 1px solid rgba(148, 163, 184, 0.22);
-        background-color: rgba(255, 255, 255, 0.8);
-        box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
-        transition: all 0.3s ease;
+
+      .accent-pulse {
         position: relative;
-        backdrop-filter: blur(14px);
+        overflow: hidden;
       }
-      html.dark .feature-card {
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background-color: rgba(255, 255, 255, 0.05);
-        box-shadow: none;
+
+      .accent-pulse::after {
+        content: "";
+        position: absolute;
+        inset: -40%;
+        background: radial-gradient(
+          circle,
+          rgba(245, 158, 11, 0.18),
+          transparent 55%
+        );
+        animation: drift 8s linear infinite;
+        pointer-events: none;
       }
-      .feature-card:hover {
-        transform: translateY(-5px);
-        border-color: rgba(99, 102, 241, 0.7);
-        z-index: 10;
+
+      @keyframes drift {
+        0% {
+          transform: translate(-12%, -8%);
+        }
+        50% {
+          transform: translate(10%, 12%);
+        }
+        100% {
+          transform: translate(-12%, -8%);
+        }
       }
-      .feature-card h3 {
-        color: #0f172a;
+
+      .metric-card,
+      .feature-card,
+      .ops-card,
+      .stack-card,
+      .compat-row,
+      .workflow-node {
+        transition:
+          transform 0.25s ease,
+          border-color 0.25s ease,
+          background 0.25s ease;
       }
-      html.dark .feature-card h3 {
-        color: #f3f4f6;
+
+      .metric-card:hover,
+      .feature-card:hover,
+      .ops-card:hover,
+      .stack-card:hover,
+      .compat-row:hover,
+      .workflow-node:hover {
+        transform: translateY(-4px);
+        border-color: rgba(217, 119, 6, 0.42);
       }
-      .flow-step {
-        border: 1px solid rgba(148, 163, 184, 0.25);
-        background-color: rgba(255, 255, 255, 0.78);
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+
+      .hero-title {
+        line-height: 0.95;
+        letter-spacing: -0.05em;
       }
-      html.dark .flow-step {
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background-color: rgba(31, 41, 55, 0.5);
-        box-shadow: none;
+
+      .marker-line {
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          rgba(217, 119, 6, 0.55),
+          rgba(15, 118, 110, 0.18),
+          transparent
+        );
       }
-      .arrow {
-        color: #4f46e5;
+
+      .workflow-node-number {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 9999px;
+        border: 1px solid var(--border);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--accent);
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 700;
       }
-      .logo-monochrome {
-        filter: none;
+
+      .example-tab {
+        border: 1px solid transparent;
+        color: var(--muted);
       }
-      html.dark .logo-monochrome {
-        filter: brightness(0) invert(1);
+
+      .example-tab.active {
+        border-color: rgba(217, 119, 6, 0.35);
+        background: rgba(217, 119, 6, 0.08);
+        color: var(--text);
       }
-      .typescript-logo {
-        background-color: white;
-        border-radius: 0.25rem;
+
+      .code-shell {
+        border: 1px solid var(--border);
+        background: #16120f;
+        color: #f8f3eb;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
       }
-      .top-action {
-        border: 1px solid rgba(148, 163, 184, 0.28);
-        background-color: rgba(255, 255, 255, 0.72);
-        color: #0f172a;
-        backdrop-filter: blur(12px);
+
+      html.dark .code-shell {
+        background: #0d1015;
       }
-      .top-action:hover {
-        border-color: rgba(99, 102, 241, 0.55);
+
+      .code-shell pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
       }
-      html.dark .top-action {
-        border-color: rgba(255, 255, 255, 0.12);
-        background-color: rgba(17, 24, 39, 0.72);
-        color: #f3f4f6;
+
+      .compat-grid {
+        display: grid;
+        gap: 0.75rem;
       }
-      html:not(.dark) .text-gray-400 {
-        color: #4b5563 !important;
-      }
-      html:not(.dark) .text-gray-500 {
-        color: #6b7280 !important;
-      }
-      html:not(.dark) .border-gray-700,
-      html:not(.dark) .border-gray-800 {
-        border-color: rgba(148, 163, 184, 0.25) !important;
-      }
-      html:not(.dark) .bg-gray-800 {
-        background-color: rgba(255, 255, 255, 0.86) !important;
-      }
-      html:not(.dark) .bg-gray-900 {
-        background-color: rgba(255, 255, 255, 0.8) !important;
+
+      .footer-note {
+        color: var(--muted);
       }
     </style>
     <script>
       tailwind.config = {
         darkMode: "class",
-        theme: {
-          extend: {
-            colors: {
-              indigo: {
-                500: "#6366f1",
-                600: "#4f46e5",
-              },
-            },
-          },
-        },
       };
     </script>
   </head>
   <body>
-    <div class="container mx-auto px-4 py-16">
-      <!-- Header Section -->
-      <header class="text-center mb-24">
-        <div class="flex justify-end gap-3 mb-10">
-          <a
-            href="/settings.html"
-            class="top-action inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition"
+    <div class="page-shell">
+      <div class="max-w-7xl mx-auto px-4 py-8 md:px-6 lg:px-8">
+        <header class="mb-10 md:mb-16">
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+            <div class="flex items-center gap-3">
+              <div class="panel rounded-full px-4 py-2 text-sm font-medium">
+                <span class="display-font">LLM Proxy</span>
+              </div>
+              <div
+                id="eyebrowBadge"
+                class="pill rounded-full px-4 py-2 text-sm"
+              >
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+              <a
+                id="settingsLink"
+                href="/settings.html"
+                class="top-action inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition"
+              ></a>
+              <a
+                id="examplesLink"
+                href="#examples"
+                class="top-action inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition"
+              ></a>
+              <button
+                id="languageToggle"
+                type="button"
+                onclick="toggleLanguage()"
+                class="top-action inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition"
+              >
+              </button>
+              <button
+                id="themeToggle"
+                type="button"
+                onclick="toggleTheme()"
+                class="top-action inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition"
+              >
+              </button>
+            </div>
+          </div>
+
+          <div
+            class="grid gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] lg:items-stretch"
           >
-            Settings
-          </a>
-          <button
-            id="themeToggle"
-            type="button"
-            onclick="toggleTheme()"
-            class="top-action inline-flex items-center rounded-full px-4 py-2 text-sm font-medium transition"
+            <section
+              class="panel-strong accent-pulse rounded-[2rem] p-8 md:p-10"
+            >
+              <p
+                id="heroKicker"
+                class="text-sm uppercase tracking-[0.28em] accent-text mb-4"
+              >
+              </p>
+              <h1
+                id="heroTitle"
+                class="hero-title text-5xl md:text-7xl font-bold mb-6"
+              >
+              </h1>
+              <p
+                id="heroDescription"
+                class="muted text-lg md:text-xl max-w-3xl mb-8"
+              >
+              </p>
+
+              <div class="flex flex-wrap gap-3 mb-8">
+                <a
+                  id="openSettingsCta"
+                  href="/settings.html"
+                  class="inline-flex items-center rounded-full bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-700"
+                ></a>
+                <a
+                  id="jumpExamplesCta"
+                  href="#examples"
+                  class="inline-flex items-center rounded-full border px-5 py-3 text-sm font-semibold transition"
+                  style="border-color: var(--border); color: var(--text)"
+                ></a>
+              </div>
+
+              <div class="marker-line mb-6"></div>
+
+              <p id="supportLabel" class="muted text-sm mb-4"></p>
+              <div id="providerChips" class="flex flex-wrap gap-3"></div>
+            </section>
+
+            <aside class="panel rounded-[2rem] p-8 md:p-10">
+              <div class="flex items-center justify-between gap-4 mb-6">
+                <h2 id="heroChecklistTitle" class="text-2xl font-bold"></h2>
+                <div
+                  id="liveBadge"
+                  class="pill rounded-full px-3 py-1 text-xs uppercase tracking-[0.2em]"
+                >
+                </div>
+              </div>
+              <div id="heroChecklist" class="space-y-3"></div>
+            </aside>
+          </div>
+        </header>
+
+        <section class="mb-14 md:mb-20">
+          <div id="metricsGrid" class="grid gap-4 md:grid-cols-3"></div>
+        </section>
+
+        <section class="mb-14 md:mb-20">
+          <div class="mb-8">
+            <p
+              id="capabilitiesKicker"
+              class="text-sm uppercase tracking-[0.26em] accent-text mb-3"
+            >
+            </p>
+            <h2
+              id="capabilitiesTitle"
+              class="display-font text-3xl md:text-4xl font-bold mb-3"
+            >
+            </h2>
+            <p id="capabilitiesIntro" class="muted max-w-3xl text-lg"></p>
+          </div>
+          <div
+            id="capabilityGrid"
+            class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
           >
-            Dark Mode
-          </button>
-        </div>
-        <h1 class="text-5xl md:text-6xl font-bold tracking-tight mb-4 bg-gradient-to-r from-indigo-400 to-purple-400 text-transparent bg-clip-text">
-          LLM Proxy
-        </h1>
-        <p class="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto">
-          一个轻量级、高性能的代理服务器，为 OpenAI、Google Gemini、Anthropic
-          Claude 等多个大模型提供统一的 API 接口。
-        </p>
-      </header>
+          </div>
+        </section>
 
-      <!-- Features Section -->
-      <section class="mb-24">
-        <h2 class="text-3xl font-bold text-center mb-12">核心功能</h2>
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <!-- Feature 1 -->
-          <div class="p-6 rounded-lg feature-card">
-            <div class="flex items-center mb-4">
-              <svg
-                class="w-8 h-8 mr-4 text-indigo-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
+        <section class="mb-14 md:mb-20">
+          <div
+            class="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]"
+          >
+            <div class="panel rounded-[2rem] p-8">
+              <p
+                id="routingKicker"
+                class="text-sm uppercase tracking-[0.26em] secondary-text mb-3"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 9l4-4 4 4m0 6l-4 4-4-4"
-                >
-                </path>
-              </svg>
-              <h3 class="text-xl font-semibold">统一 API 接口</h3>
-            </div>
-            <p class="text-gray-400">
-              为多个 LLM 提供商提供单一、一致的 API 端点，简化客户端开发。
-            </p>
-          </div>
-          <!-- Feature 2 -->
-          <div class="p-6 rounded-lg feature-card">
-            <div class="flex items-center mb-4">
-              <svg
-                class="w-8 h-8 mr-4 text-indigo-400"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+              </p>
+              <h2
+                id="routingTitle"
+                class="display-font text-3xl md:text-4xl font-bold mb-3"
               >
-                <path d="M21 12a9 9 0 0 1-9 9H7.88a2.88 2.88 0 0 1 0-5.76V12a9 9 0 0 1 9-9h0a9 9 0 0 1 9 9Z" />
-                <path d="M3 12a9 9 0 0 0 9 9h7.88a2.88 2.88 0 0 0 0-5.76V12a9 9 0 0 0-9-9h0a9 9 0 0 0-9 9Z" />
-              </svg>
-              <h3 class="text-xl font-semibold">协议转换</h3>
+              </h2>
+              <p id="routingIntro" class="muted text-lg mb-8"></p>
+              <div id="workflowGrid" class="grid gap-4 md:grid-cols-2"></div>
             </div>
-            <p class="text-gray-400">
-              在 OpenAI, Gemini, Claude 等 API 格式之间自动转换请求和响应。
-            </p>
-          </div>
-          <!-- Feature 3 -->
-          <div class="p-6 rounded-lg feature-card">
-            <div class="flex items-center mb-4">
-              <svg
-                class="w-8 h-8 mr-4 text-indigo-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
+            <div class="panel rounded-[2rem] p-8">
+              <p
+                id="opsKicker"
+                class="text-sm uppercase tracking-[0.26em] accent-text mb-3"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                >
-                </path>
-              </svg>
-              <h3 class="text-xl font-semibold">流式支持</h3>
+              </p>
+              <h2 id="opsTitle" class="display-font text-3xl font-bold mb-3">
+              </h2>
+              <p id="opsIntro" class="muted text-lg mb-8"></p>
+              <div id="opsGrid" class="space-y-4"></div>
             </div>
-            <p class="text-gray-400">
-              完全支持 Server-Sent Events (SSE)，实现低延迟的流式响应。
-            </p>
           </div>
-          <!-- Feature 4 -->
-          <div class="p-6 rounded-lg feature-card">
-            <div class="flex items-center mb-4">
-              <svg
-                class="w-8 h-8 mr-4 text-indigo-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-                >
-                </path>
-              </svg>
-              <h3 class="text-xl font-semibold">高性能核心</h3>
-            </div>
-            <p class="text-gray-400">
-              使用 Rust 和 WebAssembly (WASM) 进行协议转换，达到接近原生的性能。
-            </p>
-          </div>
-          <!-- Feature 5 -->
-          <div class="p-6 rounded-lg feature-card">
-            <div class="flex items-center mb-4">
-              <svg
-                class="w-8 h-8 mr-4 text-indigo-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 6V4m0 16v-2m8-6h2m-18 0H2m15.364 7.364l1.414 1.414M5.222 5.222l1.414 1.414M18.364 5.222l-1.414 1.414M6.636 18.364l-1.414 1.414"
-                >
-                </path>
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M12 18a6 6 0 100-12 6 6 0 000 12z"
-                >
-                </path>
-              </svg>
-              <h3 class="text-xl font-semibold">动态路由</h3>
-            </div>
-            <p class="text-gray-400">
-              根据模型名称和优先级配置，智能选择最佳的 LLM 提供商。
-            </p>
-          </div>
-          <!-- Feature 6 -->
-          <div class="p-6 rounded-lg feature-card">
-            <div class="flex items-center mb-4">
-              <svg
-                class="w-8 h-8 mr-4 text-indigo-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"
-                >
-                </path>
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 14h8"
-                >
-                </path>
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M8 10h3"
-                >
-                </path>
-              </svg>
-              <h3 class="text-xl font-semibold">可扩展架构</h3>
-            </div>
-            <p class="text-gray-400">
-              模块化的提供商设计，可以轻松地集成新的 LLM 服务。
-            </p>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- How it Works Section -->
-      <section class="mb-24">
-        <h2 class="text-3xl font-bold text-center mb-12">工作流程</h2>
-        <div class="flex flex-col md:flex-row items-center justify-center space-y-4 md:space-y-0 md:space-x-4">
-          <div class="p-4 rounded-lg text-center flow-step">客户端请求</div>
-          <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">
-            &rarr;
+        <section class="mb-14 md:mb-20">
+          <div class="mb-8">
+            <p
+              id="compatKicker"
+              class="text-sm uppercase tracking-[0.26em] accent-text mb-3"
+            >
+            </p>
+            <h2
+              id="compatTitle"
+              class="display-font text-3xl md:text-4xl font-bold mb-3"
+            >
+            </h2>
+            <p id="compatIntro" class="muted max-w-3xl text-lg"></p>
           </div>
-          <div class="p-4 rounded-lg text-center flow-step">Hono 服务器</div>
-          <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">
-            &rarr;
-          </div>
-          <div class="p-4 rounded-lg text-center flow-step">提供商工厂</div>
-          <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">
-            &rarr;
-          </div>
-          <div class="p-4 rounded-lg text-center flow-step">WASM 转换</div>
-          <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">
-            &rarr;
-          </div>
-          <div class="p-4 rounded-lg text-center flow-step">LLM 提供商</div>
-          <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">
-            &rarr;
-          </div>
-          <div class="p-4 rounded-lg text-center flow-step">WASM 转换</div>
-          <div class="arrow text-2xl font-light transform md:rotate-0 rotate-90">
-            &rarr;
-          </div>
-          <div class="p-4 rounded-lg text-center flow-step">客户端响应</div>
-        </div>
-      </section>
+          <div id="compatGrid" class="compat-grid"></div>
+        </section>
 
-      <!-- API Usage Section -->
-      <section class="mb-24">
-        <h2 class="text-3xl font-bold text-center mb-12">API 用法示例</h2>
-        <div x-data="{ tab: 'openai' }" class="max-w-4xl mx-auto">
-          <div class="flex border-b border-gray-700">
-            <button
-              @click="tab = 'openai'"
-              :class="{ 'bg-gray-800 text-indigo-400 border-indigo-400': tab === 'openai', 'text-gray-400 border-transparent': tab !== 'openai' }"
-              class="px-4 py-2 font-medium border-b-2 focus:outline-none"
+        <section id="examples" class="mb-14 md:mb-20">
+          <div class="mb-8">
+            <p
+              id="examplesKicker"
+              class="text-sm uppercase tracking-[0.26em] secondary-text mb-3"
             >
-              OpenAI 格式
-            </button>
-            <button
-              @click="tab = 'gemini'"
-              :class="{ 'bg-gray-800 text-indigo-400 border-indigo-400': tab === 'gemini', 'text-gray-400 border-transparent': tab !== 'gemini' }"
-              class="px-4 py-2 font-medium border-b-2 focus:outline-none"
+            </p>
+            <h2
+              id="examplesTitle"
+              class="display-font text-3xl md:text-4xl font-bold mb-3"
             >
-              Gemini 格式
-            </button>
-            <button
-              @click="tab = 'claude'"
-              :class="{ 'bg-gray-800 text-indigo-400 border-indigo-400': tab === 'claude', 'text-gray-400 border-transparent': tab !== 'claude' }"
-              class="px-4 py-2 font-medium border-b-2 focus:outline-none"
-            >
-              Claude 格式
-            </button>
+            </h2>
+            <p id="examplesIntro" class="muted max-w-3xl text-lg"></p>
           </div>
-          <div class="bg-gray-800 rounded-b-lg p-1">
-            <pre class="language-bash p-4 rounded-lg text-sm overflow-x-auto">
-<code x-show="tab === 'openai'" class="block">curl --request POST \
-  --url http://localhost:3000/v1/chat/completions \
-  --header 'content-type: application/json' \
+
+          <div class="panel rounded-[2rem] p-5 md:p-6">
+            <div class="flex flex-wrap gap-3 mb-4">
+              <button
+                id="tabOpenai"
+                type="button"
+                class="example-tab active rounded-full px-4 py-2 text-sm font-medium transition"
+                onclick="switchExampleTab('openai')"
+              >
+              </button>
+              <button
+                id="tabResponses"
+                type="button"
+                class="example-tab rounded-full px-4 py-2 text-sm font-medium transition"
+                onclick="switchExampleTab('responses')"
+              >
+              </button>
+              <button
+                id="tabGemini"
+                type="button"
+                class="example-tab rounded-full px-4 py-2 text-sm font-medium transition"
+                onclick="switchExampleTab('gemini')"
+              >
+              </button>
+              <button
+                id="tabClaude"
+                type="button"
+                class="example-tab rounded-full px-4 py-2 text-sm font-medium transition"
+                onclick="switchExampleTab('claude')"
+              >
+              </button>
+            </div>
+
+            <div class="code-shell rounded-[1.5rem] overflow-hidden">
+              <div
+                class="flex items-center gap-2 px-4 py-3 border-b"
+                style="border-color: rgba(255, 255, 255, 0.08)"
+              >
+                <span class="w-3 h-3 rounded-full bg-red-400"></span>
+                <span class="w-3 h-3 rounded-full bg-amber-300"></span>
+                <span class="w-3 h-3 rounded-full bg-emerald-400"></span>
+                <span
+                  class="ml-3 text-xs uppercase tracking-[0.22em] text-stone-300"
+                >curl</span>
+              </div>
+              <pre
+                class="p-5 text-sm md:text-[15px] overflow-x-auto"
+              ><code id="exampleCode"></code></pre>
+            </div>
+          </div>
+        </section>
+
+        <section class="mb-14 md:mb-20">
+          <div class="mb-8">
+            <p
+              id="stackKicker"
+              class="text-sm uppercase tracking-[0.26em] accent-text mb-3"
+            >
+            </p>
+            <h2
+              id="stackTitle"
+              class="display-font text-3xl md:text-4xl font-bold mb-3"
+            >
+            </h2>
+            <p id="stackIntro" class="muted max-w-3xl text-lg"></p>
+          </div>
+          <div id="stackGrid" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          </div>
+        </section>
+
+        <footer class="border-t pt-6 pb-10" style="border-color: var(--border)">
+          <div
+            class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
+          >
+            <p class="display-font text-xl">LLM Proxy</p>
+            <p id="footerText" class="footer-note text-sm"></p>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <script>
+      const THEME_KEY = "llm-proxy-theme";
+      const LANGUAGE_KEY = "llm-proxy-language";
+      const PROVIDER_CHIPS = [
+        "Gemini CLI",
+        "Gemini",
+        "OpenAI Chat",
+        "OpenAI Responses",
+        "Claude",
+        "Qwen",
+        "iFlow",
+        "Codex",
+      ];
+
+      let currentLanguage = localStorage.getItem(LANGUAGE_KEY) === "zh"
+        ? "zh"
+        : "en";
+      let currentExampleTab = "openai";
+
+      const TRANSLATIONS = {
+        en: {
+          pageTitle:
+            "LLM Proxy - One Gateway for Multiple LLM Protocols",
+          settingsLink: "Settings",
+          examplesLink: "API Examples",
+          languageToggle: "中文",
+          darkMode: "Dark Mode",
+          lightMode: "Light Mode",
+          liveBadge: "Live",
+          featureTag: "Feature",
+          compatEndpointLabel: "Endpoint",
+          compatProtocolLabel: "Protocol",
+          compatUseLabel: "Use",
+          eyebrowBadge: "OpenAI / Gemini / Claude compatible",
+          heroKicker: "One ingress, many providers",
+          heroTitle: "Route once. Convert anywhere.",
+          heroDescription:
+            "LLM Proxy unifies multi-provider model access behind one service. It exposes OpenAI Chat, OpenAI Responses, Claude Messages, and Gemini endpoints while handling provider routing, protocol conversion, streaming, retries, and fallback models for you.",
+          openSettingsCta: "Open Settings Console",
+          jumpExamplesCta: "Jump to cURL Examples",
+          supportLabel: "Providers currently wired into the codebase",
+          heroChecklistTitle: "What ships today",
+          heroChecklistItems: [
+            "Web settings console for provider management, global API key, model priority, and fallback models.",
+            "Routing by model name, then retry across providers, configs, and Gemini CLI projects.",
+            "Response conversion through provider adapters and Rust-built WebAssembly.",
+            "Dual config storage: `config.json` first, Deno KV as runtime fallback.",
+          ],
+          metrics: [
+            {
+              value: "8",
+              label: "provider types",
+              desc:
+                "Gemini CLI, Gemini, OpenAI Chat, OpenAI Responses, Claude, Qwen, iFlow, Codex.",
+            },
+            {
+              value: "4+1",
+              label: "protocol surfaces",
+              desc:
+                "OpenAI Chat, OpenAI Responses, Claude, Gemini, plus `/v1/models` for discovery.",
+            },
+            {
+              value: "SSE",
+              label: "stream-first",
+              desc:
+                "Streaming responses stay compatible even when the upstream protocol differs from the client protocol.",
+            },
+          ],
+          capabilitiesKicker: "Capabilities",
+          capabilitiesTitle:
+            "The homepage promise now matches the implementation.",
+          capabilitiesIntro:
+            "This service already goes beyond a pass-through proxy. The current server includes runtime initialization, config persistence, request conversion, provider registry lookup, and an operator-facing settings UI.",
+          capabilities: [
+            {
+              title: "Unified API edge",
+              text:
+                "Expose multiple protocol styles from one gateway so clients can keep their existing SDK and request shape.",
+            },
+            {
+              title: "Protocol translation",
+              text:
+                "Convert requests and responses between OpenAI, Gemini, and Claude formats with provider adapters plus Rust/WASM helpers.",
+            },
+            {
+              title: "Provider-aware retries",
+              text:
+                "Retry across configured providers and credentials instead of failing on the first upstream issue.",
+            },
+            {
+              title: "Model fallback chains",
+              text:
+                "Map one model to another when the primary route is unavailable, with cycle detection built into the chain resolver.",
+            },
+            {
+              title: "Settings-driven operations",
+              text:
+                "Manage providers, fetch model lists from compatible upstreams, reorder priority, and edit fallback mappings in the browser.",
+            },
+            {
+              title: "Access control",
+              text:
+                "Protect `/v1/*`, `/v1beta/*`, and settings APIs with a single global API key when needed.",
+            },
+          ],
+          routingKicker: "Execution path",
+          routingTitle: "How a request moves through the server",
+          routingIntro:
+            "The routing layer makes decisions in a strict order: parse the target model, find matching providers, execute retries across configs, and only then move to fallback models.",
+          workflowSteps: [
+            {
+              title: "Parse target",
+              text:
+                "Read `model` and streaming intent from the body or from Gemini-style route parameters.",
+            },
+            {
+              title: "Resolve providers",
+              text:
+                "Look up every provider that declares support for the model, then sort them by `model_priority`.",
+            },
+            {
+              title: "Convert request",
+              text:
+                "Transform the inbound payload into the selected provider's protocol before making the upstream call.",
+            },
+            {
+              title: "Retry deliberately",
+              text:
+                "Step through provider configs and Gemini CLI projects until a request succeeds or attempts are exhausted.",
+            },
+            {
+              title: "Fallback model",
+              text:
+                "If the original model fails end to end, walk the configured fallback chain and try again.",
+            },
+            {
+              title: "Normalize response",
+              text:
+                "If the upstream protocol differs from the requested protocol, convert the response or SSE stream before returning it.",
+            },
+          ],
+          opsKicker: "Operator console",
+          opsTitle:
+            "The settings page is part of the product, not an afterthought.",
+          opsIntro:
+            "The browser UI already reflects the backend capabilities exposed under `/api/settings/*`.",
+          opsCards: [
+            {
+              title: "Provider inventory",
+              text:
+                "Add, edit, and remove provider configs without hand-editing JSON.",
+            },
+            {
+              title: "Model discovery",
+              text:
+                "Fetch model lists from configured `/models` endpoints for supported provider types.",
+            },
+            {
+              title: "Priority drag-and-drop",
+              text:
+                "Reorder provider precedence visually and persist it back into runtime config.",
+            },
+            {
+              title: "Fallback mapping",
+              text:
+                "Define replacement models for failure handling and keep the chain under operator control.",
+            },
+          ],
+          compatKicker: "Compatibility",
+          compatTitle: "Client-side API surface",
+          compatIntro:
+            "These are the primary interfaces exposed by the server today.",
+          compatRows: [
+            {
+              endpoint: "POST /v1/chat/completions",
+              protocol: "OpenAI Chat",
+              purpose:
+                "Keep existing OpenAI chat clients unchanged while routing to any configured backend model.",
+            },
+            {
+              endpoint: "POST /v1/responses",
+              protocol: "OpenAI Responses",
+              purpose:
+                "Expose a Responses-style surface for reasoning models and provider conversions.",
+            },
+            {
+              endpoint: "POST /v1/messages",
+              protocol: "Anthropic Claude",
+              purpose:
+                "Accept Claude-style messages and translate them to whichever provider is configured for the target model.",
+            },
+            {
+              endpoint: "POST /v1beta/models/:modelName",
+              protocol: "Google Gemini",
+              purpose:
+                "Support both `generateContent` and `streamGenerateContent?alt=sse` style requests.",
+            },
+            {
+              endpoint: "GET /v1/models",
+              protocol: "Model listing",
+              purpose:
+                "Aggregate every model declared across configured providers into one discovery endpoint.",
+            },
+          ],
+          examplesKicker: "Usage",
+          examplesTitle: "Quick cURL examples",
+          examplesIntro:
+            "The same server can accept different client protocols and route them to the same target model family.",
+          tabOpenai: "OpenAI Chat",
+          tabResponses: "OpenAI Responses",
+          tabGemini: "Gemini",
+          tabClaude: "Claude",
+          codeOpenai: `curl --request POST \\
+  --url http://localhost:3000/v1/chat/completions \\
+  --header 'Content-Type: application/json' \\
   --data '{
     "model": "gemini-2.5-pro",
-    "messages": [{"role": "user", "content": "你是什么大模型？"}]
-  }'</code><code x-show="tab === 'gemini'" class="block">curl --request POST \
-  --url 'http://localhost:3000/v1beta/models/gemini-2.5-pro:streamGenerateContent' \
-  --header 'Content-Type: application/json' \
+    "stream": true,
+    "messages": [
+      {
+        "role": "user",
+        "content": "Explain which upstream provider handled this request."
+      }
+    ]
+  }'`,
+          codeResponses: `curl --request POST \\
+  --url http://localhost:3000/v1/responses \\
+  --header 'Content-Type: application/json' \\
   --data '{
-    "contents": [{"parts": [{"text": "你是什么大模型？"}]}]
-  }'</code><code x-show="tab === 'claude'" class="block">curl --request POST \
-  --url http://localhost:3000/v1/messages \
-  --header 'content-type: application/json' \
+    "model": "gpt-5.5",
+    "stream": true,
+    "input": "Briefly explain what this service does."
+  }'`,
+          codeGemini: `curl --request POST \\
+  --url 'http://localhost:3000/v1beta/models/gemini-2.5-pro:streamGenerateContent?alt=sse' \\
+  --header 'Content-Type: application/json' \\
+  --data '{
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": "Summarize the request path through LLM Proxy."
+          }
+        ]
+      }
+    ]
+  }'`,
+          codeClaude: `curl --request POST \\
+  --url http://localhost:3000/v1/messages \\
+  --header 'Content-Type: application/json' \\
   --data '{
     "model": "gemini-2.5-pro",
     "max_tokens": 512,
-    "messages": [{"role": "user", "content": "你是什么大模型?"}]
-  }'</code></pre>
-          </div>
-        </div>
-      </section>
+    "messages": [
+      {
+        "role": "user",
+        "content": "Explain the fallback model chain."
+      }
+    ]
+  }'`,
+          stackKicker: "Implementation",
+          stackTitle: "Pieces that matter in this repo",
+          stackIntro:
+            "The most important technologies here are the ones directly visible in the runtime behavior.",
+          stackCards: [
+            {
+              title: "Hono router",
+              text:
+                "Defines protocol endpoints, serves static pages, and hosts the settings APIs.",
+            },
+            {
+              title: "TypeScript core",
+              text:
+                "Organizes providers, retry logic, middleware, config loading, and response conversion.",
+            },
+            {
+              title: "Deno APIs",
+              text:
+                "Power startup, KV persistence, cron-based token refresh, and the primary local server flow.",
+            },
+            {
+              title: "Rust + WASM",
+              text:
+                "Handle protocol conversion work in performance-sensitive paths.",
+            },
+            {
+              title: "Provider registry",
+              text:
+                "Maps models to provider descriptors and keeps runtime selection deterministic.",
+            },
+            {
+              title: "Settings UI",
+              text:
+                "Turns configuration from a file-only concern into an operational interface.",
+            },
+          ],
+          footerText:
+            "Unified API gateway, runtime routing layer, and browser-based configuration console for multi-provider LLM access.",
+        },
+        zh: {
+          pageTitle: "LLM Proxy - 多协议大模型统一网关",
+          settingsLink: "设置页",
+          examplesLink: "调用示例",
+          languageToggle: "English",
+          darkMode: "深色模式",
+          lightMode: "浅色模式",
+          liveBadge: "可用",
+          featureTag: "能力",
+          compatEndpointLabel: "端点",
+          compatProtocolLabel: "协议",
+          compatUseLabel: "用途",
+          eyebrowBadge: "兼容 OpenAI / Gemini / Claude",
+          heroKicker: "一个入口，多路上游",
+          heroTitle: "只接一次。随处路由。",
+          heroDescription:
+            "LLM Proxy 把多家模型服务统一到同一个网关后面。它同时暴露 OpenAI Chat、OpenAI Responses、Claude Messages 和 Gemini 风格端点，并在服务端完成 provider 路由、协议转换、流式响应、重试和 fallback model 处理。",
+          openSettingsCta: "打开设置控制台",
+          jumpExamplesCta: "查看 cURL 示例",
+          supportLabel: "当前代码中已经接入的 provider",
+          heroChecklistTitle: "现在就具备的能力",
+          heroChecklistItems: [
+            "浏览器设置页可直接管理 provider、全局 API Key、模型优先级和 fallback model。",
+            "按模型名路由，再在 provider、配置项和 Gemini CLI 项目之间顺序重试。",
+            "通过 provider 适配层和 Rust 编译的 WebAssembly 做请求与响应转换。",
+            "配置读取优先走 `config.json`，缺失时再回退到 Deno KV。",
+          ],
+          metrics: [
+            {
+              value: "8",
+              label: "种 provider",
+              desc:
+                "Gemini CLI、Gemini、OpenAI Chat、OpenAI Responses、Claude、Qwen、iFlow、Codex。",
+            },
+            {
+              value: "4+1",
+              label: "类接口面",
+              desc:
+                "OpenAI Chat、OpenAI Responses、Claude、Gemini，再加一个 `/v1/models` 聚合列表。",
+            },
+            {
+              value: "SSE",
+              label: "流式优先",
+              desc:
+                "即使上游协议和客户端协议不同，也会尽量保持流式兼容返回。",
+            },
+          ],
+          capabilitiesKicker: "能力清单",
+          capabilitiesTitle: "首页描述现在和真实实现对齐。",
+          capabilitiesIntro:
+            "这个服务已经不是简单的转发层。当前代码里已经包含运行时初始化、配置持久化、请求协议转换、provider 注册表查找，以及面向运维的设置界面。",
+          capabilities: [
+            {
+              title: "统一 API 入口",
+              text:
+                "同一个网关同时暴露多种协议风格，让客户端继续使用原有 SDK 或请求结构。",
+            },
+            {
+              title: "协议互转",
+              text:
+                "通过 provider 适配器和 Rust/WASM 辅助层，在 OpenAI、Gemini、Claude 之间转换请求和响应。",
+            },
+            {
+              title: "按 provider 重试",
+              text:
+                "不是首个上游失败就结束，而是继续尝试其他 provider 和其他凭证配置。",
+            },
+            {
+              title: "模型回退链",
+              text:
+                "当主模型不可用时，把请求映射到备用模型，并在链路解析时检测循环引用。",
+            },
+            {
+              title: "设置页驱动运维",
+              text:
+                "在浏览器中管理 provider、拉取模型列表、调整优先级和编辑 fallback 映射。",
+            },
+            {
+              title: "统一访问控制",
+              text:
+                "通过一个全局 API Key 保护 `/v1/*`、`/v1beta/*` 和设置接口。",
+            },
+          ],
+          routingKicker: "执行路径",
+          routingTitle: "一个请求会怎样穿过服务",
+          routingIntro:
+            "当前路由链路是明确分层的：先解析目标模型，再找 provider，再走配置重试，最后才进入 fallback model。",
+          workflowSteps: [
+            {
+              title: "解析目标",
+              text:
+                "从请求体或 Gemini 风格路径参数里提取 `model` 和流式意图。",
+            },
+            {
+              title: "解析 provider",
+              text:
+                "查出所有声明支持该模型的 provider，再按 `model_priority` 排序。",
+            },
+            {
+              title: "转换请求",
+              text:
+                "在真正访问上游前，把当前请求转换成目标 provider 能接收的协议格式。",
+            },
+            {
+              title: "顺序重试",
+              text:
+                "在 provider 配置和 Gemini CLI 多项目之间逐步尝试，直到成功或耗尽重试次数。",
+            },
+            {
+              title: "切换 fallback",
+              text:
+                "如果原模型整条链路失败，再根据配置的 fallback chain 继续尝试备用模型。",
+            },
+            {
+              title: "归一化响应",
+              text:
+                "如果上游响应协议与客户端请求协议不同，会在返回前再做一次普通响应或 SSE 转换。",
+            },
+          ],
+          opsKicker: "设置页",
+          opsTitle: "设置页是产品能力的一部分，不是装饰。",
+          opsIntro:
+            "浏览器界面已经直接对应 `/api/settings/*` 这组后端能力。",
+          opsCards: [
+            {
+              title: "Provider 清单",
+              text:
+                "新增、编辑、删除 provider 配置，不必每次手改 JSON 文件。",
+            },
+            {
+              title: "模型发现",
+              text:
+                "对支持的 provider 类型根据配置的 `/models` 接口拉取模型列表。",
+            },
+            {
+              title: "拖拽优先级",
+              text:
+                "可视化调整 provider 优先顺序，并直接保存回运行时配置。",
+            },
+            {
+              title: "Fallback 映射",
+              text: "把失败替换策略交给运维配置，而不是写死在代码里。",
+            },
+          ],
+          compatKicker: "兼容面",
+          compatTitle: "客户端可直接使用的接口",
+          compatIntro: "下面这些就是当前服务已经对外暴露的主要接口面。",
+          compatRows: [
+            {
+              endpoint: "POST /v1/chat/completions",
+              protocol: "OpenAI Chat",
+              purpose:
+                "保持现有 OpenAI Chat 客户端不变，同时把请求路由到任意已配置后端模型。",
+            },
+            {
+              endpoint: "POST /v1/responses",
+              protocol: "OpenAI Responses",
+              purpose:
+                "提供 Responses 风格入口，适合推理模型和跨 provider 协议转换。",
+            },
+            {
+              endpoint: "POST /v1/messages",
+              protocol: "Anthropic Claude",
+              purpose:
+                "接收 Claude Messages 风格请求，再转换到目标模型所在的 provider。",
+            },
+            {
+              endpoint: "POST /v1beta/models/:modelName",
+              protocol: "Google Gemini",
+              purpose:
+                "支持 `generateContent` 和 `streamGenerateContent?alt=sse` 两类 Gemini 调用方式。",
+            },
+            {
+              endpoint: "GET /v1/models",
+              protocol: "模型聚合列表",
+              purpose:
+                "把所有已配置 provider 声明的模型合并成一个统一发现接口。",
+            },
+          ],
+          examplesKicker: "调用方式",
+          examplesTitle: "快速 cURL 示例",
+          examplesIntro:
+            "同一台服务可以接收不同协议的客户端请求，并把它们路由到同一个目标模型体系。",
+          tabOpenai: "OpenAI Chat",
+          tabResponses: "OpenAI Responses",
+          tabGemini: "Gemini",
+          tabClaude: "Claude",
+          codeOpenai: `curl --request POST \\
+  --url http://localhost:3000/v1/chat/completions \\
+  --header 'Content-Type: application/json' \\
+  --data '{
+    "model": "gemini-2.5-pro",
+    "stream": true,
+    "messages": [
+      {
+        "role": "user",
+        "content": "解释这次请求最终由哪个上游 provider 处理。"
+      }
+    ]
+  }'`,
+          codeResponses: `curl --request POST \\
+  --url http://localhost:3000/v1/responses \\
+  --header 'Content-Type: application/json' \\
+  --data '{
+    "model": "gpt-5.5",
+    "stream": true,
+    "input": "请简述这个服务的作用"
+  }'`,
+          codeGemini: `curl --request POST \\
+  --url 'http://localhost:3000/v1beta/models/gemini-2.5-pro:streamGenerateContent?alt=sse' \\
+  --header 'Content-Type: application/json' \\
+  --data '{
+    "contents": [
+      {
+        "parts": [
+          {
+            "text": "概述一下 LLM Proxy 的请求执行路径。"
+          }
+        ]
+      }
+    ]
+  }'`,
+          codeClaude: `curl --request POST \\
+  --url http://localhost:3000/v1/messages \\
+  --header 'Content-Type: application/json' \\
+  --data '{
+    "model": "gemini-2.5-pro",
+    "max_tokens": 512,
+    "messages": [
+      {
+        "role": "user",
+        "content": "解释 fallback model 链的作用。"
+      }
+    ]
+  }'`,
+          stackKicker: "实现结构",
+          stackTitle: "这个仓库里真正关键的组成部分",
+          stackIntro:
+            "这里最值得展示的技术，不是名词堆砌，而是那些直接影响运行行为的部分。",
+          stackCards: [
+            {
+              title: "Hono 路由层",
+              text:
+                "定义协议端点、托管静态页面，并承载设置页后端接口。",
+            },
+            {
+              title: "TypeScript 核心逻辑",
+              text:
+                "组织 provider、重试策略、中间件、配置加载和响应转换。",
+            },
+            {
+              title: "Deno API",
+              text:
+                "负责启动、KV 持久化、定时 token 刷新，以及主要本地运行路径。",
+            },
+            {
+              title: "Rust + WASM",
+              text: "承担协议转换这类更偏性能敏感的工作。",
+            },
+            {
+              title: "Provider Registry",
+              text:
+                "把模型名映射到 provider 描述信息，保证运行时选择顺序可预测。",
+            },
+            {
+              title: "设置界面",
+              text: "让配置从纯文件问题，变成可以直接操作的运维入口。",
+            },
+          ],
+          footerText:
+            "面向多 provider 大模型接入的统一 API 网关、运行时路由层和浏览器配置控制台。",
+        },
+      };
 
-      <!-- Tech Stack Section -->
-      <section class="mb-16">
-        <h2 class="text-3xl font-bold text-center mb-12">核心技术栈</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <div class="p-6 rounded-lg feature-card text-center">
-            <svg
-              role="img"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-16 mx-auto mb-4 typescript-logo"
-              fill="black"
-            >
-              <title>Hono</title>
-              <path d="M12 0L3.5 5v14l8.5 5 8.5-5V5L12 0zm6.5 17.5L12 21.25 5.5 17.5V6.5L12 2.75 18.5 6.5v11z" />
-            </svg>
-            <h3 class="text-xl font-semibold mb-2">Hono</h3>
-            <p class="text-gray-400">
-              一个为边缘计算设计的、轻量且超快速的 Web
-              框架，构成了我们代理服务器的基础。
-            </p>
-          </div>
-          <div class="p-6 rounded-lg feature-card text-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 441 441"
-              class="h-16 mx-auto mb-4 typescript-logo"
-              fill="black"
-              fill-rule="evenodd"
-              clip-rule="evenodd"
-              stroke-linejoin="round"
-              stroke-miterlimit="2"
-            >
-              <g transform="matrix(1.02631 0 0 1.02631 -.525826 -.525138)">
-                <path d="M37.965 296.635c-11.524-24.869-17.956-52.57-17.956-81.762 0-7.555.43-15.01 1.269-22.342.851-7.408 2.112-14.679 3.758-21.789 9.25-39.89 30.765-75.102 60.348-101.441C110.233 47.207 140.674 31.444 174.043 24.3c13.169-2.813 26.829-4.293 40.832-4.293 4.908.005 9.852.195 14.826.574 23.584 1.799 45.87 7.736 66.203 17.044 16.401 7.518 31.582 17.245 45.16 28.801 34.106 28.955 57.893 69.428 65.803 114.844 1.89 10.886 2.875 22.081 2.875 33.504 0 4.916-.19 9.867-.57 14.848-1.437 18.824-5.509 36.821-11.828 53.658-8.819 23.451-22.032 44.757-38.634 62.915-21.593 22.048-49.033 31.858-71.951 31.45-16.665-.3-32.971-6.931-44.239-16.633-16.096-13.861-22.598-29.705-24.826-47.385-.554-4.395-.229-16.371 2.058-24.663 1.705-6.181 6.029-18.118 12.352-23.339-7.397-3.186-16.917-10.123-19.918-13.453-.737-.819-.642-2.099.219-2.981.861-.882 2.02-1.23 2.957-.857 6.359 2.183 14.104 4.336 22.27 5.702 10.74 1.795 24.1 4.057 37.631 4.722 33.001 1.62 67.452-13.199 78.148-42.662 10.695-29.463 6.546-58.605-31.824-76.086-38.37-17.48-56.094-38.264-87.096-50.8-20.249-8.189-42.787-3.328-65.926 9.46-62.326 34.443-118.165 143.268-92.424 244.093.368 1.379-.253 2.832-1.505 3.519-1.172.644-2.615.46-3.587-.43-7.491-8.231-14.287-17.105-20.296-26.529-4.649-7.294-8.822-14.909-12.48-22.799z" />
-              </g>
-            </svg>
-            <h3 class="text-xl font-semibold mb-2">Deno</h3>
-            <p class="text-gray-400">
-              一个现代化的 JavaScript/TypeScript
-              运行时，提供了安全和高效的后端环境，并内置了 Cron 等强大功能。
-            </p>
-          </div>
-          <div class="p-6 rounded-lg feature-card text-center">
-            <img
-              src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/bun/bun-original.svg"
-              alt="Bun Logo"
-              class="h-16 mx-auto mb-4 typescript-logo"
-            >
-            <h3 class="text-xl font-semibold mb-2">Bun</h3>
-            <p class="text-gray-400">
-              一个极速的 JavaScript
-              多合一工具包，我们用它来简化开发、测试和打包流程。
-            </p>
-          </div>
-          <div class="p-6 rounded-lg feature-card text-center">
-            <img
-              src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/typescript/typescript-original.svg"
-              alt="TypeScript Logo"
-              class="h-16 mx-auto mb-4 typescript-logo"
-            >
-            <h3 class="text-xl font-semibold mb-2">TypeScript</h3>
-            <p class="text-gray-400">
-              通过为 JavaScript
-              添加静态类型，我们保证了代码的健壮性、可读性和可维护性。
-            </p>
-          </div>
-          <div class="p-6 rounded-lg feature-card text-center">
-            <img
-              src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/rust/rust-original.svg"
-              alt="Rust Logo"
-              class="h-16 mx-auto mb-4 typescript-logo"
-            >
-            <h3 class="text-xl font-semibold mb-2">Rust</h3>
-            <p class="text-gray-400">
-              一种以性能和安全著称的系统编程语言，用于实现性能关键的模块。
-            </p>
-          </div>
-          <div class="p-6 rounded-lg feature-card text-center">
-            <img
-              src="https://cdn.jsdelivr.net/npm/simple-icons@v3/icons/webassembly.svg"
-              alt="WebAssembly Logo"
-              class="h-16 mx-auto mb-4 logo-monochrome"
-            >
-            <h3 class="text-xl font-semibold mb-2">WebAssembly</h3>
-            <p class="text-gray-400">
-              一种可移植的二进制指令格式，让 Rust 代码能以接近原生的速度在 Web
-              环境中运行。
-            </p>
-          </div>
-        </div>
-      </section>
-    </div>
+      function t(key) {
+        return TRANSLATIONS[currentLanguage][key] ??
+          TRANSLATIONS.en[key] ?? key;
+      }
 
-    <!-- Footer -->
-    <footer class="border-t border-gray-800 py-8">
-      <div class="container mx-auto text-center text-gray-500">
-        <p>&copy; 2024 LLM Proxy. All Rights Reserved.</p>
-        <p class="mt-2">Generated by Claude Code.</p>
-      </div>
-    </footer>
-    <script
-      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
-      defer
-    ></script>
-    <script>
-      const THEME_KEY = "llm-proxy-theme";
+      function setText(id, value) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.textContent = value;
+        }
+      }
+
+      function escapeHtml(text) {
+        return String(text)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
 
       function applyTheme(theme) {
         const isDark = theme === "dark";
         document.documentElement.classList.toggle("dark", isDark);
         localStorage.setItem(THEME_KEY, theme);
-
-        const toggle = document.getElementById("themeToggle");
-        if (toggle) {
-          toggle.textContent = isDark ? "Light Mode" : "Dark Mode";
-        }
+        setText("themeToggle", isDark ? t("lightMode") : t("darkMode"));
       }
 
       function toggleTheme() {
-        const isDark = document.documentElement.classList.contains("dark");
+        const isDark = document.documentElement.classList.contains(
+          "dark",
+        );
         applyTheme(isDark ? "light" : "dark");
       }
 
-      applyTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
+      function toggleLanguage() {
+        currentLanguage = currentLanguage === "en" ? "zh" : "en";
+        localStorage.setItem(LANGUAGE_KEY, currentLanguage);
+        renderPage();
+      }
+
+      function switchExampleTab(tab) {
+        currentExampleTab = tab;
+        document.querySelectorAll(".example-tab").forEach((button) => {
+          button.classList.toggle(
+            "active",
+            button.id === `tab${tab[0].toUpperCase()}${tab.slice(1)}`,
+          );
+        });
+        const codeKey = {
+          openai: "codeOpenai",
+          responses: "codeResponses",
+          gemini: "codeGemini",
+          claude: "codeClaude",
+        }[tab];
+        setText("exampleCode", t(codeKey));
+      }
+
+      function renderList(containerId, items, renderer) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = items.map(renderer).join("");
+      }
+
+      function renderProviderChips() {
+        renderList(
+          "providerChips",
+          PROVIDER_CHIPS,
+          (item) =>
+            `<span class="pill rounded-full px-4 py-2 text-sm">${
+              escapeHtml(item)
+            }</span>`,
+        );
+      }
+
+      function renderHeroChecklist() {
+        renderList(
+          "heroChecklist",
+          t("heroChecklistItems"),
+          (item) =>
+            `<div class="panel-strong rounded-2xl px-4 py-4">
+            <div class="flex gap-3">
+              <span class="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-600 text-xs font-bold text-white">+</span>
+              <p class="muted leading-7">${escapeHtml(item)}</p>
+            </div>
+          </div>`,
+        );
+      }
+
+      function renderMetrics() {
+        renderList(
+          "metricsGrid",
+          t("metrics"),
+          (item) =>
+            `<div class="metric-card panel rounded-[1.5rem] p-6">
+            <p class="display-font text-4xl font-bold mb-2">${
+              escapeHtml(item.value)
+            }</p>
+            <p class="text-lg font-semibold mb-2">${
+              escapeHtml(item.label)
+            }</p>
+            <p class="muted leading-7">${escapeHtml(item.desc)}</p>
+          </div>`,
+        );
+      }
+
+      function renderCapabilities() {
+        renderList(
+          "capabilityGrid",
+          t("capabilities"),
+          (item) =>
+            `<article class="feature-card panel rounded-[1.5rem] p-6">
+            <p class="text-sm uppercase tracking-[0.22em] accent-text mb-3">${
+              escapeHtml(t("featureTag"))
+            }</p>
+            <h3 class="display-font text-2xl font-bold mb-3">${
+              escapeHtml(item.title)
+            }</h3>
+            <p class="muted leading-7">${escapeHtml(item.text)}</p>
+          </article>`,
+        );
+      }
+
+      function renderWorkflow() {
+        renderList(
+          "workflowGrid",
+          t("workflowSteps"),
+          (item, index) =>
+            `<article class="workflow-node panel-strong rounded-[1.5rem] p-5">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="workflow-node-number">${index + 1}</span>
+              <h3 class="display-font text-xl font-bold">${
+              escapeHtml(item.title)
+            }</h3>
+            </div>
+            <p class="muted leading-7">${escapeHtml(item.text)}</p>
+          </article>`,
+        );
+      }
+
+      function renderOps() {
+        renderList(
+          "opsGrid",
+          t("opsCards"),
+          (item) =>
+            `<article class="ops-card panel-strong rounded-[1.5rem] p-5">
+            <h3 class="display-font text-xl font-bold mb-2">${
+              escapeHtml(item.title)
+            }</h3>
+            <p class="muted leading-7">${escapeHtml(item.text)}</p>
+          </article>`,
+        );
+      }
+
+      function renderCompat() {
+        renderList(
+          "compatGrid",
+          t("compatRows"),
+          (item) =>
+            `<div class="compat-row panel rounded-[1.5rem] p-5 md:p-6">
+            <div class="grid gap-4 md:grid-cols-[minmax(220px,0.9fr)_minmax(150px,0.45fr)_minmax(0,1.4fr)] md:items-start">
+              <div>
+                <p class="text-xs uppercase tracking-[0.2em] accent-text mb-2">${
+              escapeHtml(t("compatEndpointLabel"))
+            }</p>
+                <p class="display-font text-lg font-bold">${
+              escapeHtml(item.endpoint)
+            }</p>
+              </div>
+              <div>
+                <p class="text-xs uppercase tracking-[0.2em] accent-text mb-2">${
+              escapeHtml(t("compatProtocolLabel"))
+            }</p>
+                <p class="font-semibold">${
+              escapeHtml(item.protocol)
+            }</p>
+              </div>
+              <div>
+                <p class="text-xs uppercase tracking-[0.2em] accent-text mb-2">${
+              escapeHtml(t("compatUseLabel"))
+            }</p>
+                <p class="muted leading-7">${
+              escapeHtml(item.purpose)
+            }</p>
+              </div>
+            </div>
+          </div>`,
+        );
+      }
+
+      function renderStack() {
+        renderList(
+          "stackGrid",
+          t("stackCards"),
+          (item) =>
+            `<article class="stack-card panel rounded-[1.5rem] p-6">
+            <h3 class="display-font text-2xl font-bold mb-3">${
+              escapeHtml(item.title)
+            }</h3>
+            <p class="muted leading-7">${escapeHtml(item.text)}</p>
+          </article>`,
+        );
+      }
+
+      function applyText() {
+        document.documentElement.lang = currentLanguage;
+        document.title = t("pageTitle");
+
+        [
+          "settingsLink",
+          "examplesLink",
+          "languageToggle",
+          "liveBadge",
+          "eyebrowBadge",
+          "heroKicker",
+          "heroTitle",
+          "heroDescription",
+          "openSettingsCta",
+          "jumpExamplesCta",
+          "supportLabel",
+          "heroChecklistTitle",
+          "capabilitiesKicker",
+          "capabilitiesTitle",
+          "capabilitiesIntro",
+          "routingKicker",
+          "routingTitle",
+          "routingIntro",
+          "opsKicker",
+          "opsTitle",
+          "opsIntro",
+          "compatKicker",
+          "compatTitle",
+          "compatIntro",
+          "examplesKicker",
+          "examplesTitle",
+          "examplesIntro",
+          "tabOpenai",
+          "tabResponses",
+          "tabGemini",
+          "tabClaude",
+          "stackKicker",
+          "stackTitle",
+          "stackIntro",
+          "footerText",
+        ].forEach((id) => setText(id, t(id)));
+      }
+
+      function renderPage() {
+        applyText();
+        renderProviderChips();
+        renderHeroChecklist();
+        renderMetrics();
+        renderCapabilities();
+        renderWorkflow();
+        renderOps();
+        renderCompat();
+        renderStack();
+        switchExampleTab(currentExampleTab);
+        applyTheme(
+          document.documentElement.classList.contains("dark")
+            ? "dark"
+            : "light",
+        );
+      }
+
+      renderPage();
     </script>
   </body>
 </html>

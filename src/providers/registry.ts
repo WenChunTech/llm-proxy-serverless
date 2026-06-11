@@ -6,6 +6,7 @@ import {
   GeminiCliConfig,
   GeminiConfig,
   IFlowConfig,
+  isProviderConfigEnabled,
   OpenAIChatConfig,
   OpenAIResponsesConfig,
   QwenConfig,
@@ -46,7 +47,9 @@ export function supportsProjects(
   return "projects" in config;
 }
 
-export interface ProviderDescriptor<TConfig extends ProviderConfig = ProviderConfig> {
+export interface ProviderDescriptor<
+  TConfig extends ProviderConfig = ProviderConfig,
+> {
   id: ProviderId;
   configKey: keyof Pick<
     Config,
@@ -150,11 +153,15 @@ const PROVIDER_ALIASES: Record<string, ProviderId> = {
   codex: PROVIDERS.CODEX,
 };
 
-export function normalizeProviderId(providerId: string): ProviderId | undefined {
+export function normalizeProviderId(
+  providerId: string,
+): ProviderId | undefined {
   return PROVIDER_ALIASES[providerId];
 }
 
-export function getProviderDescriptor(providerId: string): ProviderDescriptor | undefined {
+export function getProviderDescriptor(
+  providerId: string,
+): ProviderDescriptor | undefined {
   const normalized = normalizeProviderId(providerId);
   return normalized ? PROVIDER_DESCRIPTOR_MAP.get(normalized) : undefined;
 }
@@ -164,7 +171,9 @@ export function getProviderDescriptors(): ProviderDescriptor[] {
 }
 
 export function normalizeModelPriority(priority?: string[]): ProviderId[] {
-  const normalized = (priority || []).map((providerId) => normalizeProviderId(providerId))
+  const normalized = (priority || []).map((providerId) =>
+    normalizeProviderId(providerId)
+  )
     .filter((providerId): providerId is ProviderId => Boolean(providerId));
 
   if (normalized.length === 0) {
@@ -193,16 +202,24 @@ export function normalizeModelPriority(priority?: string[]): ProviderId[] {
 export function getProviderConfigsById(providerId: string): ProviderConfig[] {
   const descriptor = getProviderDescriptor(providerId);
   if (!descriptor) return [];
-  return (appConfig[descriptor.configKey] || []) as ProviderConfig[];
+  return ((appConfig[descriptor.configKey] || []) as ProviderConfig[])
+    .filter(isProviderConfigEnabled);
 }
 
-export function getProviderConfigsByModel(providerId: string, model: string): ProviderConfig[] {
-  return getProviderConfigsById(providerId).filter((config) => config.models.includes(model));
+export function getProviderConfigsByModel(
+  providerId: string,
+  model: string,
+): ProviderConfig[] {
+  return getProviderConfigsById(providerId).filter((config) =>
+    config.models.includes(model)
+  );
 }
 
 export function getProvidersForModel(model: string): ProviderId[] {
   const configuredProviders = PROVIDER_DESCRIPTORS
-    .filter((descriptor) => getProviderConfigsByModel(descriptor.id, model).length > 0)
+    .filter((descriptor) =>
+      getProviderConfigsByModel(descriptor.id, model).length > 0
+    )
     .map((descriptor) => descriptor.id);
 
   if (configuredProviders.length === 0) {
