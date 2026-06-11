@@ -41,6 +41,26 @@ function checkAuth(c: Context): { ok: boolean; response?: Response } {
   return { ok: true };
 }
 
+function buildProviderModelsEndpoint(baseUrl: string, providerType?: string): string {
+  const url = new URL(baseUrl);
+  const pathname = url.pathname.replace(/\/+$/, "");
+
+  if (pathname.endsWith("/models")) {
+    url.pathname = pathname || "/models";
+  } else {
+    const isOpenAI = providerType === "openai_chat" || providerType === "openai_responses";
+    const hasVersionPath = /\/v\d+$/.test(pathname);
+
+    if (!isOpenAI && !hasVersionPath) {
+      url.pathname = `${pathname}/v1/models`;
+    } else {
+      url.pathname = `${pathname}/models`;
+    }
+  }
+
+  return url.toString();
+}
+
 // Check if auth is required (no response means no api_key configured)
 export async function handleSettingsVerify(c: Context) {
   const configuredApiKey = appConfig.api_key?.trim();
@@ -240,6 +260,91 @@ export async function handleRemoveProvider(c: Context) {
         error: "Failed to remove provider: " + String(error),
       },
       500,
+    );
+  }
+}
+
+export async function handleFetchProviderModels(c: Context) {
+  try {
+    const auth = checkAuth(c);
+    if (!auth.ok) return auth.response;
+
+    const body = await c.req.json();
+    const baseUrl = body?.baseUrl?.trim();
+    const apiKey = body?.apiKey?.trim() || "";
+    const providerType = body?.providerType?.trim() || "";
+
+    if (!baseUrl) {
+      return c.json(
+        {
+          success: false,
+          error: "Base URL is required",
+        },
+        400,
+      );
+    }
+
+    let endpoint: string;
+    try {
+      endpoint = buildProviderModelsEndpoint(baseUrl, providerType);
+    } catch {
+      return c.json(
+        {
+          success: false,
+          error: "Invalid Base URL",
+        },
+        400,
+      );
+    }
+
+    const response = await fetch(endpoint, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        ...(apiKey
+          ? {
+            Authorization: `Bearer ${apiKey}`,
+            "x-api-key": apiKey,
+          }
+          : {}),
+      },
+    });
+
+    let payload: any = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: payload?.error?.message || payload?.message || response.statusText,
+          data: payload,
+        }),
+        {
+          status: response.status,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+    }
+
+    return c.json({
+      success: true,
+      data: payload,
+    });
+  } catch (error) {
+    logger.error("Failed to fetch provider models:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to fetch provider models: " + String(error),
+      },
+      502,
     );
   }
 }
