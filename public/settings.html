@@ -209,9 +209,13 @@
 
       .page-actions,
       .tab-strip,
+      .modal-title,
+      .modal-description,
       .provider-entry,
       .provider-entry-main,
       .provider-entry-actions,
+      .import-summary-entry,
+      .import-summary-entry-main,
       .priority-item,
       .fallback-picker-toolbar,
       .fallback-picker-option,
@@ -222,6 +226,7 @@
 
       .provider-card h3,
       .provider-entry p,
+      .import-summary-entry p,
       .priority-item span,
       .fallback-picker-option span,
       .fallback-row input,
@@ -237,6 +242,17 @@
           border-radius: 1.5rem;
           width: calc(100vw - 1.5rem);
           max-height: calc(100vh - 1.5rem);
+          overflow-x: hidden;
+        }
+
+        .modal-title {
+          font-size: 1.5rem;
+          line-height: 2rem;
+        }
+
+        .modal-description {
+          font-size: 0.95rem;
+          line-height: 1.5rem;
         }
 
         .toast-stack {
@@ -281,6 +297,20 @@
         .provider-entry-actions > * {
           flex: 1 1 0;
           justify-content: center;
+        }
+
+        .import-summary-entry {
+          align-items: flex-start;
+          gap: 0.75rem;
+        }
+
+        .import-summary-entry input[type="checkbox"] {
+          margin-top: 0.125rem;
+          flex-shrink: 0;
+        }
+
+        .import-summary-entry-main {
+          width: 100%;
         }
 
         .priority-item {
@@ -625,7 +655,7 @@
     <!-- Add/Edit Provider Modal -->
     <div id="addProviderModal" class="modal">
       <div class="modal-content">
-        <h2 id="providerModalTitle" class="text-3xl font-bold mb-4">
+        <h2 id="providerModalTitle" class="modal-title text-3xl font-bold mb-4">
           Add New Provider
         </h2>
 
@@ -638,7 +668,7 @@
           <select
             id="providerType"
             class="form-input"
-            onchange="updateProviderFields()"
+            onchange="handleProviderTypeChange()"
           >
             <option id="providerTypePlaceholder" value="">
               Select a provider...
@@ -673,10 +703,10 @@
 
     <div id="importConfigModal" class="modal">
       <div class="modal-content">
-        <h2 id="importConfigModalTitle" class="text-3xl font-bold mb-4">
+        <h2 id="importConfigModalTitle" class="modal-title text-3xl font-bold mb-4">
           Import Config
         </h2>
-        <p id="importConfigDescription" class="muted mb-5">
+        <p id="importConfigDescription" class="modal-description muted mb-5">
           Select which sections and provider entries to import.
         </p>
 
@@ -703,10 +733,10 @@
 
     <div id="fallbackPickerModal" class="modal">
       <div class="modal-content">
-        <h2 id="fallbackPickerTitle" class="text-3xl font-bold mb-4">
+        <h2 id="fallbackPickerTitle" class="modal-title text-3xl font-bold mb-4">
           Select Fallback Models
         </h2>
-        <p id="fallbackPickerDescription" class="muted mb-5">
+        <p id="fallbackPickerDescription" class="modal-description muted mb-5">
           Choose one or more models from the current configuration.
         </p>
 
@@ -895,8 +925,10 @@
           providerTypePlaceholder: "Select a provider...",
           providerModalAddTitle: "Add New Provider",
           providerModalEditTitle: "Edit Provider",
+          providerModalCopyTitle: "Copy Provider",
           providerModalAddSubmit: "Add Provider",
           providerModalEditSubmit: "Save Changes",
+          providerModalCopySubmit: "Create Copy",
           providerModalCancel: "Cancel",
           darkMode: "Dark Mode",
           lightMode: "Light Mode",
@@ -909,6 +941,7 @@
           enabledStatus: "Enabled",
           disabledStatus: "Disabled",
           editButton: "Edit",
+          copyButton: "Copy",
           deleteButton: "Delete",
           availableProviders: "Available providers (drag to add):",
           noFallbackMappings: "No fallback mappings configured yet.",
@@ -958,6 +991,8 @@
             "Provider updated. Click 'Save Providers' to apply changes.",
           providerAddedPending:
             "Provider added. Click 'Save Providers' to apply changes.",
+          providerCopiedPending:
+            "Provider copied. Click 'Save Providers' to apply changes.",
           deleteProviderConfirm:
             "Are you sure you want to delete this provider?",
           providerRemovedPending:
@@ -1049,8 +1084,10 @@
           providerTypePlaceholder: "选择一个提供商...",
           providerModalAddTitle: "添加新提供商",
           providerModalEditTitle: "编辑提供商",
+          providerModalCopyTitle: "复制提供商",
           providerModalAddSubmit: "添加提供商",
           providerModalEditSubmit: "保存修改",
+          providerModalCopySubmit: "创建副本",
           providerModalCancel: "取消",
           darkMode: "深色模式",
           lightMode: "浅色模式",
@@ -1063,6 +1100,7 @@
           enabledStatus: "已启用",
           disabledStatus: "已禁用",
           editButton: "编辑",
+          copyButton: "复制",
           deleteButton: "删除",
           availableProviders: "可用提供商（拖拽以添加）：",
           noFallbackMappings: "还没有配置回退映射。",
@@ -1110,6 +1148,8 @@
             "提供商已更新。点击“保存提供商”后生效。",
           providerAddedPending:
             "提供商已添加。点击“保存提供商”后生效。",
+          providerCopiedPending:
+            "提供商已复制。点击“保存提供商”后生效。",
           deleteProviderConfirm: "确认删除这个提供商吗？",
           providerRemovedPending:
             "提供商已移除。点击“保存提供商”后生效。",
@@ -1200,6 +1240,56 @@
             seen.add(model);
             return true;
           });
+      }
+
+      function mergeLocalProviderConfigsByConnection(provider) {
+        const providerConfigs = Array.isArray(config?.[provider])
+          ? config[provider]
+          : [];
+        const merged = [];
+        const keyedIndex = new Map();
+
+        providerConfigs.forEach((cfg) => {
+          const hasBaseUrl = typeof cfg?.base_url === "string";
+          const hasApiKey = typeof cfg?.api_key === "string";
+          const mergeKey = hasBaseUrl && hasApiKey
+            ? `${cfg.base_url.trim()}::${cfg.api_key.trim()}`
+            : null;
+          const models = normalizeFallbackModels(
+            Array.isArray(cfg?.models) ? cfg.models : [],
+          );
+
+          if (!mergeKey) {
+            merged.push({
+              ...cfg,
+              models,
+            });
+            return;
+          }
+
+          const existingIndex = keyedIndex.get(mergeKey);
+          if (existingIndex === undefined) {
+            merged.push({
+              ...cfg,
+              models,
+            });
+            keyedIndex.set(mergeKey, merged.length - 1);
+            return;
+          }
+
+          merged[existingIndex] = {
+            ...merged[existingIndex],
+            ...cfg,
+            models: normalizeFallbackModels([
+              ...(Array.isArray(merged[existingIndex].models)
+                ? merged[existingIndex].models
+                : []),
+              ...models,
+            ]),
+          };
+        });
+
+        config[provider] = merged;
       }
 
       function normalizeLoadedConfig(rawConfig) {
@@ -1620,6 +1710,12 @@
                       class="btn-secondary text-white px-3 py-2 rounded-full text-sm"
                     >
                       ${escapeHtml(t("editButton"))}
+                    </button>
+                    <button
+                      onclick="copyProvider('${provider}', ${index})"
+                      class="btn-secondary text-white px-3 py-2 rounded-full text-sm"
+                    >
+                      ${escapeHtml(t("copyButton"))}
                     </button>
                     <button
                       onclick="removeProvider('${provider}', ${index})"
@@ -2466,6 +2562,14 @@
         );
       }
 
+      function handleProviderTypeChange() {
+        const container = document.getElementById("providerFields");
+        const currentValues = container?.innerHTML
+          ? readProviderFormValues()
+          : null;
+        updateProviderFields(currentValues);
+      }
+
       function captureProviderModalState() {
         const modal = document.getElementById("addProviderModal");
         const providerType =
@@ -2473,6 +2577,8 @@
         return {
           isOpen: modal.classList.contains("active"),
           isEdit: document.getElementById("editMode").value === "true",
+          isCopy:
+            document.getElementById("editMode").dataset.mode === "copy",
           providerType,
           providerTypeDisabled:
             document.getElementById("providerType").disabled,
@@ -2488,6 +2594,11 @@
         document.getElementById("editMode").value = snapshot.isEdit
           ? "true"
           : "false";
+        document.getElementById("editMode").dataset.mode = snapshot.isCopy
+          ? "copy"
+          : snapshot.isEdit
+          ? "edit"
+          : "add";
         document.getElementById("editProviderIndex").value =
           snapshot.providerIndex || "-1";
         document.getElementById("providerType").value =
@@ -2504,15 +2615,20 @@
       function syncProviderModalHeading() {
         const isEdit =
           document.getElementById("editMode").value === "true";
+        const mode = document.getElementById("editMode").dataset.mode || "add";
         setText(
           "providerModalTitle",
-          isEdit
+          mode === "copy"
+            ? t("providerModalCopyTitle")
+            : isEdit
             ? t("providerModalEditTitle")
             : t("providerModalAddTitle"),
         );
         setText(
           "providerModalSubmit",
-          isEdit
+          mode === "copy"
+            ? t("providerModalCopySubmit")
+            : isEdit
             ? t("providerModalEditSubmit")
             : t("providerModalAddSubmit"),
         );
@@ -2656,6 +2772,7 @@
 
       function openAddProviderModal() {
         document.getElementById("editMode").value = "false";
+        document.getElementById("editMode").dataset.mode = "add";
         document.getElementById("editProviderType").value = "";
         document.getElementById("editProviderIndex").value = "-1";
         document.getElementById("providerType").value = "";
@@ -2670,6 +2787,7 @@
       function openEditProviderModal(provider, index) {
         const cfg = config[provider][index];
         document.getElementById("editMode").value = "true";
+        document.getElementById("editMode").dataset.mode = "edit";
         document.getElementById("editProviderType").value = provider;
         document.getElementById("editProviderIndex").value = String(
           index,
@@ -2698,11 +2816,38 @@
         openEditProviderModal(provider, index);
       }
 
+      function copyProvider(provider, index) {
+        const cfg = config[provider][index];
+        document.getElementById("editMode").value = "false";
+        document.getElementById("editMode").dataset.mode = "copy";
+        document.getElementById("editProviderType").value = provider;
+        document.getElementById("editProviderIndex").value = "-1";
+        document.getElementById("providerType").value = provider;
+        document.getElementById("providerType").disabled = false;
+        updateProviderFields({
+          ...cfg,
+          auth_json: cfg.auth ? JSON.stringify(cfg.auth, null, 2) : "",
+          projects: Array.isArray(cfg.projects) ? cfg.projects : [],
+          models: Array.isArray(cfg.models) ? cfg.models : [],
+          availableModelOptions: Array.isArray(cfg.models)
+            ? cfg.models
+            : [],
+          modelInputMode: supportsModelFetch(provider)
+            ? "fetch"
+            : "manual",
+        });
+        syncProviderModalHeading();
+        document.getElementById("addProviderModal").classList.add(
+          "active",
+        );
+      }
+
       function closeAddProviderModal() {
         document.getElementById("addProviderModal").classList.remove(
           "active",
         );
         document.getElementById("editMode").value = "false";
+        document.getElementById("editMode").dataset.mode = "add";
         document.getElementById("providerType").value = "";
         document.getElementById("providerType").disabled = false;
         document.getElementById("providerFields").innerHTML = "";
@@ -2734,6 +2879,7 @@
 
         try {
           config[provider][index] = buildProviderConfigFromForm();
+          mergeLocalProviderConfigsByConnection(provider);
           pruneUnavailableFallbackModels();
         } catch (error) {
           showAlert(
@@ -2754,6 +2900,7 @@
 
       function saveNewProvider() {
         const provider = document.getElementById("providerType").value;
+        const mode = document.getElementById("editMode").dataset.mode || "add";
         if (!provider) {
           showAlert(t("selectProviderType"), "error");
           return;
@@ -2764,6 +2911,7 @@
         }
         try {
           config[provider].push(buildProviderConfigFromForm());
+          mergeLocalProviderConfigsByConnection(provider);
         } catch (error) {
           showAlert(
             t("genericError", {
@@ -2778,7 +2926,10 @@
         renderProviders();
         renderFallback();
         closeAddProviderModal();
-        showAlert(t("providerAddedPending"), "success");
+        showAlert(
+          t(mode === "copy" ? "providerCopiedPending" : "providerAddedPending"),
+          "success",
+        );
       }
 
       function removeProvider(provider, index) {
@@ -3270,27 +3421,27 @@
 
         if (meta.hasApiKey) {
           sections.push(`
-            <label class="provider-entry p-4 rounded-[1.25rem] flex items-start gap-3">
+            <label class="provider-entry import-summary-entry p-4 rounded-[1.25rem] flex items-start gap-3">
               <input type="checkbox" id="import-global-api-key" checked />
-              <span>${escapeHtml(t("importApiKeyLabel"))}</span>
+              <span class="import-summary-entry-main">${escapeHtml(t("importApiKeyLabel"))}</span>
             </label>
           `);
         }
 
         if (meta.hasModelPriority && imported.model_priority.length > 0) {
           sections.push(`
-            <label class="provider-entry p-4 rounded-[1.25rem] flex items-start gap-3">
+            <label class="provider-entry import-summary-entry p-4 rounded-[1.25rem] flex items-start gap-3">
               <input type="checkbox" id="import-model-priority" checked />
-              <span>${escapeHtml(t("importPriorityLabel"))}</span>
+              <span class="import-summary-entry-main">${escapeHtml(t("importPriorityLabel"))}</span>
             </label>
           `);
         }
 
         if (meta.hasFallbackModels && imported.fallback_models.length > 0) {
           sections.push(`
-            <label class="provider-entry p-4 rounded-[1.25rem] flex items-start gap-3">
+            <label class="provider-entry import-summary-entry p-4 rounded-[1.25rem] flex items-start gap-3">
               <input type="checkbox" id="import-fallback-models" checked />
-              <span>${escapeHtml(t("importFallbackLabel"))}</span>
+              <span class="import-summary-entry-main">${escapeHtml(t("importFallbackLabel"))}</span>
             </label>
           `);
         }
@@ -3302,14 +3453,14 @@
           }
 
           const entries = configs.map((cfg, index) => `
-            <label class="provider-entry p-4 rounded-[1.25rem] flex items-start gap-3">
+            <label class="provider-entry import-summary-entry p-4 rounded-[1.25rem] flex items-start gap-3">
               <input
                 type="checkbox"
                 data-import-provider="${escapeHtml(provider)}"
                 data-import-index="${index}"
                 checked
               />
-              <div class="flex-1">
+              <div class="import-summary-entry-main flex-1">
                 <p class="font-medium">${escapeHtml(getProviderDisplayName(provider))} #${
             index + 1
           }</p>

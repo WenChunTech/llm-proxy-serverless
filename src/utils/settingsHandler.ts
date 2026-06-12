@@ -124,6 +124,23 @@ function mergeProviderConfigsByConnection(
   return merged;
 }
 
+function normalizeAllProviderConfigs(config: Config): Config {
+  const normalizedConfig = cloneConfig(config);
+
+  for (const providerId of VALID_PROVIDERS) {
+    const providerConfigs = Array.isArray(
+        normalizedConfig[providerId as keyof Config],
+      )
+      ? normalizedConfig[providerId as keyof Config] as ProviderConfig[]
+      : [];
+
+    (normalizedConfig as unknown as Record<string, unknown>)[providerId] =
+      mergeProviderConfigsByConnection([], providerConfigs);
+  }
+
+  return normalizedConfig;
+}
+
 function getRequestApiKey(c: Context): string {
   const authorization = c.req.header("Authorization");
   if (authorization) {
@@ -248,7 +265,7 @@ export async function handleSettingsPost(c: Context) {
       );
     }
 
-    const normalizedConfig = cloneConfig(newConfig);
+    const normalizedConfig = normalizeAllProviderConfigs(newConfig);
     normalizedConfig.model_priority = normalizeModelPriority(
       normalizedConfig.model_priority,
     ) as Config["model_priority"];
