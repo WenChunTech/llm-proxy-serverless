@@ -40,42 +40,85 @@ function hasOwnProperty(value: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
 
-function providerConfigFingerprint(config: ProviderConfig): string {
-  const normalized = JSON.stringify(sortObjectKeys(config));
-  return normalized;
+function normalizeModelList(models: string[]): string[] {
+  const seen = new Set<string>();
+  return models
+    .map((model) => model.trim())
+    .filter((model) => {
+      if (!model || seen.has(model)) {
+        return false;
+      }
+      seen.add(model);
+      return true;
+    });
 }
 
-function sortObjectKeys(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(sortObjectKeys);
+function getProviderMergeKey(config: ProviderConfig): string | null {
+  if ("base_url" in config && "api_key" in config) {
+    const baseUrl = typeof config.base_url === "string"
+      ? config.base_url.trim()
+      : "";
+    const apiKey = typeof config.api_key === "string"
+      ? config.api_key.trim()
+      : "";
+    return `${baseUrl}::${apiKey}`;
   }
 
-  if (value && typeof value === "object") {
-    return Object.keys(value as Record<string, unknown>)
-      .sort()
-      .reduce<Record<string, unknown>>((result, key) => {
-        result[key] = sortObjectKeys((value as Record<string, unknown>)[key]);
-        return result;
-      }, {});
-  }
-
-  return value;
+  return null;
 }
 
-function mergeUniqueProviderConfigs(
+function mergeProviderConfig(
+  existing: ProviderConfig,
+  incoming: ProviderConfig,
+): ProviderConfig {
+  return {
+    ...existing,
+    ...incoming,
+    models: normalizeModelList([
+      ...(Array.isArray(existing.models) ? existing.models : []),
+      ...(Array.isArray(incoming.models) ? incoming.models : []),
+    ]),
+  } as ProviderConfig;
+}
+
+function mergeProviderConfigsByConnection(
   existing: ProviderConfig[],
   incoming: ProviderConfig[],
 ): ProviderConfig[] {
-  const fingerprints = new Set(existing.map(providerConfigFingerprint));
   const merged = [...existing];
+  const keyedIndex = new Map<string, number>();
+
+  merged.forEach((config, index) => {
+    const key = getProviderMergeKey(config);
+    if (key) {
+      keyedIndex.set(key, index);
+    }
+  });
 
   for (const config of incoming) {
-    const fingerprint = providerConfigFingerprint(config);
-    if (fingerprints.has(fingerprint)) {
+    const mergeKey = getProviderMergeKey(config);
+    if (!mergeKey) {
+      merged.push({
+        ...config,
+        models: normalizeModelList(config.models || []),
+      } as ProviderConfig);
       continue;
     }
-    fingerprints.add(fingerprint);
-    merged.push(config);
+
+    const existingIndex = keyedIndex.get(mergeKey);
+    if (existingIndex === undefined) {
+      merged.push({
+        ...config,
+        models: normalizeModelList(config.models || []),
+      } as ProviderConfig);
+      keyedIndex.set(mergeKey, merged.length - 1);
+      continue;
+    }
+
+    merged[existingIndex] = mergeProviderConfig(
+      merged[existingIndex],
+      config,
+    );
   }
 
   return merged;
@@ -547,7 +590,7 @@ export async function handleImportSettings(c: Context) {
         : [];
 
       (updatedConfig as unknown as Record<string, unknown>)[providerId] =
-        mergeUniqueProviderConfigs(
+        mergeProviderConfigsByConnection(
           existingProviderConfigs,
           selectedConfigs,
         );
