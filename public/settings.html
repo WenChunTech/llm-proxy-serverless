@@ -569,7 +569,7 @@
             <div class="pt-4 flex flex-wrap gap-3">
               <button
                 id="addFallbackButton"
-                onclick="addFallbackMapping()"
+                onclick="openFallbackPickerModal()"
                 class="btn-primary text-white px-5 py-3 rounded-full"
               >
                 + Add Fallback Mapping
@@ -659,6 +659,70 @@
           <button
             id="importConfigCancel"
             onclick="closeImportConfigModal()"
+            class="btn-secondary text-white px-4 py-3 rounded-full flex-1"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="fallbackPickerModal" class="modal">
+      <div class="modal-content">
+        <h2 id="fallbackPickerTitle" class="text-3xl font-bold mb-4">
+          Select Fallback Models
+        </h2>
+        <p id="fallbackPickerDescription" class="muted mb-5">
+          Choose one or more models from the current configuration.
+        </p>
+
+        <div class="space-y-4">
+          <input
+            type="text"
+            id="fallbackPickerSearch"
+            class="form-input"
+            placeholder="Search models"
+            oninput="filterFallbackPickerOptions()"
+          />
+          <div class="flex flex-wrap gap-3">
+            <button
+              type="button"
+              id="fallbackPickerSelectVisible"
+              onclick="setVisibleFallbackPickerOptionsChecked(true)"
+              class="btn-secondary text-white px-3 py-2 rounded-full"
+            >
+              Select Visible
+            </button>
+            <button
+              type="button"
+              id="fallbackPickerClearVisible"
+              onclick="setVisibleFallbackPickerOptionsChecked(false)"
+              class="btn-secondary text-white px-3 py-2 rounded-full"
+            >
+              Clear Visible
+            </button>
+          </div>
+          <div
+            id="fallbackPickerOptions"
+            class="max-h-72 overflow-y-auto rounded-[1.25rem] border border-gray-700/60 p-2 space-y-2"
+          ></div>
+          <p
+            id="fallbackPickerEmptyState"
+            class="hidden text-sm text-gray-400"
+          ></p>
+        </div>
+
+        <div class="flex flex-col gap-3 sm:flex-row mt-6">
+          <button
+            id="fallbackPickerSubmit"
+            onclick="submitFallbackPicker()"
+            class="btn-primary text-white px-4 py-3 rounded-full flex-1"
+          >
+            Add Selected Models
+          </button>
+          <button
+            id="fallbackPickerCancel"
+            onclick="closeFallbackPickerModal()"
             class="btn-secondary text-white px-4 py-3 rounded-full flex-1"
           >
             Cancel
@@ -774,9 +838,23 @@
           importConfigSuccess: "Config imported successfully!",
           importConfigFailed: "Failed to import config: {message}",
           importNoSelection: "Select at least one item to import.",
+          fallbackPickerTitle: "Select Fallback Models",
+          fallbackPickerDescription:
+            "Choose one or more models from the current configuration.",
+          fallbackPickerSearchPlaceholder: "Search models",
+          fallbackPickerSelectVisible: "Select Visible",
+          fallbackPickerClearVisible: "Clear Visible",
+          fallbackPickerSubmit: "Add Selected Models",
+          fallbackPickerCancel: "Cancel",
+          fallbackPickerEmpty:
+            "No models are available in the current configuration.",
+          fallbackPickerNoMatch:
+            "No models match the current filter.",
+          fallbackPickerNoSelection:
+            "Select at least one fallback model.",
           fallbackListDescription:
             "Configure a global fallback model list. Requests will try the next model in this list when the current one fails.",
-          addFallbackModelButton: "+ Add Fallback Model",
+          addFallbackModelButton: "+ Select Fallback Models",
           fallbackListEmpty: "No fallback models configured yet.",
           fallbackPriorityHint: "Drag to reorder global fallback priority.",
           providerTypeLabel: "Provider Type",
@@ -918,9 +996,19 @@
           importConfigSuccess: "配置导入成功！",
           importConfigFailed: "导入配置失败：{message}",
           importNoSelection: "请至少选择一项导入内容。",
+          fallbackPickerTitle: "选择回退模型",
+          fallbackPickerDescription: "从当前配置中选择一个或多个模型。",
+          fallbackPickerSearchPlaceholder: "搜索模型",
+          fallbackPickerSelectVisible: "选择当前可见项",
+          fallbackPickerClearVisible: "清空当前可见项",
+          fallbackPickerSubmit: "添加所选模型",
+          fallbackPickerCancel: "取消",
+          fallbackPickerEmpty: "当前配置中没有可用模型。",
+          fallbackPickerNoMatch: "当前筛选条件下没有模型。",
+          fallbackPickerNoSelection: "请至少选择一个回退模型。",
           fallbackListDescription:
             "配置全局回退模型列表。当前模型失败时，会继续尝试列表中的下一个模型。",
-          addFallbackModelButton: "+ 添加回退模型",
+          addFallbackModelButton: "+ 选择回退模型",
           fallbackListEmpty: "还没有配置回退模型。",
           fallbackPriorityHint: "拖拽调整全局回退优先级。",
           providerTypeLabel: "提供商类型",
@@ -1178,6 +1266,31 @@
         setText("importConfigDescription", t("importConfigDescription"));
         setText("importConfigSubmit", t("importConfigSubmit"));
         setText("importConfigCancel", t("importConfigCancel"));
+        setText("fallbackPickerTitle", t("fallbackPickerTitle"));
+        setText(
+          "fallbackPickerDescription",
+          t("fallbackPickerDescription"),
+        );
+        setPlaceholder(
+          "fallbackPickerSearch",
+          t("fallbackPickerSearchPlaceholder"),
+        );
+        setText(
+          "fallbackPickerSelectVisible",
+          t("fallbackPickerSelectVisible"),
+        );
+        setText(
+          "fallbackPickerClearVisible",
+          t("fallbackPickerClearVisible"),
+        );
+        setText("fallbackPickerSubmit", t("fallbackPickerSubmit"));
+        setText("fallbackPickerCancel", t("fallbackPickerCancel"));
+        const fallbackPickerEmptyState = document.getElementById(
+          "fallbackPickerEmptyState",
+        );
+        if (fallbackPickerEmptyState) {
+          fallbackPickerEmptyState.textContent = t("fallbackPickerNoMatch");
+        }
         setText("providerTypeLabel", t("providerTypeLabel"));
         setText(
           "providerTypePlaceholder",
@@ -1524,6 +1637,157 @@
           : [];
       }
 
+      function getAvailableModelsForFallbackPicker() {
+        const models = [];
+        const seen = new Set();
+
+        VISIBLE_PROVIDERS.forEach((provider) => {
+          const configs = Array.isArray(config?.[provider]) ? config[provider] : [];
+          configs.forEach((cfg) => {
+            const modelList = Array.isArray(cfg?.models) ? cfg.models : [];
+            modelList.forEach((model) => {
+              const normalized = String(model || "").trim();
+              if (!normalized || seen.has(normalized)) {
+                return;
+              }
+              seen.add(normalized);
+              models.push(normalized);
+            });
+          });
+        });
+
+        return models.sort((a, b) => a.localeCompare(b));
+      }
+
+      function pruneUnavailableFallbackModels(showAlert = false) {
+        const availableModels = new Set(getAvailableModelsForFallbackPicker());
+        const currentFallbackModels = getFallbackModelsForEditor();
+        const nextFallbackModels = currentFallbackModels.filter((model) =>
+          availableModels.has(model)
+        );
+
+        if (nextFallbackModels.length !== currentFallbackModels.length) {
+          config.fallback_models = nextFallbackModels;
+          if (showAlert) {
+            showAlert(t("fallbackRemovedPending"), "success");
+          }
+          return true;
+        }
+
+        return false;
+      }
+
+      function renderFallbackPickerOptions() {
+        const container = document.getElementById("fallbackPickerOptions");
+        const emptyState = document.getElementById("fallbackPickerEmptyState");
+        if (!container || !emptyState) return;
+
+        const availableModels = getAvailableModelsForFallbackPicker();
+        if (availableModels.length === 0) {
+          container.innerHTML = "";
+          emptyState.textContent = t("fallbackPickerEmpty");
+          emptyState.classList.remove("hidden");
+          return;
+        }
+
+        container.innerHTML = availableModels.map((model) => `
+          <label
+            data-fallback-picker-option="${escapeHtml(model)}"
+            class="flex cursor-pointer items-center gap-3 rounded-[1rem] border border-gray-700/60 px-3 py-2 transition hover:border-indigo-400"
+          >
+            <input
+              type="checkbox"
+              value="${escapeHtml(model)}"
+            />
+            <span class="font-mono text-sm break-all">${escapeHtml(model)}</span>
+          </label>
+        `).join("");
+
+        emptyState.textContent = t("fallbackPickerNoMatch");
+        emptyState.classList.add("hidden");
+        filterFallbackPickerOptions();
+      }
+
+      function openFallbackPickerModal() {
+        renderFallbackPickerOptions();
+        document.getElementById("fallbackPickerSearch").value = "";
+        filterFallbackPickerOptions();
+        document.getElementById("fallbackPickerModal").classList.add("active");
+      }
+
+      function closeFallbackPickerModal() {
+        document.getElementById("fallbackPickerModal").classList.remove("active");
+      }
+
+      function filterFallbackPickerOptions() {
+        const keyword =
+          document.getElementById("fallbackPickerSearch")?.value.trim()
+            .toLowerCase() || "";
+        const items = Array.from(
+          document.querySelectorAll(
+            "#fallbackPickerOptions [data-fallback-picker-option]",
+          ),
+        );
+        const emptyState = document.getElementById("fallbackPickerEmptyState");
+
+        if (items.length === 0) {
+          return;
+        }
+
+        let visibleCount = 0;
+        items.forEach((item) => {
+          const model = item.dataset.fallbackPickerOption || "";
+          const matched = model.toLowerCase().includes(keyword);
+          item.classList.toggle("hidden", !matched);
+          if (matched) {
+            visibleCount += 1;
+          }
+        });
+
+        if (emptyState) {
+          emptyState.textContent = visibleCount > 0
+            ? t("fallbackPickerNoMatch")
+            : t("fallbackPickerNoMatch");
+          emptyState.classList.toggle("hidden", visibleCount > 0);
+        }
+      }
+
+      function setVisibleFallbackPickerOptionsChecked(checked) {
+        const items = Array.from(
+          document.querySelectorAll(
+            "#fallbackPickerOptions [data-fallback-picker-option]",
+          ),
+        );
+
+        items.forEach((item) => {
+          if (item.classList.contains("hidden")) return;
+          const checkbox = item.querySelector('input[type="checkbox"]');
+          if (checkbox) {
+            checkbox.checked = checked;
+          }
+        });
+      }
+
+      function submitFallbackPicker() {
+        const selectedModels = Array.from(
+          document.querySelectorAll(
+            '#fallbackPickerOptions input[type="checkbox"]:checked',
+          ),
+        ).map((input) => input.value);
+
+        if (selectedModels.length === 0) {
+          showAlert(t("fallbackPickerNoSelection"), "error");
+          return;
+        }
+
+        config.fallback_models = normalizeFallbackModels([
+          ...getFallbackModelsForEditor(),
+          ...selectedModels,
+        ]);
+        closeFallbackPickerModal();
+        renderFallback();
+      }
+
       function renderFallback() {
         const container = document.getElementById("fallback-container");
         container.innerHTML = "";
@@ -1553,12 +1817,11 @@
               <label class="form-label text-sm">${
             escapeHtml(t("fallbackModelLabel"))
           }</label>
-              <input
-                type="text"
-                value="${escapeHtml(model)}"
-                class="form-input fallback-model-input"
-                oninput="updateFallbackModel(${index}, this.value)"
-              />
+              <div class="form-input flex items-center min-h-[3rem]">
+                <span class="font-mono text-sm break-all">${
+            escapeHtml(model)
+          }</span>
+              </div>
             </div>
             <div class="fallback-actions flex">
               <button
@@ -2437,6 +2700,7 @@
 
         try {
           config[provider][index] = buildProviderConfigFromForm();
+          pruneUnavailableFallbackModels();
         } catch (error) {
           showAlert(
             t("genericError", {
@@ -2449,6 +2713,7 @@
           return;
         }
         renderProviders();
+        renderFallback();
         closeAddProviderModal();
         showAlert(t("providerUpdatedPending"), "success");
       }
@@ -2477,6 +2742,7 @@
           return;
         }
         renderProviders();
+        renderFallback();
         closeAddProviderModal();
         showAlert(t("providerAddedPending"), "success");
       }
@@ -2494,7 +2760,9 @@
         ) {
           providerArray.splice(index, 1);
           setConfig(updatedConfig);
+          pruneUnavailableFallbackModels();
           renderProviders();
+          renderFallback();
           showAlert(t("providerRemovedPending"), "success");
         } else {
           showAlert(t("invalidProviderOrIndex"), "error");
@@ -2747,15 +3015,6 @@
         }
       }
 
-      function updateFallbackModel(index, value) {
-        const fallbackModels = getFallbackModelsForEditor();
-        if (index < 0 || index >= fallbackModels.length) {
-          return;
-        }
-        fallbackModels[index] = value;
-        config.fallback_models = fallbackModels;
-      }
-
       async function saveProviders() {
         const button = event?.currentTarget || null;
         setButtonSavingState(button, true, "saveProvidersButton");
@@ -2919,18 +3178,7 @@
         }
       }
 
-      function addFallbackMapping() {
-        const fallbackModels = getFallbackModelsForEditor();
-        fallbackModels.push("");
-        config.fallback_models = fallbackModels;
-        renderFallback();
-      }
-
       function deleteFallbackMapping(index) {
-        if (!confirm(t("deleteFallbackConfirm"))) {
-          return;
-        }
-
         const fallbackModels = getFallbackModelsForEditor();
         if (index >= 0 && index < fallbackModels.length) {
           fallbackModels.splice(index, 1);
