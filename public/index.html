@@ -137,8 +137,54 @@
         gap: 0.75rem;
       }
 
+      .responsive-actions {
+        width: 100%;
+      }
+
+      .hero-grid,
+      .split-panel-grid,
+      .provider-chip-list,
+      .example-tab-list,
+      .compat-row-grid {
+        min-width: 0;
+      }
+
+      .compat-endpoint {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
       .footer-note {
         color: var(--muted);
+      }
+
+      @media (max-width: 767px) {
+        .responsive-actions > * {
+          flex: 1 1 calc(50% - 0.375rem);
+          min-height: 2.75rem;
+          justify-content: center;
+        }
+
+        .hero-title {
+          font-size: clamp(2.5rem, 13vw, 4.5rem);
+        }
+      }
+
+      @media (max-width: 639px) {
+        .responsive-actions > * {
+          flex-basis: 100%;
+        }
+
+        .example-tab-list > * {
+          flex: 1 1 calc(50% - 0.375rem);
+          justify-content: center;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .example-tab-list > * {
+          flex-basis: 100%;
+        }
       }
     </style>
     <script>
@@ -151,8 +197,8 @@
     <div class="page-shell">
       <div class="max-w-7xl mx-auto px-4 py-8 md:px-6 lg:px-8">
         <header class="mb-10 md:mb-16">
-          <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
-            <div class="flex items-center gap-3">
+          <div class="flex flex-col gap-4 mb-8 md:flex-row md:items-center md:justify-between">
+            <div class="flex flex-wrap items-center gap-3">
               <div class="panel rounded-full px-4 py-2 text-sm font-medium">
                 <span class="display-font">LLM Proxy</span>
               </div>
@@ -162,7 +208,7 @@
               >
               </div>
             </div>
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="responsive-actions flex flex-wrap items-stretch gap-3 md:w-auto md:justify-end">
               <a
                 id="settingsLink"
                 href="/settings.html"
@@ -191,10 +237,10 @@
           </div>
 
           <div
-            class="grid gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] lg:items-stretch"
+            class="hero-grid grid gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] lg:items-stretch"
           >
             <section
-              class="panel-strong accent-pulse rounded-[2rem] p-8 md:p-10"
+              class="panel-strong accent-pulse rounded-[2rem] p-6 md:p-10"
             >
               <p
                 id="heroKicker"
@@ -229,11 +275,14 @@
               <div class="marker-line mb-6"></div>
 
               <p id="supportLabel" class="muted text-sm mb-4"></p>
-              <div id="providerChips" class="flex flex-wrap gap-3"></div>
+              <div
+                id="providerChips"
+                class="provider-chip-list flex flex-wrap gap-3"
+              ></div>
             </section>
 
-            <aside class="panel rounded-[2rem] p-8 md:p-10">
-              <div class="flex items-center justify-between gap-4 mb-6">
+            <aside class="panel rounded-[2rem] p-6 md:p-10">
+              <div class="flex flex-col items-start justify-between gap-4 mb-6 sm:flex-row sm:items-center">
                 <h2 id="heroChecklistTitle" class="text-2xl font-bold"></h2>
                 <div
                   id="liveBadge"
@@ -273,9 +322,9 @@
 
         <section class="mb-14 md:mb-20">
           <div
-            class="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]"
+            class="split-panel-grid grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]"
           >
-            <div class="panel rounded-[2rem] p-8">
+            <div class="panel rounded-[2rem] p-6 md:p-8">
               <p
                 id="routingKicker"
                 class="text-sm uppercase tracking-[0.26em] secondary-text mb-3"
@@ -289,7 +338,7 @@
               <p id="routingIntro" class="muted text-lg mb-8"></p>
               <div id="workflowGrid" class="grid gap-4 md:grid-cols-2"></div>
             </div>
-            <div class="panel rounded-[2rem] p-8">
+            <div class="panel rounded-[2rem] p-6 md:p-8">
               <p
                 id="opsKicker"
                 class="text-sm uppercase tracking-[0.26em] accent-text mb-3"
@@ -336,7 +385,7 @@
           </div>
 
           <div class="panel rounded-[2rem] p-5 md:p-6">
-            <div class="flex flex-wrap gap-3 mb-4">
+            <div class="example-tab-list flex flex-wrap gap-3 mb-4">
               <button
                 id="tabOpenai"
                 type="button"
@@ -1148,12 +1197,12 @@
           t("compatRows"),
           (item) =>
             `<div class="compat-row panel rounded-[1.5rem] p-5 md:p-6">
-            <div class="grid gap-4 md:grid-cols-[minmax(220px,0.9fr)_minmax(150px,0.45fr)_minmax(0,1.4fr)] md:items-start">
+            <div class="compat-row-grid grid gap-4 md:grid-cols-[minmax(220px,0.9fr)_minmax(150px,0.45fr)_minmax(0,1.4fr)] md:items-start">
               <div>
                 <p class="text-xs uppercase tracking-[0.2em] accent-text mb-2">${
               escapeHtml(t("compatEndpointLabel"))
             }</p>
-                <p class="display-font text-lg font-bold">${
+                <p class="compat-endpoint display-font text-lg font-bold">${
               escapeHtml(item.endpoint)
             }</p>
               </div>

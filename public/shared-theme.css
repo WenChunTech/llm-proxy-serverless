@@ -39,11 +39,21 @@ html.dark {
 html {
   font-family: "IBM Plex Sans", sans-serif;
   scroll-behavior: smooth;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
+  max-width: 100%;
+  overflow-x: hidden;
   color: var(--text);
   background:
     radial-gradient(
@@ -81,6 +91,8 @@ h3,
 .page-shell {
   position: relative;
   z-index: 1;
+  width: 100%;
+  overflow-x: clip;
 }
 
 .panel {
@@ -119,6 +131,8 @@ h3,
 .btn-danger {
   border: 1px solid transparent;
   font-weight: 600;
+  white-space: normal;
+  text-align: center;
   transition:
     transform 0.2s ease,
     background-color 0.2s ease,
@@ -197,4 +211,28 @@ html.dark .form-input {
 
 .secondary-text {
   color: var(--secondary);
+}
+
+.panel,
+.panel-strong,
+.top-action,
+.top-badge,
+.form-input,
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  html {
+    font-size: 16px;
+  }
+
+  .top-action,
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
+    justify-content: center;
+  }
 }

@@ -11,6 +11,7 @@ import { authMiddleware } from "./middleware/auth.ts";
 import {
   handleAddProvider,
   handleFetchProviderModels,
+  handleImportSettings,
   handleRemoveProvider,
   handleSetFallbackModel,
   handleSettingsGet,
@@ -91,6 +92,10 @@ app.post("/api/settings/provider/models", async (c) => {
 
 app.post("/api/settings/provider/remove", async (c) => {
   return handleRemoveProvider(c);
+});
+
+app.post("/api/settings/import", async (c) => {
+  return handleImportSettings(c);
 });
 
 app.post("/api/settings/model-priority", async (c) => {

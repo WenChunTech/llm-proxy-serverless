@@ -92,10 +92,6 @@ export interface CodexConfig extends ProviderConfigBase {
   base_url?: string;
 }
 
-export interface FallbackModelMap {
-  [model: string]: string;
-}
-
 export type ProviderPriority =
   | "gemini_cli"
   | "codex"
@@ -117,5 +113,5 @@ export interface Config {
   iflow: IFlowConfig[];
   codex: CodexConfig[];
   model_priority: ProviderPriority[];
-  fallback_models?: FallbackModelMap;
+  fallback_models?: string[];
 }
