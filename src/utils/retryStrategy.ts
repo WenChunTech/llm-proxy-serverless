@@ -1,5 +1,4 @@
 import { appConfig } from "../config.ts";
-import { FallbackModelMap } from "../types/config.ts";
 import {
   getProviderConfigsById,
   getProviderDescriptor,
@@ -17,11 +16,30 @@ export interface RetryState {
 
 export const MAX_RETRIES = 15;
 
+export function getNormalizedFallbackList(fallbackModels?: string[]): string[] {
+  if (!Array.isArray(fallbackModels)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  return fallbackModels
+    .map((model) => model.trim())
+    .filter((model) => {
+      if (!model || seen.has(model)) {
+        return false;
+      }
+      seen.add(model);
+      return true;
+    });
+}
+
 export function getFallbackModel(model: string): string | undefined {
-  const fallbackModels = appConfig.fallback_models as
-    | FallbackModelMap
-    | undefined;
-  return fallbackModels?.[model];
+  const fallbackModels = getNormalizedFallbackList(appConfig.fallback_models);
+  const currentIndex = fallbackModels.indexOf(model);
+  if (currentIndex < 0 || currentIndex >= fallbackModels.length - 1) {
+    return undefined;
+  }
+  return fallbackModels[currentIndex + 1];
 }
 
 export function getFallbackChain(model: string): string[] {

@@ -4,6 +4,82 @@ import { Buffer } from "node:buffer";
 import { appConfig, updateConfig } from "../config.ts";
 import { Config } from "../types/config.ts";
 import { logger } from "./logger.ts";
+import {
+  getProviderDescriptors,
+  normalizeModelPriority,
+  type ProviderConfig,
+  type ProviderId,
+} from "../providers/registry.ts";
+
+const VALID_PROVIDERS = getProviderDescriptors().map((descriptor) => descriptor.id);
+
+function cloneConfig(config: Config): Config {
+  return JSON.parse(JSON.stringify(config));
+}
+
+function normalizeFallbackConfig(
+  fallbackModels?: string[],
+): string[] {
+  if (!Array.isArray(fallbackModels)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  return fallbackModels
+    .map((model) => model.trim())
+    .filter((model) => {
+      if (!model || seen.has(model)) {
+        return false;
+      }
+      seen.add(model);
+      return true;
+    });
+}
+
+function hasOwnProperty(value: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function providerConfigFingerprint(config: ProviderConfig): string {
+  const normalized = JSON.stringify(sortObjectKeys(config));
+  return normalized;
+}
+
+function sortObjectKeys(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(sortObjectKeys);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.keys(value as Record<string, unknown>)
+      .sort()
+      .reduce<Record<string, unknown>>((result, key) => {
+        result[key] = sortObjectKeys((value as Record<string, unknown>)[key]);
+        return result;
+      }, {});
+  }
+
+  return value;
+}
+
+function mergeUniqueProviderConfigs(
+  existing: ProviderConfig[],
+  incoming: ProviderConfig[],
+): ProviderConfig[] {
+  const fingerprints = new Set(existing.map(providerConfigFingerprint));
+  const merged = [...existing];
+
+  for (const config of incoming) {
+    const fingerprint = providerConfigFingerprint(config);
+    if (fingerprints.has(fingerprint)) {
+      continue;
+    }
+    fingerprints.add(fingerprint);
+    merged.push(config);
+  }
+
+  return merged;
+}
 
 function getRequestApiKey(c: Context): string {
   const authorization = c.req.header("Authorization");
@@ -116,8 +192,28 @@ export async function handleSettingsPost(c: Context) {
       );
     }
 
-    // Update config
-    await updateConfig(newConfig);
+    if (
+      hasOwnProperty(body.config, "fallback_models") &&
+      !Array.isArray(body.config.fallback_models)
+    ) {
+      return c.json(
+        {
+          success: false,
+          error: "fallback_models must be an array",
+        },
+        400,
+      );
+    }
+
+    const normalizedConfig = cloneConfig(newConfig);
+    normalizedConfig.model_priority = normalizeModelPriority(
+      normalizedConfig.model_priority,
+    ) as Config["model_priority"];
+    normalizedConfig.fallback_models = normalizeFallbackConfig(
+      normalizedConfig.fallback_models,
+    );
+
+    await updateConfig(normalizedConfig);
 
     return c.json({
       success: true,
@@ -144,18 +240,7 @@ export async function handleAddProvider(c: Context) {
     const body = await c.req.json();
     const { provider, config } = body;
 
-    const validProviders = [
-      "gemini_cli",
-      "gemini",
-      "qwen",
-      "openai_chat",
-      "openai_responses",
-      "claude",
-      "iflow",
-      "codex",
-    ];
-
-    if (!validProviders.includes(provider)) {
+    if (!VALID_PROVIDERS.includes(provider as ProviderId)) {
       return c.json(
         {
           success: false,
@@ -206,18 +291,7 @@ export async function handleRemoveProvider(c: Context) {
     const body = await c.req.json();
     const { provider, index } = body;
 
-    const validProviders = [
-      "gemini_cli",
-      "gemini",
-      "qwen",
-      "openai_chat",
-      "openai_responses",
-      "claude",
-      "iflow",
-      "codex",
-    ];
-
-    if (!validProviders.includes(provider)) {
+    if (!VALID_PROVIDERS.includes(provider as ProviderId)) {
       return c.json(
         {
           success: false,
@@ -367,8 +441,9 @@ export async function handleUpdateModelPriority(c: Context) {
       );
     }
 
-    const updatedConfig = { ...appConfig };
-    updatedConfig.model_priority = priority;
+    const updatedConfig = cloneConfig(appConfig);
+    updatedConfig.model_priority = normalizeModelPriority(priority) as
+      Config["model_priority"];
     await updateConfig(updatedConfig);
 
     return c.json({
@@ -388,6 +463,115 @@ export async function handleUpdateModelPriority(c: Context) {
   }
 }
 
+export async function handleImportSettings(c: Context) {
+  try {
+    const auth = checkAuth(c);
+    if (!auth.ok) return auth.response;
+
+    const body = await c.req.json();
+    const incomingConfig = body?.config as Partial<Config> | undefined;
+    const selectedProviders = Array.isArray(body?.providers)
+      ? body.providers
+      : [];
+    const importGlobalApiKey = body?.importGlobalApiKey === true;
+    const importModelPriority = body?.importModelPriority === true;
+    const importFallbackModels = body?.importFallbackModels === true;
+
+    if (!incomingConfig || typeof incomingConfig !== "object") {
+      return c.json(
+        {
+          success: false,
+          error: "Config is required",
+        },
+        400,
+      );
+    }
+
+    if (
+      hasOwnProperty(incomingConfig, "fallback_models") &&
+      !Array.isArray(incomingConfig.fallback_models)
+    ) {
+      return c.json(
+        {
+          success: false,
+          error: "fallback_models must be an array",
+        },
+        400,
+      );
+    }
+
+    const updatedConfig = cloneConfig(appConfig);
+
+    if (importGlobalApiKey && typeof incomingConfig.api_key === "string") {
+      updatedConfig.api_key = incomingConfig.api_key;
+    }
+
+    if (importModelPriority && Array.isArray(incomingConfig.model_priority)) {
+      updatedConfig.model_priority = normalizeModelPriority(
+        incomingConfig.model_priority,
+      ) as Config["model_priority"];
+    }
+
+    if (importFallbackModels) {
+      updatedConfig.fallback_models = normalizeFallbackConfig(
+        incomingConfig.fallback_models,
+      );
+    }
+
+    for (const selection of selectedProviders) {
+      const providerId = selection?.provider;
+      const indices = Array.isArray(selection?.indices)
+        ? selection.indices.filter((index: unknown) =>
+          Number.isInteger(index) && Number(index) >= 0
+        ).map(Number)
+        : [];
+
+      if (!VALID_PROVIDERS.includes(providerId)) {
+        continue;
+      }
+
+      const importedProviderConfigs = Array.isArray(
+          incomingConfig[providerId as keyof Config],
+        )
+        ? incomingConfig[providerId as keyof Config] as ProviderConfig[]
+        : [];
+
+      const selectedConfigs = importedProviderConfigs.filter((_, index) =>
+        indices.includes(index)
+      );
+
+      const existingProviderConfigs = Array.isArray(
+          updatedConfig[providerId as keyof Config],
+        )
+        ? updatedConfig[providerId as keyof Config] as ProviderConfig[]
+        : [];
+
+      (updatedConfig as unknown as Record<string, unknown>)[providerId] =
+        mergeUniqueProviderConfigs(
+          existingProviderConfigs,
+          selectedConfigs,
+        );
+    }
+
+    await updateConfig(updatedConfig);
+
+    return c.json({
+      success: true,
+      message: "Settings imported successfully",
+      data: appConfig,
+    });
+  } catch (error) {
+    logger.error("Failed to import settings:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to import settings: " + String(error),
+      },
+      500,
+    );
+  }
+}
+
 export async function handleSetFallbackModel(c: Context) {
   try {
     const auth = checkAuth(c);
@@ -396,16 +580,44 @@ export async function handleSetFallbackModel(c: Context) {
     const body = await c.req.json();
     const { model, fallbackModel } = body;
 
-    const updatedConfig = { ...appConfig };
-    if (!updatedConfig.fallback_models) {
-      updatedConfig.fallback_models = {};
-    }
+    const updatedConfig = cloneConfig(appConfig);
+    const fallbackList = normalizeFallbackConfig(updatedConfig.fallback_models);
+    const currentIndex = fallbackList.indexOf(model);
 
     if (fallbackModel === null || fallbackModel === undefined) {
-      delete updatedConfig.fallback_models[model];
+      if (currentIndex >= 0) {
+        fallbackList.splice(currentIndex, 1);
+      }
     } else {
-      updatedConfig.fallback_models[model] = fallbackModel;
+      const nextModel = String(fallbackModel).trim();
+      if (!nextModel) {
+        return c.json(
+          {
+            success: false,
+            error: "fallbackModel must not be empty",
+          },
+          400,
+        );
+      }
+
+      const deduped = fallbackList.filter((item) =>
+        item !== model && item !== nextModel
+      );
+      const insertIndex = currentIndex >= 0
+        ? Math.min(currentIndex, deduped.length)
+        : deduped.length;
+      deduped.splice(insertIndex, 0, model, nextModel);
+      updatedConfig.fallback_models = deduped;
+      await updateConfig(updatedConfig);
+
+      return c.json({
+        success: true,
+        message: "Fallback model updated successfully",
+        data: appConfig,
+      });
     }
+
+    updatedConfig.fallback_models = fallbackList;
 
     await updateConfig(updatedConfig);
 

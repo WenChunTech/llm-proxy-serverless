@@ -207,10 +207,106 @@
         color: var(--text);
       }
 
+      .page-actions,
+      .tab-strip,
+      .provider-entry,
+      .provider-entry-main,
+      .provider-entry-actions,
+      .priority-item,
+      .fallback-row,
+      .fallback-actions {
+        min-width: 0;
+      }
+
+      .provider-card h3,
+      .provider-entry p,
+      .priority-item span,
+      .fallback-row input,
+      .fallback-row label {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
       @media (max-width: 640px) {
         .modal-content {
           padding: 1.5rem;
           border-radius: 1.5rem;
+          width: calc(100vw - 1.5rem);
+          max-height: calc(100vh - 1.5rem);
+        }
+
+        .toast-stack {
+          left: 0.75rem;
+          right: 0.75rem;
+          bottom: 0.75rem;
+          align-items: stretch;
+        }
+
+        .toast-stack .alert {
+          min-width: 0;
+        }
+
+        .tab-strip {
+          border-radius: 1.5rem;
+        }
+
+        .tab-button {
+          flex: 1 1 calc(50% - 0.25rem);
+          text-align: center;
+        }
+
+        .page-actions > * {
+          flex: 1 1 100%;
+          justify-content: center;
+          min-height: 2.75rem;
+        }
+
+        .provider-entry {
+          flex-direction: column;
+          gap: 0.875rem;
+        }
+
+        .provider-entry-main {
+          width: 100%;
+        }
+
+        .provider-entry-actions {
+          width: 100%;
+        }
+
+        .provider-entry-actions > * {
+          flex: 1 1 0;
+          justify-content: center;
+        }
+
+        .priority-item {
+          gap: 0.75rem;
+          align-items: flex-start;
+        }
+
+        .priority-item button {
+          align-self: stretch;
+        }
+
+        .fallback-row {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 1rem;
+        }
+
+        .fallback-actions {
+          width: 100%;
+        }
+
+        .fallback-actions > * {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .tab-button {
+          flex-basis: 100%;
         }
       }
     </style>
@@ -283,7 +379,7 @@
                 LLM Proxy Settings
               </h1>
             </div>
-            <div class="flex flex-wrap items-center gap-3">
+            <div class="page-actions flex flex-wrap items-stretch gap-3">
               <a
                 id="backToHomeLink"
                 href="/"
@@ -364,11 +460,26 @@
                   >
                     Download Config JSON
                   </button>
+                  <button
+                    id="importConfigButton"
+                    onclick="openImportConfigDialog()"
+                    class="btn-secondary text-white px-5 py-3 rounded-full"
+                  >
+                    Import Config JSON
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </section>
+
+        <input
+          type="file"
+          id="importConfigFileInput"
+          accept="application/json,.json"
+          style="display: none"
+          onchange="handleImportConfigFileSelected(event)"
+        />
 
         <!-- Tabs -->
         <div class="tab-strip mb-8 flex flex-wrap gap-2">
@@ -498,14 +609,10 @@
             <option id="providerTypePlaceholder" value="">
               Select a provider...
             </option>
-            <option value="gemini_cli">Gemini CLI</option>
             <option value="gemini">Gemini</option>
-            <option value="qwen">Qwen</option>
             <option value="openai_chat">OpenAI Chat</option>
             <option value="openai_responses">OpenAI Responses</option>
             <option value="claude">Claude</option>
-            <option value="iflow">IFlow</option>
-            <option value="codex">Codex</option>
           </select>
         </div>
 
@@ -530,23 +637,81 @@
       </div>
     </div>
 
+    <div id="importConfigModal" class="modal">
+      <div class="modal-content">
+        <h2 id="importConfigModalTitle" class="text-3xl font-bold mb-4">
+          Import Config
+        </h2>
+        <p id="importConfigDescription" class="muted mb-5">
+          Select which sections and provider entries to import.
+        </p>
+
+        <div id="importConfigSummary" class="space-y-4"></div>
+
+        <div class="flex flex-col gap-3 sm:flex-row mt-6">
+          <button
+            id="importConfigSubmit"
+            onclick="submitImportedConfig()"
+            class="btn-primary text-white px-4 py-3 rounded-full flex-1"
+          >
+            Import Selected
+          </button>
+          <button
+            id="importConfigCancel"
+            onclick="closeImportConfigModal()"
+            class="btn-secondary text-white px-4 py-3 rounded-full flex-1"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script>
       let config = null;
       let settingsApiKey = null;
       let draggedElement = null;
+      let importConfigState = null;
 
       const THEME_KEY = "llm-proxy-theme";
       const LANGUAGE_KEY = "llm-proxy-language";
-      const PROVIDERS = [
+      const ALL_PROVIDERS = [
         "gemini_cli",
         "gemini",
         "qwen",
+        "iflow",
         "openai_chat",
         "openai_responses",
         "claude",
-        "iflow",
         "codex",
       ];
+      const VISIBLE_PROVIDERS = [
+        "gemini",
+        "openai_chat",
+        "openai_responses",
+        "claude",
+      ];
+      const DEFAULT_MODEL_PRIORITY = [
+        "gemini_cli",
+        "iflow",
+        "openai_chat",
+        "openai_responses",
+        "qwen",
+        "claude",
+        "gemini",
+        "codex",
+      ];
+      const PROVIDER_ALIASES = {
+        openai: "openai_chat",
+        openai_chat: "openai_chat",
+        openai_responses: "openai_responses",
+        gemini_cli: "gemini_cli",
+        gemini: "gemini",
+        claude: "claude",
+        qwen: "qwen",
+        iflow: "iflow",
+        codex: "codex",
+      };
       const OPENAI_COMPATIBLE_PROVIDERS = new Set([
         "openai_chat",
         "openai_responses",
@@ -557,10 +722,10 @@
         gemini_cli: "Gemini CLI",
         gemini: "Gemini",
         qwen: "Qwen",
+        iflow: "iFlow",
         openai_chat: "OpenAI Chat",
         openai_responses: "OpenAI Responses",
         claude: "Claude",
-        iflow: "IFlow",
         codex: "Codex",
       };
       const TRANSLATIONS = {
@@ -581,6 +746,7 @@
           globalApiKeyPlaceholder: "Enter global API key",
           saveApiKeyButton: "Save API Key",
           downloadConfigButton: "Download Config JSON",
+          importConfigButton: "Import Config JSON",
           providersTabButton: "Providers",
           priorityTabButton: "Model Priority",
           fallbackTabButton: "Fallback Models",
@@ -593,6 +759,26 @@
             "Configure fallback models when the primary model is not available.",
           addFallbackButton: "+ Add Fallback Mapping",
           saveFallbackButton: "💾 Save Fallback Models",
+          importConfigModalTitle: "Import Config",
+          importConfigDescription:
+            "Select which sections and provider entries to import.",
+          importConfigSubmit: "Import Selected",
+          importConfigCancel: "Cancel",
+          importApiKeyLabel: "Import global API key",
+          importPriorityLabel: "Import provider priority",
+          importFallbackLabel: "Import global fallback list",
+          importProvidersLabel: "Provider configs",
+          importFileInvalid: "Imported file must be a valid JSON object.",
+          importFileMissing: "Please choose a config JSON file first.",
+          importConfigReady: "Config loaded. Select items to import.",
+          importConfigSuccess: "Config imported successfully!",
+          importConfigFailed: "Failed to import config: {message}",
+          importNoSelection: "Select at least one item to import.",
+          fallbackListDescription:
+            "Configure a global fallback model list. Requests will try the next model in this list when the current one fails.",
+          addFallbackModelButton: "+ Add Fallback Model",
+          fallbackListEmpty: "No fallback models configured yet.",
+          fallbackPriorityHint: "Drag to reorder global fallback priority.",
           providerTypeLabel: "Provider Type",
           providerTypePlaceholder: "Select a provider...",
           providerModalAddTitle: "Add New Provider",
@@ -620,6 +806,13 @@
           projectsLabel: "Projects (comma-separated)",
           baseUrlLabel: "Base URL",
           modelsLabel: "Models (comma-separated)",
+          authJsonLabel: "Auth JSON",
+          authJsonHint:
+            "Paste the provider auth object generated by the local helper script.",
+          authJsonRequired: "Please enter Auth JSON for this provider.",
+          authJsonInvalid:
+            "Auth JSON must be a valid JSON object: {message}",
+          authJsonConfigured: "configured",
           enabledFieldLabel: "Enabled",
           enabledFieldHint:
             "Disabled providers stay in the configuration, but they will not receive traffic or appear in the model list.",
@@ -675,9 +868,9 @@
           addFallbackModelPlaceholder: "e.g., gpt-4",
           addFallbackReplacementPlaceholder: "e.g., gpt-3.5-turbo",
           deleteFallbackConfirm:
-            "Are you sure you want to delete this mapping?",
+            "Are you sure you want to remove this fallback model?",
           fallbackRemovedPending:
-            "Fallback mapping removed. Click 'Save Fallback Models' to apply changes.",
+            "Fallback model removed. Click 'Save Fallback Models' to apply changes.",
           downloadConfigFilename: "llm-proxy-config.json",
           downloadConfigUnavailable:
             "No configuration is available to download.",
@@ -699,6 +892,7 @@
           globalApiKeyPlaceholder: "请输入全局 API Key",
           saveApiKeyButton: "保存 API Key",
           downloadConfigButton: "下载配置 JSON",
+          importConfigButton: "导入配置 JSON",
           providersTabButton: "提供商",
           priorityTabButton: "模型优先级",
           fallbackTabButton: "回退模型",
@@ -710,6 +904,25 @@
           fallbackDescription: "当主模型不可用时，配置回退模型。",
           addFallbackButton: "+ 添加回退映射",
           saveFallbackButton: "💾 保存回退模型",
+          importConfigModalTitle: "导入配置",
+          importConfigDescription: "选择要导入的配置区块和 provider 配置。",
+          importConfigSubmit: "导入所选项",
+          importConfigCancel: "取消",
+          importApiKeyLabel: "导入全局 API Key",
+          importPriorityLabel: "导入 Provider 优先级",
+          importFallbackLabel: "导入全局回退列表",
+          importProvidersLabel: "Provider 配置",
+          importFileInvalid: "导入文件必须是合法的 JSON 对象。",
+          importFileMissing: "请先选择配置 JSON 文件。",
+          importConfigReady: "配置已加载，请选择要导入的内容。",
+          importConfigSuccess: "配置导入成功！",
+          importConfigFailed: "导入配置失败：{message}",
+          importNoSelection: "请至少选择一项导入内容。",
+          fallbackListDescription:
+            "配置全局回退模型列表。当前模型失败时，会继续尝试列表中的下一个模型。",
+          addFallbackModelButton: "+ 添加回退模型",
+          fallbackListEmpty: "还没有配置回退模型。",
+          fallbackPriorityHint: "拖拽调整全局回退优先级。",
           providerTypeLabel: "提供商类型",
           providerTypePlaceholder: "选择一个提供商...",
           providerModalAddTitle: "添加新提供商",
@@ -737,6 +950,12 @@
           projectsLabel: "项目（逗号分隔）",
           baseUrlLabel: "Base URL",
           modelsLabel: "模型（逗号分隔）",
+          authJsonLabel: "Auth JSON",
+          authJsonHint: "粘贴本地辅助脚本生成的 provider auth 对象。",
+          authJsonRequired: "该 Provider 必须填写 Auth JSON。",
+          authJsonInvalid:
+            "Auth JSON 必须是合法的 JSON 对象：{message}",
+          authJsonConfigured: "已配置",
           enabledFieldLabel: "启用",
           enabledFieldHint:
             "禁用后会保留该配置，但它不会继续接收请求，也不会出现在模型列表中。",
@@ -787,9 +1006,9 @@
           fallbackSaveFailed: "保存回退模型失败：{message}",
           addFallbackModelPlaceholder: "例如：gpt-4",
           addFallbackReplacementPlaceholder: "例如：gpt-3.5-turbo",
-          deleteFallbackConfirm: "确认删除这条映射吗？",
+          deleteFallbackConfirm: "确认删除这个回退模型吗？",
           fallbackRemovedPending:
-            "回退映射已移除。点击“保存回退模型”后生效。",
+            "回退模型已移除。点击“保存回退模型”后生效。",
           downloadConfigFilename: "llm-proxy-config.json",
           downloadConfigUnavailable: "当前没有可下载的配置。",
           genericError: "错误：{message}",
@@ -816,6 +1035,72 @@
           .replaceAll(">", "&gt;")
           .replaceAll('"', "&quot;")
           .replaceAll("'", "&#39;");
+      }
+
+      function cloneValue(value) {
+        return JSON.parse(JSON.stringify(value));
+      }
+
+      function normalizeProviderPriority(priority = config?.model_priority) {
+        const seen = new Set();
+        const ordered = [];
+
+        (Array.isArray(priority) ? priority : []).forEach((provider) => {
+          const normalized = normalizeProviderId(provider);
+          if (normalized && !seen.has(normalized)) {
+            seen.add(normalized);
+            ordered.push(normalized);
+          }
+        });
+
+        DEFAULT_MODEL_PRIORITY.forEach((provider) => {
+          if (!seen.has(provider)) {
+            seen.add(provider);
+            ordered.push(provider);
+          }
+        });
+
+        return ordered;
+      }
+
+      function normalizeFallbackModels(fallbackModels) {
+        if (!Array.isArray(fallbackModels)) {
+          return [];
+        }
+
+        const seen = new Set();
+        return fallbackModels
+          .map((model) => String(model || "").trim())
+          .filter((model) => {
+            if (!model || seen.has(model)) {
+              return false;
+            }
+            seen.add(model);
+            return true;
+          });
+      }
+
+      function normalizeLoadedConfig(rawConfig) {
+        const nextConfig = cloneValue(rawConfig || {});
+        ALL_PROVIDERS.forEach((provider) => {
+          if (!Array.isArray(nextConfig[provider])) {
+            nextConfig[provider] = [];
+          }
+        });
+        nextConfig.model_priority = normalizeProviderPriority(
+          nextConfig.model_priority,
+        );
+        nextConfig.fallback_models = normalizeFallbackModels(
+          nextConfig.fallback_models,
+        );
+        nextConfig.api_key = typeof nextConfig.api_key === "string"
+          ? nextConfig.api_key
+          : "";
+        return nextConfig;
+      }
+
+      function setConfig(nextConfig) {
+        config = normalizeLoadedConfig(nextConfig);
       }
 
       function applyTheme(theme) {
@@ -878,6 +1163,7 @@
         setPlaceholder("globalApiKey", t("globalApiKeyPlaceholder"));
         setText("saveGlobalApiKeyButton", t("saveApiKeyButton"));
         setText("downloadConfigButton", t("downloadConfigButton"));
+        setText("importConfigButton", t("importConfigButton"));
         setText("providersTabButton", t("providersTabButton"));
         setText("priorityTabButton", t("priorityTabButton"));
         setText("fallbackTabButton", t("fallbackTabButton"));
@@ -885,9 +1171,13 @@
         setText("saveProvidersButton", t("saveProvidersButton"));
         setText("priorityDescription", t("priorityDescription"));
         setText("savePriorityButton", t("savePriorityButton"));
-        setText("fallbackDescription", t("fallbackDescription"));
-        setText("addFallbackButton", t("addFallbackButton"));
+        setText("fallbackDescription", t("fallbackListDescription"));
+        setText("addFallbackButton", t("addFallbackModelButton"));
         setText("saveFallbackButton", t("saveFallbackButton"));
+        setText("importConfigModalTitle", t("importConfigModalTitle"));
+        setText("importConfigDescription", t("importConfigDescription"));
+        setText("importConfigSubmit", t("importConfigSubmit"));
+        setText("importConfigCancel", t("importConfigCancel"));
         setText("providerTypeLabel", t("providerTypeLabel"));
         setText(
           "providerTypePlaceholder",
@@ -904,6 +1194,10 @@
 
         if (modalSnapshot.isOpen) {
           restoreProviderModalState(modalSnapshot);
+        }
+
+        if (document.getElementById("importConfigModal").classList.contains("active")) {
+          renderImportConfigSummary();
         }
 
         if (config) {
@@ -959,9 +1253,9 @@
           });
           const result = await response.json();
 
-          if (result.success) {
+        if (result.success) {
             settingsApiKey = apiKey;
-            config = result.data;
+            setConfig(result.data);
             document.getElementById("loginScreen").style.display =
               "none";
             document.getElementById("mainApp").style.display = "block";
@@ -996,7 +1290,7 @@
           const result = await response.json();
           if (result.success) {
             settingsApiKey = null;
-            config = result.data;
+            setConfig(result.data);
             document.getElementById("loginScreen").style.display =
               "none";
             document.getElementById("mainApp").style.display = "block";
@@ -1039,9 +1333,7 @@
       }
 
       function buildDownloadConfigSnapshot() {
-        const snapshot = config
-          ? JSON.parse(JSON.stringify(config))
-          : null;
+        const snapshot = config ? cloneValue(config) : null;
 
         if (!snapshot) {
           return null;
@@ -1054,45 +1346,12 @@
           snapshot.api_key = globalApiKeyInput.value.trim();
         }
 
-        const priorityItems = Array.from(
-          document.querySelectorAll(
-            "#priority-container [data-provider]",
-          ),
+        snapshot.model_priority = normalizeProviderPriority(
+          snapshot.model_priority,
         );
-        if (priorityItems.length > 0) {
-          snapshot.model_priority = priorityItems
-            .map((item) => item.dataset.provider)
-            .filter((provider) => PROVIDERS.includes(provider));
-        }
-
-        const fallbackInputs = document.querySelectorAll(
-          ".fallback-value",
+        snapshot.fallback_models = normalizeFallbackModels(
+          snapshot.fallback_models,
         );
-        const rowFallbacks = {};
-        fallbackInputs.forEach((input) => {
-          const model = input.dataset.model;
-          if (model && input.value) {
-            rowFallbacks[model] = input.value;
-          }
-        });
-
-        document.querySelectorAll("#fallback-container .provider-card")
-          .forEach((row) => {
-            const modelInput = row.querySelector(".fallback-model");
-            const replacementInput = row.querySelector(
-              ".fallback-replacement",
-            );
-            if (
-              modelInput &&
-              replacementInput &&
-              modelInput.value &&
-              replacementInput.value
-            ) {
-              rowFallbacks[modelInput.value] = replacementInput.value;
-            }
-          });
-
-        snapshot.fallback_models = rowFallbacks;
         return snapshot;
       }
 
@@ -1117,13 +1376,19 @@
         URL.revokeObjectURL(url);
       }
 
+      function normalizeProviderId(provider) {
+        return PROVIDER_ALIASES[provider];
+      }
+
       function renderProviders() {
         const container = document.getElementById(
           "providers-container",
         );
         container.innerHTML = "";
 
-        PROVIDERS.forEach((provider) => {
+        normalizeProviderPriority()
+          .filter((provider) => VISIBLE_PROVIDERS.includes(provider))
+          .forEach((provider) => {
           const configs = config?.[provider] || [];
           const section = document.createElement("div");
           section.className = "provider-card p-4";
@@ -1137,18 +1402,34 @@
               escapeHtml(t("noConfigurations"))
             }</p>`;
           } else {
-            content += `<div class="provider-entry-list" data-provider-section="${escapeHtml(provider)}">`;
+            content +=
+              `<div class="provider-entry-list" data-provider-section="${
+                escapeHtml(provider)
+              }">`;
             configs.forEach((cfg, index) => {
               const isEnabled = isProviderConfigEnabled(cfg);
               const apiKeyPreview = cfg.api_key
                 ? `${cfg.api_key.slice(0, 10)}***`
                 : "";
+              const authPreview = cfg.auth
+                ? `<p class="text-sm">${
+                  escapeHtml(t("authJsonLabel"))
+                }: ${escapeHtml(t("authJsonConfigured"))}</p>`
+                : "";
+              const projectsPreview = Array.isArray(cfg.projects) &&
+                  cfg.projects.length > 0
+                ? `<p class="text-sm">${
+                  escapeHtml(t("projectsLabel"))
+                }: ${escapeHtml(cfg.projects.join(", "))}</p>`
+                : "";
               content += `
                 <div class="provider-entry p-4 rounded-[1.25rem] mb-2 flex items-start gap-2 ${
                 isEnabled ? "" : "opacity-70"
-              }" draggable="true" data-provider-entry="${escapeHtml(provider)}" data-entry-index="${index}">
+              }" draggable="true" data-provider-entry="${
+                escapeHtml(provider)
+              }" data-entry-index="${index}">
                   <div class="drag-handle" title="Drag to reorder">⠿</div>
-                  <div class="flex-1">
+                  <div class="provider-entry-main flex-1">
                     <div class="mb-2">
                       <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                 isEnabled
@@ -1176,6 +1457,8 @@
                   }: ${escapeHtml(apiKeyPreview)}</p>`
                   : ""
               }
+                    ${authPreview}
+                    ${projectsPreview}
                     ${
                 cfg.models?.length
                   ? `<p class="text-sm">${
@@ -1184,7 +1467,7 @@
                   : ""
               }
                   </div>
-                  <div class="flex space-x-2 ml-2 flex-shrink-0">
+                  <div class="provider-entry-actions flex flex-wrap gap-2 ml-2 flex-shrink-0">
                     <button
                       onclick="editProvider('${provider}', ${index})"
                       class="btn-secondary text-white px-3 py-2 rounded-full text-sm"
@@ -1215,92 +1498,81 @@
         const container = document.getElementById("priority-container");
         container.innerHTML = "";
 
-        const priority = config?.model_priority || [];
-        priority.forEach((provider, index) => {
+        const priority = normalizeProviderPriority().filter((provider) =>
+          VISIBLE_PROVIDERS.includes(provider)
+        );
+        priority.forEach((provider) => {
           const item = document.createElement("div");
           item.className =
             "priority-item p-3 rounded-[1.25rem] cursor-move border border-indigo-500 flex items-center";
           item.draggable = true;
           item.dataset.provider = provider;
-          const icon = index === 0 ? "📌 " : "";
           item.innerHTML = `
-            <span class="flex-1">${icon}${
+            <span class="flex-1">${
             escapeHtml(getProviderDisplayName(provider))
           }</span>
-            <button onclick="removePriorityItem('${provider}')" class="btn-danger text-white px-3 py-1 rounded-full text-sm">×</button>
           `;
           container.appendChild(item);
         });
 
-        const unselected = PROVIDERS.filter((provider) =>
-          !priority.includes(provider)
-        );
-        if (unselected.length > 0) {
-          const label = document.createElement("p");
-          label.className = "text-gray-400 text-sm mt-4";
-          label.textContent = t("availableProviders");
-          container.appendChild(label);
-
-          unselected.forEach((provider) => {
-            const item = document.createElement("div");
-            item.className =
-              "priority-item priority-item-muted p-3 rounded-[1.25rem] cursor-move border border-gray-700 flex items-center";
-            item.draggable = true;
-            item.dataset.provider = provider;
-            item.innerHTML = `<span>${
-              escapeHtml(getProviderDisplayName(provider))
-            }</span>`;
-            container.appendChild(item);
-          });
-        }
-
         setupDragListeners();
+      }
+
+      function getFallbackModelsForEditor() {
+        return Array.isArray(config?.fallback_models)
+          ? [...config.fallback_models]
+          : [];
       }
 
       function renderFallback() {
         const container = document.getElementById("fallback-container");
         container.innerHTML = "";
 
-        const fallback = config?.fallback_models || {};
-        if (Object.keys(fallback).length === 0) {
+        const fallback = getFallbackModelsForEditor();
+        if (fallback.length === 0) {
           container.innerHTML = `<p class="text-gray-400">${
-            escapeHtml(t("noFallbackMappings"))
+            escapeHtml(t("fallbackListEmpty"))
           }</p>`;
           return;
         }
 
-        Object.entries(fallback).forEach(([model, fallbackModel]) => {
+        const hint = document.createElement("p");
+        hint.className = "text-sm text-gray-400";
+        hint.textContent = t("fallbackPriorityHint");
+        container.appendChild(hint);
+
+        fallback.forEach((model, index) => {
           const row = document.createElement("div");
-          row.className = "provider-card p-4 flex items-end space-x-2";
+          row.className =
+            "provider-card fallback-row p-4 flex items-end gap-2";
+          row.draggable = true;
+          row.dataset.fallbackIndex = String(index);
           row.innerHTML = `
-            <div class="flex-1">
-              <label class="form-label text-sm">${
-            escapeHtml(t("modelLabel"))
-          }</label>
-              <input type="text" value="${
-            escapeHtml(model)
-          }" class="form-input" disabled />
-            </div>
+            <div class="drag-handle" title="Drag to reorder">⠿</div>
             <div class="flex-1">
               <label class="form-label text-sm">${
             escapeHtml(t("fallbackModelLabel"))
           }</label>
               <input
                 type="text"
-                value="${escapeHtml(fallbackModel)}"
-                class="form-input fallback-value"
-                data-model="${escapeHtml(model)}"
+                value="${escapeHtml(model)}"
+                class="form-input fallback-model-input"
+                oninput="updateFallbackModel(${index}, this.value)"
               />
             </div>
-            <button
-              onclick='deleteFallbackMapping(${JSON.stringify(model)})'
-              class="btn-danger text-white px-3 py-2 rounded-full"
-            >
-              ${escapeHtml(t("deleteButton"))}
-            </button>
+            <div class="fallback-actions flex">
+              <button
+                onclick="deleteFallbackMapping(${index})"
+                class="btn-danger text-white px-3 py-2 rounded-full"
+              >
+                ${escapeHtml(t("deleteButton"))}
+              </button>
+            </div>
           `;
           container.appendChild(row);
         });
+
+        setupFallbackDragListeners();
       }
 
       function switchTab(tab) {
@@ -1320,7 +1592,13 @@
         return OPENAI_COMPATIBLE_PROVIDERS.has(provider);
       }
 
-      function renderTextInput(id, label, placeholder, type = "text", oninput = "") {
+      function renderTextInput(
+        id,
+        label,
+        placeholder,
+        type = "text",
+        oninput = "",
+      ) {
         return `
           <div class="form-group">
             <label class="form-label">${escapeHtml(label)}</label>
@@ -1335,16 +1613,22 @@
         `;
       }
 
-      function renderTextarea(id, label, placeholder) {
+      function renderTextarea(
+        id,
+        label,
+        placeholder,
+        oninput = "syncModelSelectionFromTextarea()",
+        rows = 3,
+      ) {
         return `
           <div class="form-group">
             <label class="form-label">${escapeHtml(label)}</label>
             <textarea
               id="${id}"
               class="form-input"
-              rows="3"
+              rows="${rows}"
               placeholder="${escapeHtml(placeholder)}"
-              oninput="syncModelSelectionFromTextarea()"
+              ${oninput ? `oninput="${oninput}"` : ""}
             ></textarea>
           </div>
         `;
@@ -1362,6 +1646,30 @@
         }</p>
           </div>
         `;
+      }
+
+      function renderCommaListField(id, label, placeholder, rows = 3) {
+        return `
+          <div class="form-group">
+            <label class="form-label">${escapeHtml(label)}</label>
+            <textarea
+              id="${id}"
+              class="form-input"
+              rows="${rows}"
+              placeholder="${escapeHtml(placeholder)}"
+            ></textarea>
+          </div>
+        `;
+      }
+
+      function renderAuthJsonField() {
+        return renderTextarea(
+          "field-auth_json",
+          t("authJsonLabel"),
+          t("authJsonHint"),
+          "",
+          6,
+        );
       }
 
       function renderModelField(placeholder, fetchable) {
@@ -1470,14 +1778,14 @@
 
       function getProviderFieldsTemplate(provider) {
         const modelsPlaceholder = {
-          gemini_cli: "gemini-pro,gemini-pro-vision",
+          gemini_cli: "gemini-2.5-pro,gemini-2.5-flash",
           gemini: "gemini-pro,gemini-pro-vision",
           qwen: "qwen-max,qwen-plus",
+          iflow: "iflow-model",
           openai_chat: "gpt-4o,gpt-4.1-mini",
           openai_responses: "gpt-4o,gpt-4.1-mini",
           claude: "claude-3-5-sonnet,claude-3-opus",
-          iflow: "iflow-model-1,iflow-model-2",
-          codex: "codex-model-1,codex-model-2",
+          codex: "gpt-5.4,gpt-5.4-mini",
         };
 
         const enabledField = renderCheckboxInput(
@@ -1488,11 +1796,14 @@
 
         switch (provider) {
           case "gemini_cli":
-            return enabledField + renderTextarea(
-              "field-projects",
-              t("projectsLabel"),
-              "project1,project2,project3",
-            ) + renderModelField(modelsPlaceholder[provider], false);
+            return enabledField +
+              renderCommaListField(
+                "field-projects",
+                t("projectsLabel"),
+                "project-a,project-b",
+              ) +
+              renderAuthJsonField() +
+              renderModelField(modelsPlaceholder[provider], false);
           case "gemini":
             return enabledField + renderTextInput(
               "field-base_url",
@@ -1506,6 +1817,11 @@
               t("apiKeyPlaceholder"),
               "password",
             ) + renderModelField(modelsPlaceholder[provider], true);
+          case "qwen":
+          case "iflow":
+            return enabledField +
+              renderAuthJsonField() +
+              renderModelField(modelsPlaceholder[provider], false);
           case "openai_chat":
           case "openai_responses":
             return enabledField + renderTextInput(
@@ -1533,6 +1849,15 @@
               t("apiKeyPlaceholder"),
               "password",
             ) + renderModelField(modelsPlaceholder[provider], true);
+          case "codex":
+            return enabledField +
+              renderTextInput(
+                "field-base_url",
+                t("baseUrlLabel"),
+                "https://api.openai.com/v1",
+                "text",
+              ) + renderAuthJsonField() +
+              renderModelField(modelsPlaceholder[provider], false);
           default:
             return enabledField +
               renderModelField(modelsPlaceholder[provider], false);
@@ -1547,10 +1872,24 @@
           : [];
       }
 
+      function readCommaSeparatedValues(id) {
+        const input = document.getElementById(id);
+        return input
+          ? input.value.split(",").map((item) => item.trim()).filter(Boolean)
+          : [];
+      }
+
       function setModelsTextarea(models) {
         const modelsInput = document.getElementById("field-models");
         if (modelsInput) {
           modelsInput.value = models.join(", ");
+        }
+      }
+
+      function setCommaSeparatedValues(id, values) {
+        const input = document.getElementById(id);
+        if (input) {
+          input.value = Array.isArray(values) ? values.join(", ") : "";
         }
       }
 
@@ -1752,7 +2091,9 @@
         if (getCurrentModelMode() !== "fetch") return;
         if (autoFetchTimer) clearTimeout(autoFetchTimer);
         autoFetchTimer = setTimeout(() => {
-          const baseUrl = document.getElementById("field-base_url")?.value.trim() || "";
+          const baseUrl =
+            document.getElementById("field-base_url")?.value.trim() ||
+            "";
           if (baseUrl) {
             fetchProviderModels();
           }
@@ -1760,25 +2101,21 @@
       }
 
       function readProviderFormValues() {
+        const authJson = document.getElementById("field-auth_json");
         const values = {
           models: readModelsFromTextarea(),
           availableModelOptions: getModelOptionValues(),
           modelInputMode: getCurrentModelMode(),
           enabled: !!document.getElementById("field-enabled")?.checked,
+          projects: readCommaSeparatedValues("field-projects"),
         };
 
         const baseUrlInput = document.getElementById("field-base_url");
         const apiKeyInput = document.getElementById("field-api_key");
-        const projectsInput = document.getElementById("field-projects");
 
         if (baseUrlInput) values.base_url = baseUrlInput.value;
         if (apiKeyInput) values.api_key = apiKeyInput.value;
-        if (projectsInput) {
-          values.projects = projectsInput.value
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean);
-        }
+        if (authJson) values.auth_json = authJson.value;
 
         return values;
       }
@@ -1786,19 +2123,18 @@
       function populateProviderForm(values = {}) {
         const baseUrlInput = document.getElementById("field-base_url");
         const apiKeyInput = document.getElementById("field-api_key");
-        const projectsInput = document.getElementById("field-projects");
         const enabledInput = document.getElementById("field-enabled");
+        const authJsonInput = document.getElementById("field-auth_json");
 
         if (baseUrlInput) baseUrlInput.value = values.base_url || "";
         if (apiKeyInput) apiKeyInput.value = values.api_key || "";
-        if (projectsInput) {
-          projectsInput.value = Array.isArray(values.projects)
-            ? values.projects.join(", ")
-            : "";
-        }
         if (enabledInput) {
           enabledInput.checked = values.enabled !== false;
         }
+        if (authJsonInput) {
+          authJsonInput.value = values.auth_json || "";
+        }
+        setCommaSeparatedValues("field-projects", values.projects || []);
 
         setModelsTextarea(
           Array.isArray(values.models) ? values.models : [],
@@ -1826,7 +2162,9 @@
         container.innerHTML = getProviderFieldsTemplate(provider);
         populateProviderForm(
           initialValues || {
-            modelInputMode: supportsModelFetch(provider) ? "fetch" : "manual",
+            modelInputMode: supportsModelFetch(provider)
+              ? "fetch"
+              : "manual",
           },
         );
       }
@@ -1971,6 +2309,8 @@
       }
 
       function buildProviderConfigFromForm() {
+        const providerType =
+          document.getElementById("providerType")?.value || "";
         const providerConfig = {
           models: readModelsFromTextarea(),
           enabled: !!document.getElementById("field-enabled")?.checked,
@@ -1978,7 +2318,7 @@
 
         const baseUrlInput = document.getElementById("field-base_url");
         const apiKeyInput = document.getElementById("field-api_key");
-        const projectsInput = document.getElementById("field-projects");
+        const authJsonInput = document.getElementById("field-auth_json");
 
         if (baseUrlInput) {
           providerConfig.base_url = baseUrlInput.value.trim();
@@ -1986,11 +2326,32 @@
         if (apiKeyInput) {
           providerConfig.api_key = apiKeyInput.value.trim();
         }
-        if (projectsInput) {
-          providerConfig.projects = projectsInput.value
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean);
+        if (authJsonInput) {
+          const rawAuth = authJsonInput.value.trim();
+          if (
+            ["gemini_cli", "qwen", "iflow", "codex"].includes(providerType) &&
+            !rawAuth
+          ) {
+            throw new Error(t("authJsonRequired"));
+          }
+          if (rawAuth) {
+            try {
+              providerConfig.auth = JSON.parse(rawAuth);
+            } catch (error) {
+              throw new Error(
+                t("authJsonInvalid", {
+                  message: error instanceof Error
+                    ? error.message
+                    : String(error),
+                }),
+              );
+            }
+          }
+        }
+
+        const projects = readCommaSeparatedValues("field-projects");
+        if (projects.length > 0) {
+          providerConfig.projects = projects;
         }
 
         return providerConfig;
@@ -2020,6 +2381,8 @@
         document.getElementById("providerType").disabled = true;
         updateProviderFields({
           ...cfg,
+          auth_json: cfg.auth ? JSON.stringify(cfg.auth, null, 2) : "",
+          projects: Array.isArray(cfg.projects) ? cfg.projects : [],
           models: Array.isArray(cfg.models) ? cfg.models : [],
           availableModelOptions: Array.isArray(cfg.models)
             ? cfg.models
@@ -2072,7 +2435,19 @@
           return;
         }
 
-        config[provider][index] = buildProviderConfigFromForm();
+        try {
+          config[provider][index] = buildProviderConfigFromForm();
+        } catch (error) {
+          showAlert(
+            t("genericError", {
+              message: error instanceof Error
+                ? error.message
+                : String(error),
+            }),
+            "error",
+          );
+          return;
+        }
         renderProviders();
         closeAddProviderModal();
         showAlert(t("providerUpdatedPending"), "success");
@@ -2088,7 +2463,19 @@
         if (!config[provider]) {
           config[provider] = [];
         }
-        config[provider].push(buildProviderConfigFromForm());
+        try {
+          config[provider].push(buildProviderConfigFromForm());
+        } catch (error) {
+          showAlert(
+            t("genericError", {
+              message: error instanceof Error
+                ? error.message
+                : String(error),
+            }),
+            "error",
+          );
+          return;
+        }
         renderProviders();
         closeAddProviderModal();
         showAlert(t("providerAddedPending"), "success");
@@ -2106,7 +2493,7 @@
           index < providerArray.length
         ) {
           providerArray.splice(index, 1);
-          config = updatedConfig;
+          setConfig(updatedConfig);
           renderProviders();
           showAlert(t("providerRemovedPending"), "success");
         } else {
@@ -2132,6 +2519,21 @@
 
       function handlePriorityDrop(event) {
         event.preventDefault();
+        syncPriorityFromDom();
+      }
+
+      function syncPriorityFromDom(showPendingAlert = true) {
+        const priority = Array.from(
+          document.querySelectorAll("#priority-container [data-provider]"),
+        )
+          .map((item) => item.dataset.provider)
+          .filter((provider) => VISIBLE_PROVIDERS.includes(provider));
+
+        config.model_priority = normalizeProviderPriority(priority);
+        renderProviders();
+        if (showPendingAlert) {
+          showAlert(t("priorityUpdatedPending"), "success");
+        }
       }
 
       function getDragAfterElement(container, y) {
@@ -2168,6 +2570,7 @@
           item.ondragend = () => {
             item.classList.remove("dragging");
             draggedElement = null;
+            syncPriorityFromDom(false);
           };
         });
       }
@@ -2252,7 +2655,9 @@
         const configs = config[provider];
         if (!Array.isArray(configs)) return;
 
-        const reordered = newOrder.map((i) => configs[i]).filter(Boolean);
+        const reordered = newOrder.map((i) => configs[i]).filter(
+          Boolean,
+        );
         if (reordered.length === configs.length) {
           config[provider] = reordered;
           renderProviders();
@@ -2260,13 +2665,95 @@
         }
       }
 
-      function removePriorityItem(provider) {
-        const priority = config.model_priority || [];
-        config.model_priority = priority.filter((item) =>
-          item !== provider
-        );
-        renderPriority();
-        showAlert(t("priorityUpdatedPending"), "success");
+      function getFallbackItemAfterElement(container, y) {
+        const draggableElements = [
+          ...container.querySelectorAll(
+            "[data-fallback-index]:not(.dragging)",
+          ),
+        ];
+
+        return draggableElements.reduce(
+          (closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+              return { offset, element: child };
+            }
+            return closest;
+          },
+          { offset: Number.NEGATIVE_INFINITY },
+        ).element;
+      }
+
+      function setupFallbackDragListeners() {
+        const container = document.getElementById("fallback-container");
+        if (!container) return;
+
+        container.ondragover = (event) => {
+          const target = event.target.closest("[data-fallback-index]");
+          if (!target && !draggedElement?.dataset?.fallbackIndex) {
+            return;
+          }
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "move";
+          const afterElement = getFallbackItemAfterElement(
+            container,
+            event.clientY,
+          );
+          if (afterElement == null) {
+            container.appendChild(draggedElement);
+          } else {
+            container.insertBefore(draggedElement, afterElement);
+          }
+        };
+
+        container.ondrop = (event) => {
+          event.preventDefault();
+          reorderFallbackEntries();
+        };
+
+        const items = document.querySelectorAll("[data-fallback-index]");
+        items.forEach((item) => {
+          item.ondragstart = (event) => {
+            if (event.target.closest("button, input")) {
+              event.preventDefault();
+              return;
+            }
+            draggedElement = item;
+            item.classList.add("dragging");
+            event.dataTransfer.effectAllowed = "move";
+          };
+
+          item.ondragend = () => {
+            item.classList.remove("dragging");
+            draggedElement = null;
+          };
+        });
+      }
+
+      function reorderFallbackEntries() {
+        const container = document.getElementById("fallback-container");
+        const current = getFallbackModelsForEditor();
+        if (!container || current.length === 0) return;
+
+        const newOrder = Array.from(
+          container.querySelectorAll("[data-fallback-index]"),
+        ).map((item) => Number.parseInt(item.dataset.fallbackIndex, 10));
+
+        const reordered = newOrder.map((index) => current[index]).filter(Boolean);
+        if (reordered.length === current.length) {
+          config.fallback_models = reordered;
+          renderFallback();
+        }
+      }
+
+      function updateFallbackModel(index, value) {
+        const fallbackModels = getFallbackModelsForEditor();
+        if (index < 0 || index >= fallbackModels.length) {
+          return;
+        }
+        fallbackModels[index] = value;
+        config.fallback_models = fallbackModels;
       }
 
       async function saveProviders() {
@@ -2283,8 +2770,11 @@
 
           const result = await parseApiResponse(response);
           if (result.success) {
-            config = result.data;
+            setConfig(result.data);
+            renderGeneralSettings();
             renderProviders();
+            renderPriority();
+            renderFallback();
             showAlert(result.message || t("providersSaved"), "success");
           } else {
             showAlert(
@@ -2325,7 +2815,7 @@
 
           const result = await parseApiResponse(response);
           if (result.success) {
-            config = result.data;
+            setConfig(result.data);
             settingsApiKey = config.api_key?.trim() || null;
             renderGeneralSettings();
             showAlert(
@@ -2351,14 +2841,9 @@
       async function savePriority() {
         const button = event?.currentTarget || null;
         setButtonSavingState(button, true, "savePriorityButton");
-
-        const priority = Array.from(
-          document.querySelectorAll(
-            "#priority-container [data-provider]",
-          ),
-        )
-          .map((item) => item.dataset.provider)
-          .filter((provider) => PROVIDERS.includes(provider));
+        config.model_priority = normalizeProviderPriority(
+          config?.model_priority,
+        );
 
         try {
           const response = await authFetch(
@@ -2368,14 +2853,15 @@
               headers: {
                 "Content-Type": "application/json",
               },
-              body: JSON.stringify({ priority }),
+              body: JSON.stringify({ priority: config.model_priority }),
             },
           );
 
           const result = await parseApiResponse(response);
           if (result.success) {
-            config = result.data;
+            setConfig(result.data);
             renderPriority();
+            renderProviders();
             showAlert(result.message || t("prioritySaved"), "success");
           } else {
             showAlert(
@@ -2398,34 +2884,9 @@
         setButtonSavingState(button, true, "saveFallbackButton");
 
         try {
-          const fallbackInputs = document.querySelectorAll(
-            ".fallback-value",
+          config.fallback_models = normalizeFallbackModels(
+            getFallbackModelsForEditor(),
           );
-          const newFallbacks = {};
-
-          fallbackInputs.forEach((input) => {
-            const model = input.dataset.model;
-            if (model && input.value) {
-              newFallbacks[model] = input.value;
-            }
-          });
-
-          document.querySelectorAll(
-            "#fallback-container .provider-card",
-          ).forEach((row) => {
-            const modelInput = row.querySelector(".fallback-model");
-            const replacementInput = row.querySelector(
-              ".fallback-replacement",
-            );
-            if (
-              modelInput &&
-              replacementInput &&
-              modelInput.value &&
-              replacementInput.value
-            ) {
-              newFallbacks[modelInput.value] = replacementInput.value;
-            }
-          });
 
           const response = await authFetch("/api/settings", {
             method: "POST",
@@ -2433,13 +2894,13 @@
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              config: { ...config, fallback_models: newFallbacks },
+              config,
             }),
           });
 
           const result = await parseApiResponse(response);
           if (result.success) {
-            config = result.data;
+            setConfig(result.data);
             renderFallback();
             showAlert(result.message || t("fallbackSaved"), "success");
           } else {
@@ -2459,53 +2920,281 @@
       }
 
       function addFallbackMapping() {
-        const container = document.getElementById("fallback-container");
-        const row = document.createElement("div");
-        row.className = "provider-card p-4 flex items-end space-x-2";
-        row.innerHTML = `
-          <div class="flex-1">
-            <label class="form-label text-sm">${
-          escapeHtml(t("modelLabel"))
-        }</label>
-            <input
-              type="text"
-              class="form-input fallback-model"
-              placeholder="${
-          escapeHtml(t("addFallbackModelPlaceholder"))
-        }"
-            />
-          </div>
-          <div class="flex-1">
-            <label class="form-label text-sm">${
-          escapeHtml(t("fallbackModelLabel"))
-        }</label>
-            <input
-              type="text"
-              class="form-input fallback-replacement"
-              placeholder="${
-          escapeHtml(t("addFallbackReplacementPlaceholder"))
-        }"
-            />
-          </div>
-          <button
-            onclick="this.parentElement.remove()"
-            class="btn-secondary text-white px-3 py-2 rounded-full"
-          >
-            ${escapeHtml(t("removeButton"))}
-          </button>
-        `;
-        container.appendChild(row);
+        const fallbackModels = getFallbackModelsForEditor();
+        fallbackModels.push("");
+        config.fallback_models = fallbackModels;
+        renderFallback();
       }
 
-      function deleteFallbackMapping(model) {
+      function deleteFallbackMapping(index) {
         if (!confirm(t("deleteFallbackConfirm"))) {
           return;
         }
 
-        if (config.fallback_models) {
-          delete config.fallback_models[model];
+        const fallbackModels = getFallbackModelsForEditor();
+        if (index >= 0 && index < fallbackModels.length) {
+          fallbackModels.splice(index, 1);
+          config.fallback_models = fallbackModels;
           renderFallback();
           showAlert(t("fallbackRemovedPending"), "success");
+        }
+      }
+
+      function openImportConfigDialog() {
+        const input = document.getElementById("importConfigFileInput");
+        if (input) {
+          input.value = "";
+          input.click();
+        }
+      }
+
+      function closeImportConfigModal() {
+        document.getElementById("importConfigModal").classList.remove("active");
+        importConfigState = null;
+        const summary = document.getElementById("importConfigSummary");
+        if (summary) {
+          summary.innerHTML = "";
+        }
+      }
+
+      function describeProviderConfigSummary(provider, cfg) {
+        const parts = [];
+        if (cfg.base_url) {
+          parts.push(cfg.base_url);
+        }
+        if (Array.isArray(cfg.projects) && cfg.projects.length > 0) {
+          parts.push(`${t("projectsLabel")}: ${cfg.projects.join(", ")}`);
+        }
+        if (Array.isArray(cfg.models) && cfg.models.length > 0) {
+          parts.push(`${t("fieldModels")}: ${cfg.models.join(", ")}`);
+        }
+        if (cfg.auth) {
+          parts.push(t("authJsonConfigured"));
+        }
+        return parts.length > 0
+          ? parts.join(" | ")
+          : getProviderDisplayName(provider);
+      }
+
+      function renderImportConfigSummary() {
+        const summary = document.getElementById("importConfigSummary");
+        if (!summary || !importConfigState?.config) {
+          return;
+        }
+
+        const imported = importConfigState.config;
+        const meta = importConfigState.meta || {};
+        const sections = [];
+
+        if (meta.hasApiKey) {
+          sections.push(`
+            <label class="provider-entry p-4 rounded-[1.25rem] flex items-start gap-3">
+              <input type="checkbox" id="import-global-api-key" checked />
+              <span>${escapeHtml(t("importApiKeyLabel"))}</span>
+            </label>
+          `);
+        }
+
+        if (meta.hasModelPriority && imported.model_priority.length > 0) {
+          sections.push(`
+            <label class="provider-entry p-4 rounded-[1.25rem] flex items-start gap-3">
+              <input type="checkbox" id="import-model-priority" checked />
+              <span>${escapeHtml(t("importPriorityLabel"))}</span>
+            </label>
+          `);
+        }
+
+        if (meta.hasFallbackModels && imported.fallback_models.length > 0) {
+          sections.push(`
+            <label class="provider-entry p-4 rounded-[1.25rem] flex items-start gap-3">
+              <input type="checkbox" id="import-fallback-models" checked />
+              <span>${escapeHtml(t("importFallbackLabel"))}</span>
+            </label>
+          `);
+        }
+
+        const providerSections = VISIBLE_PROVIDERS.map((provider) => {
+          const configs = Array.isArray(imported[provider]) ? imported[provider] : [];
+          if (configs.length === 0) {
+            return "";
+          }
+
+          const entries = configs.map((cfg, index) => `
+            <label class="provider-entry p-4 rounded-[1.25rem] flex items-start gap-3">
+              <input
+                type="checkbox"
+                data-import-provider="${escapeHtml(provider)}"
+                data-import-index="${index}"
+                checked
+              />
+              <div class="flex-1">
+                <p class="font-medium">${escapeHtml(getProviderDisplayName(provider))} #${
+            index + 1
+          }</p>
+                <p class="text-sm text-gray-400">${
+            escapeHtml(describeProviderConfigSummary(provider, cfg))
+          }</p>
+              </div>
+            </label>
+          `).join("");
+
+          return `
+            <section class="space-y-3">
+              <h3 class="text-lg font-semibold">${
+            escapeHtml(getProviderDisplayName(provider))
+          }</h3>
+              ${entries}
+            </section>
+          `;
+        }).filter(Boolean).join("");
+
+        summary.innerHTML = `
+          <div class="space-y-4">
+            ${
+          sections.length > 0
+            ? `<section class="space-y-3">
+                <h3 class="text-lg font-semibold">${
+              escapeHtml(t("importConfigModalTitle"))
+            }</h3>
+                ${sections.join("")}
+              </section>`
+            : ""
+        }
+            ${
+          providerSections
+            ? `<section class="space-y-4">
+                <h3 class="text-lg font-semibold">${
+              escapeHtml(t("importProvidersLabel"))
+            }</h3>
+                ${providerSections}
+              </section>`
+            : ""
+        }
+          </div>
+        `;
+      }
+
+      async function handleImportConfigFileSelected(event) {
+        const file = event?.target?.files?.[0];
+        if (!file) {
+          showAlert(t("importFileMissing"), "error");
+          return;
+        }
+
+        try {
+          const text = await file.text();
+          const parsed = JSON.parse(text);
+          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            throw new Error(t("importFileInvalid"));
+          }
+          if (
+            Object.prototype.hasOwnProperty.call(parsed, "fallback_models") &&
+            !Array.isArray(parsed.fallback_models)
+          ) {
+            throw new Error("fallback_models must be an array");
+          }
+
+          importConfigState = {
+            config: normalizeLoadedConfig(parsed),
+            meta: {
+              hasApiKey: Object.prototype.hasOwnProperty.call(parsed, "api_key"),
+              hasModelPriority: Array.isArray(parsed.model_priority),
+              hasFallbackModels: Array.isArray(parsed.fallback_models),
+            },
+          };
+          renderImportConfigSummary();
+          document.getElementById("importConfigModal").classList.add("active");
+          showAlert(t("importConfigReady"), "success");
+        } catch (error) {
+          showAlert(
+            t("importConfigFailed", {
+              message: error instanceof Error ? error.message : String(error),
+            }),
+            "error",
+          );
+        }
+      }
+
+      async function submitImportedConfig() {
+        if (!importConfigState?.config) {
+          showAlert(t("importFileMissing"), "error");
+          return;
+        }
+
+        const button = document.getElementById("importConfigSubmit");
+        setButtonSavingState(button, true, "importConfigSubmit");
+
+        const providers = [];
+        const groupedSelections = new Map();
+        document.querySelectorAll("[data-import-provider]").forEach((input) => {
+          if (!input.checked) {
+            return;
+          }
+          const provider = input.dataset.importProvider;
+          const index = Number.parseInt(input.dataset.importIndex, 10);
+          if (!groupedSelections.has(provider)) {
+            groupedSelections.set(provider, []);
+          }
+          groupedSelections.get(provider).push(index);
+        });
+
+        groupedSelections.forEach((indices, provider) => {
+          providers.push({ provider, indices });
+        });
+
+        const importGlobalApiKey =
+          !!document.getElementById("import-global-api-key")?.checked;
+        const importModelPriority =
+          !!document.getElementById("import-model-priority")?.checked;
+        const importFallbackModels =
+          !!document.getElementById("import-fallback-models")?.checked;
+
+        if (
+          providers.length === 0 && !importGlobalApiKey &&
+          !importModelPriority && !importFallbackModels
+        ) {
+          showAlert(t("importNoSelection"), "error");
+          setButtonSavingState(button, false, "importConfigSubmit");
+          return;
+        }
+
+        try {
+          const response = await authFetch("/api/settings/import", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              config: importConfigState.config,
+              providers,
+              importGlobalApiKey,
+              importModelPriority,
+              importFallbackModels,
+            }),
+          });
+          const result = await parseApiResponse(response);
+
+          if (!result.success) {
+            throw new Error(result.error || t("invalidServerResponse"));
+          }
+
+          setConfig(result.data);
+          settingsApiKey = config.api_key?.trim() || null;
+          renderGeneralSettings();
+          renderProviders();
+          renderPriority();
+          renderFallback();
+          closeImportConfigModal();
+          showAlert(result.message || t("importConfigSuccess"), "success");
+        } catch (error) {
+          showAlert(
+            t("importConfigFailed", {
+              message: error instanceof Error ? error.message : String(error),
+            }),
+            "error",
+          );
+        } finally {
+          setButtonSavingState(button, false, "importConfigSubmit");
         }
       }
 
