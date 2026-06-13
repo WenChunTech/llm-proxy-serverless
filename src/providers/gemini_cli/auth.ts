@@ -2,6 +2,7 @@ import { OAuth2Client } from "google-auth-library";
 import { GeminiCliAuth } from "../../types/config.ts";
 import { appConfig, updateConfig } from "../../config.ts";
 import { logger } from "../../utils/logger.ts";
+import { buildGeminiCliHeaders } from "./headers.ts";
 
 // 定义本地类型以避免直接导入 gaxios
 interface GaxiosOptions {
@@ -102,30 +103,28 @@ export async function getAccessToken(auth: GeminiCliAuth) {
   return auth.access_token;
 }
 
-export async function fetchGeminiCLiStreamResponse({ token, data }: any) {
+export async function fetchGeminiCLiStreamResponse(
+  { token, data, forwardedHeaders }: any,
+) {
   const response = await fetch(
     `https://cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
+      headers: buildGeminiCliHeaders(token, data?.model, forwardedHeaders),
       body: JSON.stringify(data),
     },
   );
   return response;
 }
 
-export async function fetchGeminiCLiResponse({ token, data }: any) {
+export async function fetchGeminiCLiResponse(
+  { token, data, forwardedHeaders }: any,
+) {
   const response = await fetch(
     `https://cloudcode-pa.googleapis.com/v1internal:generateContent`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
+      headers: buildGeminiCliHeaders(token, data?.model, forwardedHeaders),
       body: JSON.stringify(data),
     },
   );

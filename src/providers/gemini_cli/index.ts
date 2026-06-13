@@ -12,6 +12,7 @@ import {
 } from "./adapter.ts";
 import { ProviderType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
+import type { HeaderMap } from "../../utils/httpHeaders.ts";
 import type { Provider } from "../_base/interface.ts";
 
 export class GeminiCliProvider implements Provider {
@@ -33,6 +34,7 @@ export class GeminiCliProvider implements Provider {
     reqData: any,
     config?: GeminiCliConfig,
     project?: string,
+    forwardedHeaders?: HeaderMap,
   ) {
     const geminiConfig = config || geminiCliPoller.getNext(this.model);
     const selectedProject = project || geminiConfig.projects[0];
@@ -43,9 +45,10 @@ export class GeminiCliProvider implements Provider {
       return fetchGeminiCLiStreamResponse({
         token,
         data: reqData,
+        forwardedHeaders,
       });
     } else {
-      return fetchGeminiCLiResponse({ token, data: reqData });
+      return fetchGeminiCLiResponse({ token, data: reqData, forwardedHeaders });
     }
   }
 

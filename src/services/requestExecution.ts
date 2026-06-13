@@ -10,6 +10,7 @@ import {
   MAX_RETRIES,
 } from "../utils/retryStrategy.ts";
 import { supportsProjects } from "../providers/registry.ts";
+import type { HeaderMap } from "../utils/httpHeaders.ts";
 
 export interface ExecuteModelRequestParams {
   model: string;
@@ -17,6 +18,7 @@ export interface ExecuteModelRequestParams {
   isStreaming: boolean;
   body: Record<string, unknown>;
   requestLogger: RequestLogger;
+  forwardedHeaders?: HeaderMap;
 }
 
 export interface ExecuteModelRequestResult {
@@ -77,13 +79,20 @@ async function executeSingleModelRequest(
   isStreaming: boolean,
   reqData: Record<string, unknown>,
   requestLogger: RequestLogger,
+  forwardedHeaders?: HeaderMap,
 ): Promise<ExecuteModelRequestResult | null> {
   const requestId = requestLogger.getRequestId();
   const providers = getAllProvidersForModel(model);
   const fallbackProvider = getProvider(model);
 
   if (providers.length === 0) {
-    const response = await fallbackProvider.fetchResponse(isStreaming, reqData);
+    const response = await fallbackProvider.fetchResponse(
+      isStreaming,
+      reqData,
+      undefined,
+      undefined,
+      forwardedHeaders,
+    );
     return { response, provider: fallbackProvider };
   }
 
@@ -151,6 +160,7 @@ async function executeSingleModelRequest(
         reqData,
         config,
         project,
+        forwardedHeaders,
       );
     } catch (error) {
       state.lastError = error as Error;
@@ -229,7 +239,14 @@ async function executeSingleModelRequest(
 export async function executeModelRequest(
   params: ExecuteModelRequestParams,
 ): Promise<ExecuteModelRequestResult> {
-  const { model, targetType, isStreaming, body, requestLogger } = params;
+  const {
+    model,
+    targetType,
+    isStreaming,
+    body,
+    requestLogger,
+    forwardedHeaders,
+  } = params;
   const modelsToTry = [model, ...getFallbackChain(model)];
 
   let lastResult: ExecuteModelRequestResult | null = null;
@@ -258,6 +275,7 @@ export async function executeModelRequest(
       isStreaming,
       request,
       requestLogger,
+      forwardedHeaders,
     );
 
     if (!result) {

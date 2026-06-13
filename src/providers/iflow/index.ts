@@ -8,6 +8,7 @@ import {
 import { ProviderType } from "../../../pkg/converter_wasm.js";
 import { getAccessToken, iflowHeaderSign } from "./auth.ts";
 import { RequestLogger } from "../../utils/logger.ts";
+import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders.ts";
 import type { Provider } from "../_base/interface.ts";
 
 export class IflowProvider implements Provider {
@@ -28,17 +29,19 @@ export class IflowProvider implements Provider {
     _is_streaming: boolean,
     reqData: any,
     config?: IFlowConfig,
+    _project?: string,
+    forwardedHeaders?: HeaderMap,
   ) {
     const iflowConfig = config || iflowPoller.getNext(this.model);
     const token = await getAccessToken(iflowConfig.auth);
     const endpoint = "https://apis.iflow.cn/v1/chat/completions";
     const headerSign = iflowHeaderSign(token);
-    const headers: any = {
+    const headers = mergeHeaders(forwardedHeaders, {
       "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
       "User-Agent": "iFlow-Cli",
       ...headerSign,
-    };
+    });
 
     return fetch(endpoint, {
       method: "POST",

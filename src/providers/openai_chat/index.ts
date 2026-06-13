@@ -7,6 +7,7 @@ import {
 } from "./adapter.ts";
 import { ProviderType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
+import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders.ts";
 import type { Provider } from "../_base/interface.ts";
 
 export class OpenAIProvider implements Provider {
@@ -27,13 +28,15 @@ export class OpenAIProvider implements Provider {
     _is_streaming: boolean,
     reqData: any,
     config?: OpenAIChatConfig,
+    _project?: string,
+    forwardedHeaders?: HeaderMap,
   ) {
     const openaiConfig = config || openAIPoller.getNext(this.model);
     const url = `${openaiConfig.base_url}/chat/completions`;
-    const headers = {
+    const headers = mergeHeaders(forwardedHeaders, {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${openaiConfig.api_key}`,
-    };
+    });
     const body = JSON.stringify(reqData);
 
     return fetch(url, {

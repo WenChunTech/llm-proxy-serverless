@@ -8,6 +8,7 @@ import {
 } from "./adapter.ts";
 import { getAccessToken } from "./auth.ts";
 import { RequestLogger } from "../../utils/logger.ts";
+import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders.ts";
 import type { Provider } from "../_base/interface.ts";
 
 export class QwenProvider implements Provider {
@@ -28,15 +29,17 @@ export class QwenProvider implements Provider {
     _is_streaming: boolean,
     reqData: any,
     config?: QwenConfig,
+    _project?: string,
+    forwardedHeaders?: HeaderMap,
   ) {
     const qwenConfig = config || qwenPoller.getNext(this.model);
     const token = await getAccessToken(qwenConfig.auth);
     const endpoint =
       `https://${qwenConfig.auth.resource_url}/v1/chat/completions`;
-    const headers: any = {
+    const headers = mergeHeaders(forwardedHeaders, {
       "Authorization": `Bearer ${token}`,
       "Content-Type": "application/json",
-    };
+    });
 
     return fetch(endpoint, {
       method: "POST",

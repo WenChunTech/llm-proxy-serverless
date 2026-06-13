@@ -7,6 +7,7 @@ import {
 } from "./adapter.ts";
 import { ProviderType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
+import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders.ts";
 import type { Provider } from "../_base/interface.ts";
 
 export class GeminiProvider implements Provider {
@@ -27,6 +28,8 @@ export class GeminiProvider implements Provider {
     is_streaming: boolean,
     reqData: any,
     config?: GeminiConfig,
+    _project?: string,
+    forwardedHeaders?: HeaderMap,
   ) {
     const geminiConfig = config || geminiPoller.getNext(this.model);
     const action = is_streaming
@@ -34,11 +37,11 @@ export class GeminiProvider implements Provider {
       : "generateContent";
     const url =
       `${geminiConfig.base_url}/v1beta/models/${this.model}:${action}`;
-    const headers = {
+    const headers = mergeHeaders(forwardedHeaders, {
       "Content-Type": "application/json",
       "x-goog-api-key": geminiConfig.api_key,
       "Authorization": `Bearer ${geminiConfig.api_key}`,
-    };
+    });
 
     return fetch(url, {
       method: "POST",

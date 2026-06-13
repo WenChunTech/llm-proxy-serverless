@@ -3,16 +3,23 @@ import { streamSSE } from "hono/streaming";
 import { ProviderType } from "../../pkg/converter_wasm.js";
 import { logger, RequestLogger } from "./logger.ts";
 import { executeModelRequest } from "../services/requestExecution.ts";
+import {
+  getForwardableRequestHeaders,
+  getProxyResponseHeaders,
+  withUpstreamResponseHeaders,
+} from "./httpHeaders.ts";
 
 function proxyResponse(response: Response) {
-  const newHeaders = new Headers(response.headers);
-  newHeaders.delete("content-encoding");
-  newHeaders.delete("content-length");
-
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers: newHeaders,
+    headers: getProxyResponseHeaders(response.headers),
+  });
+}
+
+function applyUpstreamHeaders(c: Context, response: Response) {
+  getProxyResponseHeaders(response.headers).forEach((value, name) => {
+    c.header(name, value);
   });
 }
 
@@ -64,6 +71,7 @@ export async function handleModelRequest(
       isStreaming,
       body,
       requestLogger,
+      forwardedHeaders: getForwardableRequestHeaders(c.req.raw.headers),
     });
 
   if (!resp.ok) {
@@ -72,6 +80,7 @@ export async function handleModelRequest(
 
   if (targetType === actualProvider.getProviderType()) {
     if (isStreaming) {
+      applyUpstreamHeaders(c, resp);
       return streamSSE(c, async (stream) => {
         const reader = resp.body!.getReader();
         const decoder = new TextDecoder();
@@ -94,6 +103,7 @@ export async function handleModelRequest(
   }
 
   if (isStreaming) {
+    applyUpstreamHeaders(c, resp);
     return streamSSE(c, async (stream) => {
       return actualProvider.convertStreamResponseTo(
         stream,
@@ -108,5 +118,10 @@ export async function handleModelRequest(
   const responseText = await clonedResp.text();
   requestLogger.saveRawResponse(responseText);
 
-  return actualProvider.convertResponseTo(c, resp, targetType);
+  const convertedResponse = await actualProvider.convertResponseTo(
+    c,
+    resp,
+    targetType,
+  );
+  return withUpstreamResponseHeaders(convertedResponse, resp);
 }

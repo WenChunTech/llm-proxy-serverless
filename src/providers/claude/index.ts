@@ -7,6 +7,7 @@ import {
 } from "./adapter.ts";
 import { ProviderType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
+import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders.ts";
 import type { Provider } from "../_base/interface.ts";
 
 export class ClaudeProvider implements Provider {
@@ -27,15 +28,17 @@ export class ClaudeProvider implements Provider {
     is_streaming: boolean,
     reqData: any,
     config?: ClaudeConfig,
+    _project?: string,
+    forwardedHeaders?: HeaderMap,
   ) {
     const claudeConfig = config || claudePoller.getNext(this.model);
     const url = `${claudeConfig.base_url}/v1/messages`;
-    const headers = {
+    const headers = mergeHeaders(forwardedHeaders, {
       "Content-Type": "application/json",
       "x-api-key": claudeConfig.api_key,
       "Authorization": `Bearer ${claudeConfig.api_key}`,
       "anthropic-version": "2023-06-01",
-    };
+    });
     const body = JSON.stringify({ ...reqData, stream: is_streaming });
 
     return fetch(url, {
