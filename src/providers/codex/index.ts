@@ -7,10 +7,11 @@ import {
 } from "./adapter.ts";
 import { ProviderType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
+import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders.ts";
 import type { Provider } from "../_base/interface.ts";
 
 const CODEX_USER_AGENT =
-  "codex-tui/0.118.0 (Mac OS 26.3.1; arm64) iTerm.app/3.6.9 (codex-tui; 0.118.0)";
+  "codex-tui/0.122.0 (Mac OS; arm64) iTerm.app (codex-tui; 0.122.0)";
 
 export class CodexProvider implements Provider {
   model: string;
@@ -34,6 +35,8 @@ export class CodexProvider implements Provider {
     is_streaming: boolean,
     reqData: any,
     config?: CodexConfig,
+    _project?: string,
+    forwardedHeaders?: HeaderMap,
   ) {
     const codexConfig = config || codexPoller.getNext(this.model);
 
@@ -59,23 +62,23 @@ export class CodexProvider implements Provider {
       body.instructions = "";
     }
 
-    const headers: Record<string, string> = {
+    const headers: Record<string, string> = mergeHeaders(forwardedHeaders, {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${auth.access_token}`,
       "User-Agent": CODEX_USER_AGENT,
       "Originator": "codex-tui",
       "Connection": "Keep-Alive",
-    };
+    });
 
     if (is_streaming) {
-      headers["Accept"] = "text/event-stream";
+      headers["accept"] = "text/event-stream";
     } else {
-      headers["Accept"] = "application/json";
+      headers["accept"] = "application/json";
     }
 
     // Add ChatGPT account ID header
     if (auth.account_id) {
-      headers["Chatgpt-Account-Id"] = auth.account_id;
+      headers["chatgpt-account-id"] = auth.account_id;
     }
 
     // Add a session ID

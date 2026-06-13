@@ -1,6 +1,7 @@
 import { Context } from "hono";
 import { ProviderType } from "../../../pkg/converter_wasm.js";
 import { RequestLogger } from "../../utils/logger.ts";
+import type { HeaderMap } from "../../utils/httpHeaders.ts";
 
 export interface Provider {
   model: string;
@@ -14,6 +15,7 @@ export interface Provider {
     reqData: Record<string, unknown>,
     config?: unknown,
     project?: string,
+    forwardedHeaders?: HeaderMap,
   ): Promise<Response>;
   convertResponseTo(
     c: Context,
