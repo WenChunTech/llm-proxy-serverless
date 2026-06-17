@@ -161,7 +161,6 @@ async function executeSingleModelRequest(
 
       // 遍历该提供商的所有配置
       for (let configEntry of slot.configs) {
-        const configIndex = configEntry.configIndex;
         const config = configEntry.config as any;
 
         // 如果是 GeminiCli，遍历项目
@@ -227,6 +226,20 @@ async function executeSingleModelRequest(
 
             lastResult = { response: resp, provider: currentProvider };
 
+            let errorMsg = "";
+            try {
+              const cloned = resp.clone();
+              const body = await cloned.json();
+              errorMsg = body?.error?.message || body?.message ||
+                JSON.stringify(body);
+            } catch {
+              try {
+                errorMsg = await resp.clone().text();
+              } catch {
+                errorMsg = "(unable to read response body)";
+              }
+            }
+
             logger.warn("[provider-attempt-response]", {
               requestId,
               model,
@@ -237,7 +250,7 @@ async function executeSingleModelRequest(
               project_slot: `${projectIdx + 1}`,
               project,
               status: resp.status,
-              statusText: resp.statusText,
+              error_msg: errorMsg,
             });
 
             // 4xx 错误跳过该项目
@@ -296,6 +309,20 @@ async function executeSingleModelRequest(
 
           lastResult = { response: resp, provider: currentProvider };
 
+          let errorMsg = "";
+          try {
+            const cloned = resp.clone();
+            const body = await cloned.json();
+            errorMsg = body?.error?.message || body?.message ||
+              JSON.stringify(body);
+          } catch {
+            try {
+              errorMsg = await resp.clone().text();
+            } catch {
+              errorMsg = "(unable to read response body)";
+            }
+          }
+
           logger.warn("[provider-attempt-response]", {
             requestId,
             model,
@@ -304,7 +331,7 @@ async function executeSingleModelRequest(
             provider_slot: `${pIdx + 1}`,
             base_url: baseUrl,
             status: resp.status,
-            statusText: resp.statusText,
+            error_msg: errorMsg,
           });
 
           // 4xx 错误跳过该配置
