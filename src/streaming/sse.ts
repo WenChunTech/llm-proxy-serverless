@@ -8,7 +8,7 @@ import {
   openAIResponsesStreamWrapperConvertTo,
   ProviderType,
 } from "../../pkg/converter_wasm.js";
-import { RequestLogger } from "../utils/logger.ts";
+import { logger, RequestLogger } from "../utils/logger.ts";
 
 const responseConvert = (
   wrapper: any,
@@ -69,18 +69,28 @@ export const StreamEvent = async (
             chunk: JSON.parse(data),
             state: state,
           };
-          const streams_wrapper = responseConvert(
-            wrapper,
-            sourceType,
-            targetType,
-          );
-          state = streams_wrapper.state;
-          let chunks = streams_wrapper.chunks;
-          for (const chunk of chunks) {
-            stream.writeSSE({
-              event: chunk.type,
-              data: JSON.stringify(chunk),
-            });
+          try {
+            const streams_wrapper = responseConvert(
+              wrapper,
+              sourceType,
+              targetType,
+            );
+            state = streams_wrapper.state;
+            let chunks = streams_wrapper.chunks;
+            for (const chunk of chunks) {
+              stream.writeSSE({
+                event: chunk.type,
+                data: JSON.stringify(chunk),
+              });
+            }
+          } catch (error) {
+            logger.error(
+              `[WASM] Stream response conversion failed (source=${sourceType}, target=${targetType}):`,
+              error,
+              `\nOriginal SSE chunk:`,
+              data,
+            );
+            throw error;
           }
         }
       }
@@ -97,14 +107,28 @@ export const StreamEvent = async (
         chunk: JSON.parse(data),
         state: state,
       };
-      const streams_wrapper = responseConvert(wrapper, sourceType, targetType);
-      state = streams_wrapper.state;
-      let chunks = streams_wrapper.chunks;
-      for (const chunk of chunks) {
-        stream.writeSSE({
-          event: chunk.type,
-          data: JSON.stringify(chunk),
-        });
+      try {
+        const streams_wrapper = responseConvert(
+          wrapper,
+          sourceType,
+          targetType,
+        );
+        state = streams_wrapper.state;
+        let chunks = streams_wrapper.chunks;
+        for (const chunk of chunks) {
+          stream.writeSSE({
+            event: chunk.type,
+            data: JSON.stringify(chunk),
+          });
+        }
+      } catch (error) {
+        logger.error(
+          `[WASM] Stream response conversion failed (source=${sourceType}, target=${targetType}):`,
+          error,
+          `\nOriginal SSE chunk:`,
+          data,
+        );
+        throw error;
       }
     }
   }
@@ -141,12 +165,22 @@ export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (
         }
         const data = line.substring(5).trim();
         if (data) {
-          const responseData = geminiCliResponseConvertToGeminiResponse(
-            JSON.parse(data),
-          );
-          stream.writeSSE({
-            data: JSON.stringify(responseData),
-          });
+          try {
+            const responseData = geminiCliResponseConvertToGeminiResponse(
+              JSON.parse(data),
+            );
+            stream.writeSSE({
+              data: JSON.stringify(responseData),
+            });
+          } catch (error) {
+            logger.error(
+              `[WASM] GeminiCli stream response conversion failed (source=GeminiCli, target=Gemini):`,
+              error,
+              `\nOriginal SSE chunk:`,
+              data,
+            );
+            throw error;
+          }
         }
       }
     }
@@ -158,12 +192,22 @@ export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (
     }
     const data = buffer.substring(5).trim();
     if (data) {
-      const responseData = geminiCliResponseConvertToGeminiResponse(
-        JSON.parse(data),
-      );
-      stream.writeSSE({
-        data: JSON.stringify(responseData),
-      });
+      try {
+        const responseData = geminiCliResponseConvertToGeminiResponse(
+          JSON.parse(data),
+        );
+        stream.writeSSE({
+          data: JSON.stringify(responseData),
+        });
+      } catch (error) {
+        logger.error(
+          `[WASM] GeminiCli stream response conversion failed (source=GeminiCli, target=Gemini):`,
+          error,
+          `\nOriginal SSE chunk:`,
+          data,
+        );
+        throw error;
+      }
     }
   }
 };
