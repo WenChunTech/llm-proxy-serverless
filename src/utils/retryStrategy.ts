@@ -14,7 +14,13 @@ export interface RetryState {
   lastResponse?: Response;
 }
 
-export const MAX_RETRIES = 15;
+export const MAX_RETRIES = 5;
+
+// 计算线性递增 sleep 时间（毫秒）
+export function calculateBackoffDelay(attempt: number): number {
+  // attempt 从 1 开始，每次增加 5 秒：5000ms, 10000ms, 15000ms, 20000ms, 25000ms
+  return attempt * 5000;
+}
 
 export function getNormalizedFallbackList(fallbackModels?: string[]): string[] {
   if (!Array.isArray(fallbackModels)) {
