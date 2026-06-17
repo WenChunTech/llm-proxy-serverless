@@ -3,6 +3,7 @@ import { getProvider, getProviderInstance } from "../providers/factory.ts";
 import type { Provider } from "../providers/_base/interface.ts";
 import { logger, RequestLogger } from "../utils/logger.ts";
 import {
+  calculateBackoffDelay,
   getAllProvidersForModel,
   getFallbackChain,
   getProviderConfigs,
@@ -57,20 +58,26 @@ function logProviderAttempt(
   providerName: string,
   attempt: number,
   providerIndex: number,
-  configIndex: number,
+  baseUrl: string,
   projectIndex?: number,
   project?: string,
 ) {
-  logger.info("[provider-attempt]", {
+  const details = {
     requestId,
     model,
-    providerName,
+    provider: providerName,
+    // attempt 是全局重试次数（1-5）
     attempt,
-    providerIndex,
-    configIndex,
-    ...(projectIndex !== undefined ? { projectIndex } : {}),
+    // provider_slot 表示提供商序号
+    provider_slot: `${providerIndex + 1}`,
+    // base_url 表示实际使用的配置地址
+    base_url: baseUrl,
+    ...(projectIndex !== undefined
+      ? { project_slot: `${projectIndex + 1}` }
+      : {}),
     ...(project !== undefined ? { project } : {}),
-  });
+  };
+  logger.info("[provider-attempt]", details);
 }
 
 async function executeSingleModelRequest(
@@ -96,141 +103,240 @@ async function executeSingleModelRequest(
     return { response, provider: fallbackProvider };
   }
 
-  const state = {
-    providerIndex: 0,
-    configIndices: new Map<string, number>(),
-    projectIndices: new Map<string, number>(),
-    attempt: 0,
-    lastError: undefined as Error | undefined,
-    lastResponse: undefined as Response | undefined,
-    lastProvider: undefined as Provider | undefined,
-  };
-
-  for (const providerName of providers) {
-    state.configIndices.set(providerName, 0);
-    state.projectIndices.set(providerName, 0);
+  // 构建提供商配置表
+  interface ProviderSlot {
+    name: string;
+    configs: Array<{
+      configIndex: number;
+      projectIndices?: number[];
+      config: unknown;
+    }>;
   }
 
-  while (
-    state.attempt < MAX_RETRIES && state.providerIndex < providers.length
-  ) {
-    const providerName = providers[state.providerIndex];
-    const currentProvider = getProviderInstance(
-      providerName,
-      model,
-    ) as Provider;
+  const providerSlots: ProviderSlot[] = providers.map((providerName) => ({
+    name: providerName,
+    configs: [],
+  }));
+
+  // 初始化每个提供商的所有可用配置
+  for (let pIdx = 0; pIdx < providers.length; pIdx++) {
+    const providerName = providers[pIdx];
     const configs = getProviderConfigs(providerName);
-    const configIndex = state.configIndices.get(providerName) || 0;
-    const projectIndex = state.projectIndices.get(providerName) || 0;
-
-    const config = configs[configIndex];
-    if (!config || !config.models.includes(model)) {
-      state.configIndices.set(providerName, configIndex + 1);
-      if (configIndex + 1 >= configs.length) {
-        state.providerIndex++;
+    for (let cIdx = 0; cIdx < configs.length; cIdx++) {
+      const config = configs[cIdx];
+      if (config.models.includes(model)) {
+        if (isGeminiCliProvider(providerName) && supportsProjects(config)) {
+          const geminiCliConfig = config as { projects?: string[] };
+          const projectCount = geminiCliConfig.projects?.length || 0;
+          providerSlots[pIdx].configs.push({
+            configIndex: cIdx,
+            projectIndices: Array.from({ length: projectCount }, (_, i) => i),
+            config,
+          });
+        } else {
+          providerSlots[pIdx].configs.push({
+            configIndex: cIdx,
+            config,
+          });
+        }
       }
-      continue;
+    }
+  }
+
+  let lastResult: ExecuteModelRequestResult | null = null;
+  let lastError: Error | undefined;
+
+  // 最多尝试 MAX_RETRIES 次（循环处理所有提供商/配置）
+  for (let globalAttempt = 1; globalAttempt <= MAX_RETRIES; globalAttempt++) {
+    let foundValidProvider = false;
+
+    // 遍历所有提供商及其配置
+    for (let pIdx = 0; pIdx < providerSlots.length; pIdx++) {
+      const slot = providerSlots[pIdx];
+      const providerName = slot.name;
+      const currentProvider = getProviderInstance(
+        providerName,
+        model,
+      ) as Provider;
+
+      // 遍历该提供商的所有配置
+      for (let configEntry of slot.configs) {
+        const configIndex = configEntry.configIndex;
+        const config = configEntry.config as any;
+
+        // 如果是 GeminiCli，遍历项目
+        if (isGeminiCliProvider(providerName) && configEntry.projectIndices) {
+          const geminiCliConfig = config as { projects?: string[] };
+          const projects = geminiCliConfig.projects || [];
+
+          for (let projectIdx of configEntry.projectIndices) {
+            const project = projects[projectIdx];
+            const baseUrl = (config as any).base_url || "unknown";
+
+            foundValidProvider = true;
+            logProviderAttempt(
+              requestId,
+              model,
+              providerName,
+              globalAttempt,
+              pIdx,
+              baseUrl,
+              projectIdx,
+              project,
+            );
+
+            let resp: Response;
+            try {
+              resp = await currentProvider.fetchResponse(
+                isStreaming,
+                reqData,
+                config,
+                project,
+                forwardedHeaders,
+              );
+            } catch (error) {
+              lastError = error as Error;
+              logger.error("[provider-attempt-failed]", {
+                requestId,
+                model,
+                provider: providerName,
+                attempt: globalAttempt,
+                provider_slot: `${pIdx + 1}`,
+                base_url: baseUrl,
+                project_slot: `${projectIdx + 1}`,
+                project,
+                error: lastError.message,
+              });
+              continue;
+            }
+
+            if (resp.ok) {
+              logger.info("[provider-attempt-succeeded]", {
+                requestId,
+                model,
+                provider: providerName,
+                attempt: globalAttempt,
+                provider_slot: `${pIdx + 1}`,
+                base_url: baseUrl,
+                project_slot: `${projectIdx + 1}`,
+                project,
+                status: resp.status,
+              });
+              return { response: resp, provider: currentProvider };
+            }
+
+            lastResult = { response: resp, provider: currentProvider };
+
+            logger.warn("[provider-attempt-response]", {
+              requestId,
+              model,
+              provider: providerName,
+              attempt: globalAttempt,
+              provider_slot: `${pIdx + 1}`,
+              base_url: baseUrl,
+              project_slot: `${projectIdx + 1}`,
+              project,
+              status: resp.status,
+              statusText: resp.statusText,
+            });
+
+            // 4xx 错误跳过该项目
+            if (resp.status >= 400 && resp.status < 500) {
+              continue;
+            }
+          }
+        } else {
+          // 非 GeminiCli 提供商
+          const baseUrl = (config as any).base_url || "unknown";
+          foundValidProvider = true;
+          logProviderAttempt(
+            requestId,
+            model,
+            providerName,
+            globalAttempt,
+            pIdx,
+            baseUrl,
+          );
+
+          let resp: Response;
+          try {
+            resp = await currentProvider.fetchResponse(
+              isStreaming,
+              reqData,
+              config,
+              undefined,
+              forwardedHeaders,
+            );
+          } catch (error) {
+            lastError = error as Error;
+            logger.error("[provider-attempt-failed]", {
+              requestId,
+              model,
+              provider: providerName,
+              attempt: globalAttempt,
+              provider_slot: `${pIdx + 1}`,
+              base_url: baseUrl,
+              error: lastError.message,
+            });
+            continue;
+          }
+
+          if (resp.ok) {
+            logger.info("[provider-attempt-succeeded]", {
+              requestId,
+              model,
+              provider: providerName,
+              attempt: globalAttempt,
+              provider_slot: `${pIdx + 1}`,
+              base_url: baseUrl,
+              status: resp.status,
+            });
+            return { response: resp, provider: currentProvider };
+          }
+
+          lastResult = { response: resp, provider: currentProvider };
+
+          logger.warn("[provider-attempt-response]", {
+            requestId,
+            model,
+            provider: providerName,
+            attempt: globalAttempt,
+            provider_slot: `${pIdx + 1}`,
+            base_url: baseUrl,
+            status: resp.status,
+            statusText: resp.statusText,
+          });
+
+          // 4xx 错误跳过该配置
+          if (resp.status >= 400 && resp.status < 500) {
+            continue;
+          }
+        }
+      }
     }
 
-    let project: string | undefined;
-    if (isGeminiCliProvider(providerName) && supportsProjects(config)) {
-      if (projectIndex >= config.projects.length) {
-        state.configIndices.set(providerName, configIndex + 1);
-        state.projectIndices.set(providerName, 0);
-        continue;
-      }
-      project = config.projects[projectIndex];
+    // 如果这一轮没有有效的提供商/配置，或已达最大重试次数
+    if (!foundValidProvider || globalAttempt >= MAX_RETRIES) {
+      break;
     }
 
-    logProviderAttempt(
+    // 计算退避延迟并 sleep
+    const delayMs = calculateBackoffDelay(globalAttempt);
+    logger.info("[retry-backoff]", {
       requestId,
       model,
-      providerName,
-      state.attempt + 1,
-      state.providerIndex,
-      configIndex,
-      isGeminiCliProvider(providerName) ? projectIndex : undefined,
-      project,
-    );
-
-    let resp: Response;
-    try {
-      resp = await currentProvider.fetchResponse(
-        isStreaming,
-        reqData,
-        config,
-        project,
-        forwardedHeaders,
-      );
-    } catch (error) {
-      state.lastError = error as Error;
-      state.attempt++;
-      logger.error("[provider-attempt-failed]", {
-        requestId,
-        model,
-        providerName,
-        attempt: state.attempt,
-        providerIndex: state.providerIndex,
-        configIndex,
-        ...(isGeminiCliProvider(providerName) ? { projectIndex, project } : {}),
-        error: state.lastError.message,
-      });
-      if (isGeminiCliProvider(providerName)) {
-        state.projectIndices.set(providerName, projectIndex + 1);
-      } else {
-        state.configIndices.set(providerName, configIndex + 1);
-      }
-      continue;
-    }
-
-    if (resp.ok) {
-      logger.info("[provider-attempt-succeeded]", {
-        requestId,
-        model,
-        providerName,
-        attempt: state.attempt + 1,
-        providerIndex: state.providerIndex,
-        configIndex,
-        ...(isGeminiCliProvider(providerName) ? { projectIndex, project } : {}),
-        status: resp.status,
-      });
-      return { response: resp, provider: currentProvider };
-    }
-
-    state.lastResponse = resp;
-    state.lastProvider = currentProvider;
-    state.attempt++;
-
-    logger.warn("[provider-attempt-response]", {
-      requestId,
-      model,
-      providerName,
-      attempt: state.attempt,
-      providerIndex: state.providerIndex,
-      configIndex,
-      ...(isGeminiCliProvider(providerName) ? { projectIndex, project } : {}),
-      status: resp.status,
-      statusText: resp.statusText,
+      attempt: globalAttempt,
+      nextAttemptAfterMs: delayMs,
     });
-
-    if (resp.status >= 400 && resp.status < 500) {
-      state.providerIndex++;
-      continue;
-    }
-
-    if (isGeminiCliProvider(providerName)) {
-      state.projectIndices.set(providerName, projectIndex + 1);
-    } else {
-      state.configIndices.set(providerName, configIndex + 1);
-    }
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
   }
 
-  if (state.lastResponse && state.lastProvider) {
-    return { response: state.lastResponse, provider: state.lastProvider };
+  if (lastResult) {
+    return lastResult;
   }
 
-  if (state.lastError) {
-    throw state.lastError;
+  if (lastError) {
+    throw lastError;
   }
 
   return null;
