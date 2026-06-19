@@ -2,6 +2,7 @@ import { ProviderType } from "../../pkg/converter_wasm.js";
 import { getProvider, getProviderInstance } from "../providers/factory.ts";
 import type { Provider } from "../providers/_base/interface.ts";
 import { logger, RequestLogger } from "../utils/logger.ts";
+import { saveErrorLog } from "../services/errorLog.ts";
 import {
   calculateBackoffDelay,
   getAllProvidersForModel,
@@ -27,6 +28,23 @@ export interface ExecuteModelRequestResult {
   provider: Provider;
 }
 
+interface AttemptTarget {
+  providerName: string;
+  providerIndex: number;
+  config: unknown;
+  baseUrl: string;
+  project?: string;
+  projectIndex?: number;
+}
+
+type AttemptOutcome =
+  | { kind: "success"; result: ExecuteModelRequestResult }
+  | {
+    kind: "failure";
+    result?: ExecuteModelRequestResult;
+    error?: Error;
+  };
+
 function withStreamingFlag(
   provider: Provider,
   req: Record<string, unknown>,
@@ -48,11 +66,36 @@ async function buildProviderRequest(
   targetType: ProviderType,
   isStreaming: boolean,
 ) {
-  const converted = await provider.convertRequestTo(body, targetType);
-  return withStreamingFlag(provider, converted, isStreaming);
+  try {
+    const converted = await provider.convertRequestTo(body, targetType);
+    return withStreamingFlag(provider, converted, isStreaming);
+  } catch (error) {
+    const providerType = provider.getProviderType();
+    logger.error(
+      `[WASM] Request conversion failed (source=${
+        ProviderType[targetType]
+      }, target=${ProviderType[providerType]}):`,
+      error,
+      `\nOriginal request body:`,
+      JSON.stringify(body, null, 2),
+    );
+    saveErrorLog({
+      type: "request_conversion",
+      error: {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      request: {
+        body,
+        sourceType: ProviderType[targetType],
+        targetType: ProviderType[provider.getProviderType()],
+      },
+    }).catch(() => {});
+    throw error;
+  }
 }
 
-function logProviderAttempt(
+function buildAttemptLogDetails(
   requestId: string,
   model: string,
   providerName: string,
@@ -62,7 +105,7 @@ function logProviderAttempt(
   projectIndex?: number,
   project?: string,
 ) {
-  const details = {
+  return {
     requestId,
     model,
     provider: providerName,
@@ -77,7 +120,170 @@ function logProviderAttempt(
       : {}),
     ...(project !== undefined ? { project } : {}),
   };
-  logger.info("[provider-attempt]", details);
+}
+
+function logProviderAttempt(
+  requestId: string,
+  model: string,
+  providerName: string,
+  attempt: number,
+  providerIndex: number,
+  baseUrl: string,
+  projectIndex?: number,
+  project?: string,
+) {
+  logger.info(
+    "[provider-attempt]",
+    buildAttemptLogDetails(
+      requestId,
+      model,
+      providerName,
+      attempt,
+      providerIndex,
+      baseUrl,
+      projectIndex,
+      project,
+    ),
+  );
+}
+
+async function extractErrorMessage(resp: Response): Promise<string> {
+  try {
+    const cloned = resp.clone();
+    const body = await cloned.json();
+    return body?.error?.message || body?.message || JSON.stringify(body);
+  } catch {
+    try {
+      return await resp.clone().text();
+    } catch {
+      return "(unable to read response body)";
+    }
+  }
+}
+
+function buildAttemptTargets(
+  providers: string[],
+  model: string,
+): AttemptTarget[] {
+  const targets: AttemptTarget[] = [];
+
+  for (let pIdx = 0; pIdx < providers.length; pIdx++) {
+    const providerName = providers[pIdx];
+    const configs = getProviderConfigs(providerName);
+    const isGeminiCli = isGeminiCliProvider(providerName);
+
+    for (const config of configs) {
+      if (!config.models.includes(model)) continue;
+
+      const baseUrl = (config as any).base_url || "unknown";
+
+      if (isGeminiCli && supportsProjects(config)) {
+        const projects = (config as { projects?: string[] }).projects || [];
+        for (let projectIdx = 0; projectIdx < projects.length; projectIdx++) {
+          targets.push({
+            providerName,
+            providerIndex: pIdx,
+            config,
+            baseUrl,
+            project: projects[projectIdx],
+            projectIndex: projectIdx,
+          });
+        }
+      } else {
+        targets.push({
+          providerName,
+          providerIndex: pIdx,
+          config,
+          baseUrl,
+        });
+      }
+    }
+  }
+
+  return targets;
+}
+
+async function tryAttemptTarget(
+  target: AttemptTarget,
+  model: string,
+  isStreaming: boolean,
+  reqData: Record<string, unknown>,
+  requestId: string,
+  attempt: number,
+  forwardedHeaders?: HeaderMap,
+): Promise<AttemptOutcome> {
+  const {
+    providerName,
+    providerIndex,
+    config,
+    baseUrl,
+    project,
+    projectIndex,
+  } = target;
+  const currentProvider = getProviderInstance(providerName, model) as Provider;
+
+  logProviderAttempt(
+    requestId,
+    model,
+    providerName,
+    attempt,
+    providerIndex,
+    baseUrl,
+    projectIndex,
+    project,
+  );
+
+  const baseDetails = buildAttemptLogDetails(
+    requestId,
+    model,
+    providerName,
+    attempt,
+    providerIndex,
+    baseUrl,
+    projectIndex,
+    project,
+  );
+
+  let resp: Response;
+  try {
+    resp = await currentProvider.fetchResponse(
+      isStreaming,
+      reqData,
+      config,
+      project,
+      forwardedHeaders,
+    );
+  } catch (error) {
+    const err = error as Error;
+    logger.error("[provider-attempt-failed]", {
+      ...baseDetails,
+      error: err.message,
+    });
+    return { kind: "failure", error: err };
+  }
+
+  if (resp.ok) {
+    logger.info("[provider-attempt-succeeded]", {
+      ...baseDetails,
+      status: resp.status,
+    });
+    return {
+      kind: "success",
+      result: { response: resp, provider: currentProvider },
+    };
+  }
+
+  const errorMsg = await extractErrorMessage(resp);
+  logger.warn("[provider-attempt-response]", {
+    ...baseDetails,
+    status: resp.status,
+    error_msg: errorMsg,
+  });
+
+  return {
+    kind: "failure",
+    result: { response: resp, provider: currentProvider },
+  };
 }
 
 async function executeSingleModelRequest(
@@ -103,256 +309,51 @@ async function executeSingleModelRequest(
     return { response, provider: fallbackProvider };
   }
 
-  // 构建提供商配置表
-  interface ProviderSlot {
-    name: string;
-    configs: Array<{
-      configIndex: number;
-      projectIndices?: number[];
-      config: unknown;
-    }>;
-  }
-
-  const providerSlots: ProviderSlot[] = providers.map((providerName) => ({
-    name: providerName,
-    configs: [],
-  }));
-
-  // 初始化每个提供商的所有可用配置
-  for (let pIdx = 0; pIdx < providers.length; pIdx++) {
-    const providerName = providers[pIdx];
-    const configs = getProviderConfigs(providerName);
-    for (let cIdx = 0; cIdx < configs.length; cIdx++) {
-      const config = configs[cIdx];
-      if (config.models.includes(model)) {
-        if (isGeminiCliProvider(providerName) && supportsProjects(config)) {
-          const geminiCliConfig = config as { projects?: string[] };
-          const projectCount = geminiCliConfig.projects?.length || 0;
-          providerSlots[pIdx].configs.push({
-            configIndex: cIdx,
-            projectIndices: Array.from({ length: projectCount }, (_, i) => i),
-            config,
-          });
-        } else {
-          providerSlots[pIdx].configs.push({
-            configIndex: cIdx,
-            config,
-          });
-        }
-      }
-    }
-  }
+  const targets = buildAttemptTargets(providers, model);
 
   let lastResult: ExecuteModelRequestResult | null = null;
   let lastError: Error | undefined;
 
-  // 最多尝试 MAX_RETRIES 次（循环处理所有提供商/配置）
-  for (let globalAttempt = 1; globalAttempt <= MAX_RETRIES; globalAttempt++) {
+  // 最多尝试 MAX_RETRIES 次（每轮遍历所有提供商/配置/项目）
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     let foundValidProvider = false;
 
-    // 遍历所有提供商及其配置
-    for (let pIdx = 0; pIdx < providerSlots.length; pIdx++) {
-      const slot = providerSlots[pIdx];
-      const providerName = slot.name;
-      const currentProvider = getProviderInstance(
-        providerName,
+    for (const target of targets) {
+      foundValidProvider = true;
+
+      const outcome = await tryAttemptTarget(
+        target,
         model,
-      ) as Provider;
+        isStreaming,
+        reqData,
+        requestId,
+        attempt,
+        forwardedHeaders,
+      );
 
-      // 遍历该提供商的所有配置
-      for (let configEntry of slot.configs) {
-        const config = configEntry.config as any;
+      if (outcome.kind === "success") {
+        return outcome.result;
+      }
 
-        // 如果是 GeminiCli，遍历项目
-        if (isGeminiCliProvider(providerName) && configEntry.projectIndices) {
-          const geminiCliConfig = config as { projects?: string[] };
-          const projects = geminiCliConfig.projects || [];
-
-          for (let projectIdx of configEntry.projectIndices) {
-            const project = projects[projectIdx];
-            const baseUrl = (config as any).base_url || "unknown";
-
-            foundValidProvider = true;
-            logProviderAttempt(
-              requestId,
-              model,
-              providerName,
-              globalAttempt,
-              pIdx,
-              baseUrl,
-              projectIdx,
-              project,
-            );
-
-            let resp: Response;
-            try {
-              resp = await currentProvider.fetchResponse(
-                isStreaming,
-                reqData,
-                config,
-                project,
-                forwardedHeaders,
-              );
-            } catch (error) {
-              lastError = error as Error;
-              logger.error("[provider-attempt-failed]", {
-                requestId,
-                model,
-                provider: providerName,
-                attempt: globalAttempt,
-                provider_slot: `${pIdx + 1}`,
-                base_url: baseUrl,
-                project_slot: `${projectIdx + 1}`,
-                project,
-                error: lastError.message,
-              });
-              continue;
-            }
-
-            if (resp.ok) {
-              logger.info("[provider-attempt-succeeded]", {
-                requestId,
-                model,
-                provider: providerName,
-                attempt: globalAttempt,
-                provider_slot: `${pIdx + 1}`,
-                base_url: baseUrl,
-                project_slot: `${projectIdx + 1}`,
-                project,
-                status: resp.status,
-              });
-              return { response: resp, provider: currentProvider };
-            }
-
-            lastResult = { response: resp, provider: currentProvider };
-
-            let errorMsg = "";
-            try {
-              const cloned = resp.clone();
-              const body = await cloned.json();
-              errorMsg = body?.error?.message || body?.message ||
-                JSON.stringify(body);
-            } catch {
-              try {
-                errorMsg = await resp.clone().text();
-              } catch {
-                errorMsg = "(unable to read response body)";
-              }
-            }
-
-            logger.warn("[provider-attempt-response]", {
-              requestId,
-              model,
-              provider: providerName,
-              attempt: globalAttempt,
-              provider_slot: `${pIdx + 1}`,
-              base_url: baseUrl,
-              project_slot: `${projectIdx + 1}`,
-              project,
-              status: resp.status,
-              error_msg: errorMsg,
-            });
-
-            // 4xx 错误跳过该项目
-            if (resp.status >= 400 && resp.status < 500) {
-              continue;
-            }
-          }
-        } else {
-          // 非 GeminiCli 提供商
-          const baseUrl = (config as any).base_url || "unknown";
-          foundValidProvider = true;
-          logProviderAttempt(
-            requestId,
-            model,
-            providerName,
-            globalAttempt,
-            pIdx,
-            baseUrl,
-          );
-
-          let resp: Response;
-          try {
-            resp = await currentProvider.fetchResponse(
-              isStreaming,
-              reqData,
-              config,
-              undefined,
-              forwardedHeaders,
-            );
-          } catch (error) {
-            lastError = error as Error;
-            logger.error("[provider-attempt-failed]", {
-              requestId,
-              model,
-              provider: providerName,
-              attempt: globalAttempt,
-              provider_slot: `${pIdx + 1}`,
-              base_url: baseUrl,
-              error: lastError.message,
-            });
-            continue;
-          }
-
-          if (resp.ok) {
-            logger.info("[provider-attempt-succeeded]", {
-              requestId,
-              model,
-              provider: providerName,
-              attempt: globalAttempt,
-              provider_slot: `${pIdx + 1}`,
-              base_url: baseUrl,
-              status: resp.status,
-            });
-            return { response: resp, provider: currentProvider };
-          }
-
-          lastResult = { response: resp, provider: currentProvider };
-
-          let errorMsg = "";
-          try {
-            const cloned = resp.clone();
-            const body = await cloned.json();
-            errorMsg = body?.error?.message || body?.message ||
-              JSON.stringify(body);
-          } catch {
-            try {
-              errorMsg = await resp.clone().text();
-            } catch {
-              errorMsg = "(unable to read response body)";
-            }
-          }
-
-          logger.warn("[provider-attempt-response]", {
-            requestId,
-            model,
-            provider: providerName,
-            attempt: globalAttempt,
-            provider_slot: `${pIdx + 1}`,
-            base_url: baseUrl,
-            status: resp.status,
-            error_msg: errorMsg,
-          });
-
-          // 4xx 错误跳过该配置
-          if (resp.status >= 400 && resp.status < 500) {
-            continue;
-          }
-        }
+      if (outcome.error) {
+        lastError = outcome.error;
+      }
+      if (outcome.result) {
+        lastResult = outcome.result;
       }
     }
 
     // 如果这一轮没有有效的提供商/配置，或已达最大重试次数
-    if (!foundValidProvider || globalAttempt >= MAX_RETRIES) {
+    if (!foundValidProvider || attempt >= MAX_RETRIES) {
       break;
     }
 
     // 计算退避延迟并 sleep
-    const delayMs = calculateBackoffDelay(globalAttempt);
+    const delayMs = calculateBackoffDelay(attempt);
     logger.info("[retry-backoff]", {
       requestId,
       model,
-      attempt: globalAttempt,
+      attempt,
       nextAttemptAfterMs: delayMs,
     });
     await new Promise((resolve) => setTimeout(resolve, delayMs));
