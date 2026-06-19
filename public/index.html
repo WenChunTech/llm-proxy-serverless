@@ -13,7 +13,12 @@
       (() => {
         const themeKey = "llm-proxy-theme";
         const savedTheme = localStorage.getItem(themeKey);
-        const isDark = savedTheme ? savedTheme === "dark" : true;
+        let isDark;
+        if (!savedTheme || savedTheme === "system") {
+          isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        } else {
+          isDark = savedTheme === "dark";
+        }
         document.documentElement.classList.toggle("dark", isDark);
       })();
     </script>
@@ -197,7 +202,9 @@
     <div class="page-shell">
       <div class="max-w-7xl mx-auto px-4 py-8 md:px-6 lg:px-8">
         <header class="mb-10 md:mb-16">
-          <div class="flex flex-col gap-4 mb-8 md:flex-row md:items-center md:justify-between">
+          <div
+            class="flex flex-col gap-4 mb-8 md:flex-row md:items-center md:justify-between"
+          >
             <div class="flex flex-wrap items-center gap-3">
               <div class="panel rounded-full px-4 py-2 text-sm font-medium">
                 <span class="display-font">LLM Proxy</span>
@@ -208,7 +215,9 @@
               >
               </div>
             </div>
-            <div class="responsive-actions flex flex-wrap items-stretch gap-3 md:w-auto md:justify-end">
+            <div
+              class="responsive-actions flex flex-wrap items-stretch gap-3 md:w-auto md:justify-end"
+            >
               <a
                 id="settingsLink"
                 href="/settings.html"
@@ -278,11 +287,14 @@
               <div
                 id="providerChips"
                 class="provider-chip-list flex flex-wrap gap-3"
-              ></div>
+              >
+              </div>
             </section>
 
             <aside class="panel rounded-[2rem] p-6 md:p-10">
-              <div class="flex flex-col items-start justify-between gap-4 mb-6 sm:flex-row sm:items-center">
+              <div
+                class="flex flex-col items-start justify-between gap-4 mb-6 sm:flex-row sm:items-center"
+              >
                 <h2 id="heroChecklistTitle" class="text-2xl font-bold"></h2>
                 <div
                   id="liveBadge"
@@ -478,9 +490,14 @@
         "Codex",
       ];
 
-      let currentLanguage = localStorage.getItem(LANGUAGE_KEY) === "zh"
-        ? "zh"
-        : "en";
+      function getBrowserLanguage() {
+        const lang = (navigator.language || "en").toLowerCase();
+        return lang.startsWith("zh") ? "zh" : "en";
+      }
+
+      let currentLanguage = localStorage.getItem(LANGUAGE_KEY)
+        ? (localStorage.getItem(LANGUAGE_KEY) === "zh" ? "zh" : "en")
+        : getBrowserLanguage();
       let currentExampleTab = "openai";
 
       const TRANSLATIONS = {
@@ -492,6 +509,7 @@
           languageToggle: "中文",
           darkMode: "Dark Mode",
           lightMode: "Light Mode",
+          systemMode: "System",
           liveBadge: "Live",
           featureTag: "Feature",
           compatEndpointLabel: "Endpoint",
@@ -770,6 +788,7 @@
           languageToggle: "English",
           darkMode: "深色模式",
           lightMode: "浅色模式",
+          systemMode: "跟随系统",
           liveBadge: "可用",
           featureTag: "能力",
           compatEndpointLabel: "端点",
@@ -1058,18 +1077,29 @@
           .replaceAll("'", "&#39;");
       }
 
+      function resolveThemeIsDark(theme) {
+        if (theme === "system") {
+          return window.matchMedia("(prefers-color-scheme: dark)").matches;
+        }
+        return theme === "dark";
+      }
+
+      function getThemeLabel(theme) {
+        if (theme === "system") return t("systemMode");
+        return resolveThemeIsDark(theme) ? t("lightMode") : t("darkMode");
+      }
+
       function applyTheme(theme) {
-        const isDark = theme === "dark";
-        document.documentElement.classList.toggle("dark", isDark);
         localStorage.setItem(THEME_KEY, theme);
-        setText("themeToggle", isDark ? t("lightMode") : t("darkMode"));
+        const isDark = resolveThemeIsDark(theme);
+        document.documentElement.classList.toggle("dark", isDark);
+        setText("themeToggle", getThemeLabel(theme));
       }
 
       function toggleTheme() {
-        const isDark = document.documentElement.classList.contains(
-          "dark",
-        );
-        applyTheme(isDark ? "light" : "dark");
+        const current = localStorage.getItem(THEME_KEY) || "system";
+        const next = { dark: "light", light: "system", system: "dark" }[current] || "system";
+        applyTheme(next);
       }
 
       function toggleLanguage() {
@@ -1295,12 +1325,14 @@
         renderCompat();
         renderStack();
         switchExampleTab(currentExampleTab);
-        applyTheme(
-          document.documentElement.classList.contains("dark")
-            ? "dark"
-            : "light",
-        );
+        applyTheme(localStorage.getItem(THEME_KEY) || "system");
       }
+
+      window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        if ((localStorage.getItem(THEME_KEY) || "system") === "system") {
+          applyTheme("system");
+        }
+      });
 
       renderPage();
     </script>
