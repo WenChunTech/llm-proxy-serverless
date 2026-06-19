@@ -2,6 +2,7 @@ import { Context } from "hono";
 import { streamSSE } from "hono/streaming";
 import { ProviderType } from "../../pkg/converter_wasm.js";
 import { logger, RequestLogger } from "./logger.ts";
+import { saveErrorLog } from "../services/errorLog.ts";
 import { executeModelRequest } from "../services/requestExecution.ts";
 import {
   getForwardableRequestHeaders,
@@ -59,7 +60,7 @@ export async function handleModelRequest(
     requestId: requestLogger.getRequestId(),
     method: c.req.method,
     path: c.req.path,
-    targetType,
+    targetType: ProviderType[targetType],
     model,
     isStreaming,
   });
@@ -75,6 +76,24 @@ export async function handleModelRequest(
     });
 
   if (!resp.ok) {
+    if (resp.status === 500) {
+      try {
+        const clonedResp = resp.clone();
+        const respBody = await clonedResp.text();
+        saveErrorLog({
+          type: "response_500",
+          error: { message: `Provider returned status ${resp.status}` },
+          request: {
+            method: c.req.method,
+            path: c.req.path,
+            body,
+            targetType: ProviderType[targetType],
+            model,
+          },
+          response: { status: resp.status, body: respBody },
+        }).catch(() => {});
+      } catch {}
+    }
     return proxyResponse(resp);
   }
 
@@ -118,10 +137,35 @@ export async function handleModelRequest(
   const responseText = await clonedResp.text();
   requestLogger.saveRawResponse(responseText);
 
-  const convertedResponse = await actualProvider.convertResponseTo(
-    c,
-    resp,
-    targetType,
-  );
-  return withUpstreamResponseHeaders(convertedResponse, resp);
+  try {
+    const convertedResponse = await actualProvider.convertResponseTo(
+      c,
+      resp,
+      targetType,
+    );
+    return withUpstreamResponseHeaders(convertedResponse, resp);
+  } catch (error) {
+    const providerType = actualProvider.getProviderType();
+    logger.error(
+      `[WASM] Response conversion failed (source=${
+        ProviderType[providerType]
+      }, target=${ProviderType[targetType]}):`,
+      error,
+      `\nOriginal response body:`,
+      responseText,
+    );
+    saveErrorLog({
+      type: "response_conversion",
+      error: {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      request: {
+        sourceType: ProviderType[actualProvider.getProviderType()],
+        targetType: ProviderType[targetType],
+      },
+      response: { body: responseText },
+    }).catch(() => {});
+    throw error;
+  }
 }

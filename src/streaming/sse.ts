@@ -9,6 +9,7 @@ import {
   ProviderType,
 } from "../../pkg/converter_wasm.js";
 import { logger, RequestLogger } from "../utils/logger.ts";
+import { saveErrorLog } from "../services/errorLog.ts";
 
 const responseConvert = (
   wrapper: any,
@@ -41,7 +42,9 @@ export const StreamEvent = async (
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   console.log(
-    `StreamEvent sourceType: ${sourceType}, targetType: ${targetType}`,
+    `StreamEvent sourceType: ${ProviderType[sourceType]}, targetType: ${
+      ProviderType[targetType]
+    }`,
   );
   let state = newStreamState(sourceType, targetType);
   let buffer = "";
@@ -85,11 +88,25 @@ export const StreamEvent = async (
             }
           } catch (error) {
             logger.error(
-              `[WASM] Stream response conversion failed (source=${sourceType}, target=${targetType}):`,
+              `[WASM] Stream response conversion failed (source=${
+                ProviderType[sourceType]
+              }, target=${ProviderType[targetType]}):`,
               error,
               `\nOriginal SSE chunk:`,
               data,
             );
+            saveErrorLog({
+              type: "response_conversion",
+              error: {
+                message: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+              },
+              request: {
+                sourceType: String(sourceType),
+                targetType: String(targetType),
+              },
+              response: { body: data },
+            }).catch(() => {});
             throw error;
           }
         }
@@ -128,6 +145,18 @@ export const StreamEvent = async (
           `\nOriginal SSE chunk:`,
           data,
         );
+        saveErrorLog({
+          type: "response_conversion",
+          error: {
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          },
+          request: {
+            sourceType: ProviderType[sourceType],
+            targetType: ProviderType[targetType],
+          },
+          response: { body: data },
+        }).catch(() => {});
         throw error;
       }
     }
@@ -179,6 +208,18 @@ export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (
               `\nOriginal SSE chunk:`,
               data,
             );
+            saveErrorLog({
+              type: "response_conversion",
+              error: {
+                message: error instanceof Error ? error.message : String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+              },
+              request: {
+                sourceType: "GeminiCli",
+                targetType: "Gemini",
+              },
+              response: { body: data },
+            }).catch(() => {});
             throw error;
           }
         }
@@ -206,6 +247,18 @@ export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (
           `\nOriginal SSE chunk:`,
           data,
         );
+        saveErrorLog({
+          type: "response_conversion",
+          error: {
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          },
+          request: {
+            sourceType: "GeminiCli",
+            targetType: "Gemini",
+          },
+          response: { body: data },
+        }).catch(() => {});
         throw error;
       }
     }

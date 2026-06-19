@@ -19,6 +19,10 @@ import {
   handleSettingsVerify,
   handleUpdateModelPriority,
 } from "./utils/settingsHandler.ts";
+import {
+  handleClearErrorLogs,
+  handleGetErrorLogs,
+} from "./utils/errorLogHandler.ts";
 
 const app = new Hono();
 
@@ -104,6 +108,14 @@ app.post("/api/settings/model-priority", async (c) => {
 
 app.post("/api/settings/fallback-model", async (c) => {
   return handleSetFallbackModel(c);
+});
+
+app.get("/api/logs", async (c) => {
+  return handleGetErrorLogs(c);
+});
+
+app.delete("/api/logs", async (c) => {
+  return handleClearErrorLogs(c);
 });
 
 export default app;
