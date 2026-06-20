@@ -3232,7 +3232,7 @@
             renderProviders();
             renderPriority();
             renderFallback();
-            showAlert(result.message || t("providersSaved"), "success");
+            showAlert(t("providersSaved"), "success");
           } else {
             showAlert(
               t("providersSaveFailed", { message: result.error }),
@@ -3275,10 +3275,7 @@
             setConfig(result.data);
             settingsApiKey = config.api_key?.trim() || null;
             renderGeneralSettings();
-            showAlert(
-              result.message || t("globalApiKeySaved"),
-              "success",
-            );
+            showAlert(t("globalApiKeySaved"), "success");
           } else {
             showAlert(
               t("globalApiKeySaveFailed", { message: result.error }),
@@ -3319,7 +3316,7 @@
             setConfig(result.data);
             renderPriority();
             renderProviders();
-            showAlert(result.message || t("prioritySaved"), "success");
+            showAlert(t("prioritySaved"), "success");
           } else {
             showAlert(
               t("prioritySaveFailed", { message: result.error }),
@@ -3359,7 +3356,7 @@
           if (result.success) {
             setConfig(result.data);
             renderFallback();
-            showAlert(result.message || t("fallbackSaved"), "success");
+            showAlert(t("fallbackSaved"), "success");
           } else {
             showAlert(
               t("fallbackSaveFailed", { message: result.error }),
@@ -3631,7 +3628,7 @@
           renderPriority();
           renderFallback();
           closeImportConfigModal();
-          showAlert(result.message || t("importConfigSuccess"), "success");
+          showAlert(t("importConfigSuccess"), "success");
         } catch (error) {
           showAlert(
             t("importConfigFailed", {
