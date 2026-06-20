@@ -50,6 +50,7 @@ export async function handleModelRequest(
   targetType: ProviderType,
 ) {
   const body = await c.req.json();
+  const originalBody = structuredClone(body) as Record<string, unknown>;
 
   const requestLogger = new RequestLogger();
   requestLogger.saveRequestBody(body);
@@ -71,6 +72,7 @@ export async function handleModelRequest(
       targetType,
       isStreaming,
       body,
+      originalBody,
       requestLogger,
       forwardedHeaders: getForwardableRequestHeaders(c.req.raw.headers),
     });

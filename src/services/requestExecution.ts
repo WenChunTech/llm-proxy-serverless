@@ -19,6 +19,7 @@ export interface ExecuteModelRequestParams {
   targetType: ProviderType;
   isStreaming: boolean;
   body: Record<string, unknown>;
+  originalBody?: Record<string, unknown>;
   requestLogger: RequestLogger;
   forwardedHeaders?: HeaderMap;
 }
@@ -151,7 +152,7 @@ async function extractErrorMessage(resp: Response): Promise<string> {
   try {
     const cloned = resp.clone();
     const body = await cloned.json();
-    return body?.error?.message || body?.message || JSON.stringify(body);
+    return JSON.stringify(body);
   } catch {
     try {
       return await resp.clone().text();
@@ -207,7 +208,9 @@ async function tryAttemptTarget(
   target: AttemptTarget,
   model: string,
   isStreaming: boolean,
-  reqData: Record<string, unknown>,
+  requestBody: Record<string, unknown>,
+  originalBody: Record<string, unknown>,
+  originalTargetType: ProviderType,
   requestId: string,
   attempt: number,
   forwardedHeaders?: HeaderMap,
@@ -244,11 +247,18 @@ async function tryAttemptTarget(
     project,
   );
 
+  let providerRequest: Record<string, unknown>;
   let resp: Response;
   try {
+    providerRequest = await buildProviderRequest(
+      currentProvider,
+      requestBody,
+      originalTargetType,
+      isStreaming,
+    );
     resp = await currentProvider.fetchResponse(
       isStreaming,
-      reqData,
+      providerRequest,
       config,
       project,
       forwardedHeaders,
@@ -286,7 +296,8 @@ async function tryAttemptTarget(
         type: "response_500",
         error: { message: `Provider returned status ${resp.status}` },
         request: {
-          body: reqData,
+          body: originalBody,
+          sourceType: ProviderType[originalTargetType],
           targetType: ProviderType[currentProvider.getProviderType()],
           model,
           requestId,
@@ -319,7 +330,8 @@ async function executeSingleModelRequest(
   model: string,
   targetType: ProviderType,
   isStreaming: boolean,
-  reqData: Record<string, unknown>,
+  requestBody: Record<string, unknown>,
+  originalBody: Record<string, unknown>,
   requestLogger: RequestLogger,
   forwardedHeaders?: HeaderMap,
 ): Promise<ExecuteModelRequestResult | null> {
@@ -328,9 +340,15 @@ async function executeSingleModelRequest(
   const fallbackProvider = getProvider(model);
 
   if (providers.length === 0) {
+    const request = await buildProviderRequest(
+      fallbackProvider,
+      requestBody,
+      targetType,
+      isStreaming,
+    );
     const response = await fallbackProvider.fetchResponse(
       isStreaming,
-      reqData,
+      request,
       undefined,
       undefined,
       forwardedHeaders,
@@ -354,7 +372,9 @@ async function executeSingleModelRequest(
         target,
         model,
         isStreaming,
-        reqData,
+        requestBody,
+        originalBody,
+        targetType,
         requestId,
         attempt,
         forwardedHeaders,
@@ -407,6 +427,7 @@ export async function executeModelRequest(
     targetType,
     isStreaming,
     body,
+    originalBody = body,
     requestLogger,
     forwardedHeaders,
   } = params;
@@ -424,19 +445,12 @@ export async function executeModelRequest(
       });
     }
 
-    const provider = getProvider(currentModel);
-    const request = await buildProviderRequest(
-      provider,
-      { ...body, model: currentModel },
-      targetType,
-      isStreaming,
-    );
-
     const result = await executeSingleModelRequest(
       currentModel,
       targetType,
       isStreaming,
-      request,
+      { ...body, model: currentModel },
+      originalBody,
       requestLogger,
       forwardedHeaders,
     );

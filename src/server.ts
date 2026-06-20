@@ -114,7 +114,7 @@ app.get("/api/logs", async (c) => {
   return handleGetErrorLogs(c);
 });
 
-app.delete("/api/logs", async (c) => {
+app.get("/api/logs/clear", async (c) => {
   return handleClearErrorLogs(c);
 });
 
