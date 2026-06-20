@@ -280,6 +280,35 @@ async function tryAttemptTarget(
     error_msg: errorMsg,
   });
 
+  if (resp.status === 500) {
+    try {
+      await saveErrorLog({
+        type: "response_500",
+        error: { message: `Provider returned status ${resp.status}` },
+        request: {
+          body: reqData,
+          targetType: ProviderType[currentProvider.getProviderType()],
+          model,
+          requestId,
+          provider: providerName,
+          baseUrl,
+          attempt,
+          providerSlot: `${providerIndex + 1}`,
+          project,
+          ...(projectIndex !== undefined
+            ? { projectSlot: `${projectIndex + 1}` }
+            : {}),
+        },
+        response: { status: resp.status, body: errorMsg },
+      });
+    } catch (error) {
+      logger.error("[provider-response-500-log-failed]", {
+        ...baseDetails,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   return {
     kind: "failure",
     result: { response: resp, provider: currentProvider },

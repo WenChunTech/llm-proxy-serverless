@@ -1,4 +1,4 @@
-const kv = await Deno.openKv();
+import { kv } from "./kv.ts";
 
 const ERROR_LOG_EXPIRY_MS = 4 * 60 * 60 * 1000;
 
@@ -22,6 +22,13 @@ export interface ErrorLogEntry {
     sourceType?: string;
     targetType?: string;
     model?: string;
+    requestId?: string;
+    provider?: string;
+    baseUrl?: string;
+    attempt?: number;
+    providerSlot?: string;
+    project?: string;
+    projectSlot?: string;
   };
   response?: {
     status?: number;

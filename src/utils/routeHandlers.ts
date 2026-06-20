@@ -75,27 +75,7 @@ export async function handleModelRequest(
       forwardedHeaders: getForwardableRequestHeaders(c.req.raw.headers),
     });
 
-  if (!resp.ok) {
-    if (resp.status === 500) {
-      try {
-        const clonedResp = resp.clone();
-        const respBody = await clonedResp.text();
-        saveErrorLog({
-          type: "response_500",
-          error: { message: `Provider returned status ${resp.status}` },
-          request: {
-            method: c.req.method,
-            path: c.req.path,
-            body,
-            targetType: ProviderType[targetType],
-            model,
-          },
-          response: { status: resp.status, body: respBody },
-        }).catch(() => {});
-      } catch {}
-    }
-    return proxyResponse(resp);
-  }
+  if (!resp.ok) return proxyResponse(resp);
 
   if (targetType === actualProvider.getProviderType()) {
     if (isStreaming) {

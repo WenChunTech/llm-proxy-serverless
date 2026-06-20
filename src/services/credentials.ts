@@ -1,4 +1,4 @@
-const kv = await Deno.openKv();
+import { kv } from "./kv.ts";
 
 const getCredentials = async (key: string) => {
   const entry = await kv.get([key]);
