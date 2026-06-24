@@ -1,5 +1,5 @@
-import { Redis } from "@upstash/redis";
-import { Buffer } from "node:buffer";
+import { base64ToBytes, bytesToBase64 } from "../utils/runtime";
+import { getRedis } from "./redis";
 
 const KEY_SEPARATOR = "\u001f";
 const UINT8_ARRAY_MARKER = "__llm_proxy_uint8_array__";
@@ -21,22 +21,6 @@ interface KvListSelector {
   reverse?: boolean;
 }
 
-let redis: Redis | null = null;
-
-function getRedis(): Redis {
-  if (!redis) {
-    const url = process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-    if (!url || !token) {
-      throw new Error(
-        "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required when config.json is not used.",
-      );
-    }
-    redis = Redis.fromEnv();
-  }
-  return redis;
-}
-
 function encodeKey(key: KvKey): string {
   return key.map((part) => encodeURIComponent(String(part))).join(KEY_SEPARATOR);
 }
@@ -49,7 +33,7 @@ function encodeValue(value: unknown): unknown {
   if (value instanceof Uint8Array) {
     return {
       [UINT8_ARRAY_MARKER]: true,
-      data: Buffer.from(value).toString("base64"),
+      data: bytesToBase64(value),
     };
   }
   return value;
@@ -63,9 +47,7 @@ function decodeValue<T>(value: unknown): T | null {
     (value as Record<string, unknown>)[UINT8_ARRAY_MARKER] === true &&
     typeof (value as { data?: unknown }).data === "string"
   ) {
-    return new Uint8Array(
-      Buffer.from((value as { data: string }).data, "base64"),
-    ) as T;
+    return base64ToBytes((value as { data: string }).data) as T;
   }
   return value as T;
 }

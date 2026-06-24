@@ -1,7 +1,6 @@
-import { timingSafeEqual } from "node:crypto";
-import { Buffer } from "node:buffer";
 import { Context, Next } from "hono";
 import { appConfig } from "../config";
+import { timingSafeCompare } from "../utils/runtime";
 
 function getRequestApiKey(c: Context): string {
   const authorization = c.req.header("Authorization");
@@ -15,13 +14,6 @@ function getRequestApiKey(c: Context): string {
   return c.req.header("x-api-key") ||
     c.req.header("x-goog-api-key") ||
     "";
-}
-
-function timingSafeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  return timingSafeEqual(bufA, bufB);
 }
 
 export const authMiddleware = async (c: Context, next: Next) => {

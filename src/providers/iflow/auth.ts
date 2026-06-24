@@ -1,7 +1,7 @@
 import { appConfig, updateConfig } from '../../config';
 import { IFlowAuth } from '../../types/config';
-import { URLSearchParams } from 'url';
 import { authenticateWithCookie } from './auth_cookie';
+import { stringToBase64 } from '../../utils/runtime';
 
 // --- iFlow Constants (from cmd/iflow.js) ---
 const IFLOW_OAUTH_TOKEN_ENDPOINT = "https://iflow.cn/oauth/token";
@@ -64,7 +64,7 @@ export async function refreshAccessToken(auth: IFlowAuth) {
         client_secret: IFLOW_OAUTH_CLIENT_SECRET,
     });
 
-    const basicAuth = Buffer.from(`${IFLOW_OAUTH_CLIENT_ID}:${IFLOW_OAUTH_CLIENT_SECRET}`).toString('base64');
+    const basicAuth = stringToBase64(`${IFLOW_OAUTH_CLIENT_ID}:${IFLOW_OAUTH_CLIENT_SECRET}`);
     const response = await fetch(IFLOW_OAUTH_TOKEN_ENDPOINT, {
         method: 'POST',
         headers: {

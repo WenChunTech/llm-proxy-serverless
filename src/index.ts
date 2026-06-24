@@ -1,5 +1,6 @@
 import app from "./server";
 import { logger } from "./utils/logger";
+import { getEnv } from "./utils/runtime";
 
 type AppFetch = typeof app.fetch;
 
@@ -11,8 +12,8 @@ declare const Bun: {
   }): unknown;
 } | undefined;
 
-if (import.meta.main && process.env.VERCEL !== "1" && typeof Bun !== "undefined") {
-  const port = Number(process.env.PORT ?? 3000);
+if (import.meta.main && getEnv("VERCEL") !== "1" && typeof Bun !== "undefined") {
+  const port = Number(getEnv("PORT") ?? 3000);
   Bun.serve({
     hostname: "0.0.0.0",
     port,

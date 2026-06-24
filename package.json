@@ -2,10 +2,11 @@
   "name": "llm-proxy",
   "scripts": {
     "dev": "bun run --hot src/index.ts",
-    "deploy": "npx wrangler deploy src/index.ts",
+    "deploy": "wrangler deploy",
     "build": "bun build src/index.ts --target bun --outdir api --entry-naming index.js --minify-whitespace && bun scripts/strip-trailing-whitespace.js",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
-    "start": "bun src/index.ts"
+    "start": "bun src/index.ts",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir dist/worker"
   },
   "type": "module",
   "dependencies": {
@@ -15,6 +16,7 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "wrangler": "^4.24.0"
   }
 }

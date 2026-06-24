@@ -1,8 +1,6 @@
-import * as path from "node:path";
-
 import { Hono } from "hono";
+import { serveStatic } from "hono/serve-static";
 import { ProviderType } from "../pkg/converter_wasm";
-import { serveStatic } from "hono/bun";
 
 import { handleModelRequest } from "./utils/routeHandlers";
 import { getModelsResponse } from "./services/models";
@@ -42,13 +40,51 @@ app.use(async (c, next) => {
 app.use("/v1/*", authMiddleware);
 app.use("/v1beta/*", authMiddleware);
 
-const __filename = new URL(import.meta.url).pathname;
-const __dirname = path.dirname(__filename);
+type BunLike = {
+  file(path: string): {
+    arrayBuffer(): Promise<ArrayBuffer>;
+    exists(): Promise<boolean>;
+  };
+};
+
+function getBun(): BunLike | undefined {
+  return (globalThis as typeof globalThis & { Bun?: BunLike }).Bun;
+}
+
+type AssetsBinding = {
+  fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
+};
+
+function getAssets(c: { env?: { ASSETS?: AssetsBinding } }): AssetsBinding | undefined {
+  return c.env?.ASSETS;
+}
+
+function toAssetPath(filePath: string): string {
+  const withoutRoot = filePath.replace(/^\.?\/?public\/?/, "");
+  return `/${withoutRoot.replace(/^\/+/, "") || "index.html"}`;
+}
 
 app.use(
   "/*",
   serveStatic({
-    root: path.join(__dirname, "../public"),
+    root: "public",
+    rewriteRequestPath: (requestPath) =>
+      requestPath === "/" ? "/index.html" : requestPath,
+    getContent: async (filePath, c) => {
+      const assets = getAssets(c);
+      if (assets) {
+        const assetUrl = new URL(c.req.url);
+        assetUrl.pathname = toAssetPath(filePath);
+        const response = await assets.fetch(assetUrl);
+        return response.status === 404 ? null : response;
+      }
+
+      const bun = getBun();
+      if (!bun) return null;
+      const file = bun.file(filePath);
+      if (!(await file.exists())) return null;
+      return await file.arrayBuffer();
+    },
   }),
 );
 

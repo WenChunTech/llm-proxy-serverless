@@ -1,6 +1,4 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
-import process from "node:process";
+import { getEnv, isCloudflareRuntime } from "./runtime";
 
 // 日志级别枚举
 export enum LogLevel {
@@ -12,7 +10,7 @@ export enum LogLevel {
 
 // 从环境变量读取日志级别
 function parseLogLevel(): LogLevel {
-  const level = (process.env.LOG_LEVEL || "info").toLowerCase();
+  const level = (getEnv("LOG_LEVEL") || "info").toLowerCase();
   switch (level) {
     case "error":
       return LogLevel.ERROR;
@@ -32,6 +30,10 @@ let currentLogLevel: LogLevel = parseLogLevel();
 // 允许动态更新日志级别
 export function setLogLevel(level: LogLevel): void {
   currentLogLevel = level;
+}
+
+export function refreshLogLevelFromEnv(): void {
+  currentLogLevel = parseLogLevel();
 }
 
 export function getLogLevel(): LogLevel {
@@ -68,22 +70,20 @@ export class RequestLogger {
       RequestLogger._readOnly = this.detectReadOnlyFs();
       RequestLogger._readOnlyChecked = true;
     }
-    this.logDir = RequestLogger._readOnly ? "" : this.createLogDir();
+    this.logDir = RequestLogger._readOnly ? "" : `logs/${this.requestId}`;
     if (!RequestLogger._readOnly) {
-      logger.debug(`[RequestLogger] Created log directory: ${this.logDir}`);
+      logger.debug(`[RequestLogger] File logging disabled in this runtime: ${this.logDir}`);
     }
   }
 
   private detectReadOnlyFs(): boolean {
-    try {
-      const testDir = path.join(process.cwd(), "logs", ".write_test");
-      fs.mkdirSync(testDir, { recursive: true });
-      fs.rmSync(testDir, { recursive: true, force: true });
-      return false;
-    } catch {
-      logger.info("[RequestLogger] Filesystem is read-only, file logging disabled");
+    if (isCloudflareRuntime()) {
+      logger.info("[RequestLogger] Cloudflare runtime detected, file logging disabled");
       return true;
     }
+
+    logger.info("[RequestLogger] File logging disabled for runtime portability");
+    return true;
   }
 
   private get readOnly(): boolean {
@@ -99,14 +99,6 @@ export class RequestLogger {
     return `${timestamp}_${random}`;
   }
 
-  private createLogDir(): string {
-    const dir = path.join(process.cwd(), "logs", this.requestId);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    return dir;
-  }
-
   getLogDir(): string {
     return this.logDir;
   }
@@ -117,35 +109,17 @@ export class RequestLogger {
 
   saveRequestBody(body: any): void {
     if (currentLogLevel < LogLevel.DEBUG || this.readOnly) return;
-    try {
-      const filePath = path.join(this.logDir, "request.json");
-      fs.writeFileSync(filePath, JSON.stringify(body, null, 2), "utf-8");
-      logger.debug(`Request body saved to ${filePath}`);
-    } catch (error) {
-      logger.error("Failed to save request body:", error);
-    }
+    logger.debug("Request body:", body);
   }
 
   saveSSEDataLine(line: string): void {
     if (currentLogLevel < LogLevel.DEBUG || this.readOnly) return;
-    try {
-      const filePath = path.join(this.logDir, "response.log");
-      fs.appendFileSync(filePath, line + "\n", "utf-8");
-      logger.debug(`SSE line saved: ${line.substring(0, Math.min(50, line.length))}...`);
-    } catch (error) {
-      logger.error("Failed to save SSE data line:", error);
-    }
+    logger.debug(`SSE line: ${line.substring(0, Math.min(50, line.length))}...`);
   }
 
   saveRawResponse(data: string): void {
     if (currentLogLevel < LogLevel.DEBUG || this.readOnly) return;
-    try {
-      const filePath = path.join(this.logDir, "response.json");
-      fs.appendFileSync(filePath, data, "utf-8");
-      logger.debug(`Raw response saved to ${filePath}, length: ${data.length}`);
-    } catch (error) {
-      logger.error("Failed to save response:", error);
-    }
+    logger.debug(`Raw response length: ${data.length}`);
   }
 }
 

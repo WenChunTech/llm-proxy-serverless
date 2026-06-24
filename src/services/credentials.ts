@@ -1,13 +1,11 @@
-import { Redis } from '@upstash/redis'
+import { getRedis } from "./redis";
 
-const redis = Redis.fromEnv();
-
-const getCredentials = async (key: string) => {
-    return await redis.get(key);
+const getCredentials = async <T>(key: string): Promise<T | null> => {
+  return await getRedis().get<T>(key);
 };
 
-const updateCredentials = async (key: string, value: any) => {
-    return await redis.set(key, value);
+const updateCredentials = async (key: string, value: unknown) => {
+  return await getRedis().set(key, value);
 };
 
 export { getCredentials, updateCredentials };

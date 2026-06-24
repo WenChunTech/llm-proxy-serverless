@@ -1,5 +1,6 @@
-import fs from "fs";
 import { getCredentials, updateCredentials } from './services/credentials';
+import { hasRedisRuntimeConfig } from "./services/redis";
+import { getEnv, isDeploymentRuntime } from "./utils/runtime";
 import {
   ClaudeConfig,
   CodexConfig,
@@ -27,6 +28,43 @@ export let appConfig: Config = {
 export const APP_CONFIG = "APP_CONFIG";
 const CONFIG_FILE = "config.json";
 
+type BunLike = {
+  file(path: string): {
+    exists(): Promise<boolean>;
+    text(): Promise<string>;
+  };
+  write(path: string, data: string): Promise<number>;
+};
+
+function getBun(): BunLike | undefined {
+  return (globalThis as typeof globalThis & { Bun?: BunLike }).Bun;
+}
+
+async function hasConfigFile(): Promise<boolean> {
+  const bun = getBun();
+  if (!bun || isDeploymentRuntime()) return false;
+  return bun.file(CONFIG_FILE).exists();
+}
+
+async function readConfigFile(): Promise<Config | undefined> {
+  const bun = getBun();
+  if (!bun || !(await hasConfigFile())) return undefined;
+  return JSON.parse(await bun.file(CONFIG_FILE).text());
+}
+
+async function writeConfigFile(config: Config): Promise<boolean> {
+  const bun = getBun();
+  if (!bun || !(await hasConfigFile())) return false;
+  await bun.write(CONFIG_FILE, JSON.stringify(config));
+  return true;
+}
+
+function readConfigFromEnv(): Config | undefined {
+  const rawConfig = getEnv("APP_CONFIG_JSON") ?? getEnv(APP_CONFIG);
+  if (!rawConfig) return undefined;
+  return JSON.parse(rawConfig);
+}
+
 export let geminiCliPoller: Poller<GeminiCliConfig>;
 export let geminiPoller: Poller<GeminiConfig>;
 export let qwenPoller: Poller<QwenConfig>;
@@ -37,15 +75,42 @@ export let iflowPoller: Poller<IFlowConfig>;
 export let codexPoller: Poller<CodexConfig>;
 
 export const initConfig = async () => {
-    let loadedConfig: any;
-    if (fs.existsSync(CONFIG_FILE)) {
-        const fileContent = fs.readFileSync(CONFIG_FILE, 'utf-8');
-        loadedConfig = JSON.parse(fileContent);
-        console.log("Load config from config.json Successfully");
-    } else {
-        loadedConfig = await getCredentials(APP_CONFIG);
-        console.log("Load config from kv store Successfully");
+  let loadedConfig: Config | null | undefined;
+
+  if (hasRedisRuntimeConfig()) {
+    try {
+      loadedConfig = await getCredentials<Config>(APP_CONFIG);
+      if (loadedConfig) {
+        console.log("Load config from shared Redis Successfully");
+      }
+    } catch (error) {
+      if (isDeploymentRuntime()) {
+        throw error;
+      }
+      console.warn(
+        "Failed to load shared Redis; falling back to local config.",
+        error instanceof Error ? error.message : error,
+      );
     }
+  }
+
+  if (!loadedConfig && !isDeploymentRuntime()) {
+    loadedConfig = await readConfigFile();
+    if (loadedConfig) {
+      console.log("Load config from config.json Successfully");
+    }
+  }
+
+  if (!loadedConfig) {
+    loadedConfig = readConfigFromEnv();
+    if (loadedConfig) {
+      console.log("Load config from environment Successfully");
+    }
+  }
+
+  if (!loadedConfig) {
+    console.warn("No external config loaded; using built-in empty config.");
+  }
 
   if (loadedConfig) {
     appConfig = loadedConfig;
@@ -61,12 +126,15 @@ export const initConfig = async () => {
 };
 
 export const updateConfig = async (config: Config) => {
-    if (fs.existsSync(CONFIG_FILE)) {
-        fs.writeFileSync(CONFIG_FILE, JSON.stringify(config));
-        console.log("Saved new config to config.json Successfully");
-    } else {
-        await updateCredentials(APP_CONFIG, config);
-        console.log("Saved new config to kv store Successfully");
-    }
-    appConfig = config;
+  if (hasRedisRuntimeConfig()) {
+    await updateCredentials(APP_CONFIG, config);
+    console.log("Saved new config to shared Redis Successfully");
+  } else if (!isDeploymentRuntime() && await writeConfigFile(config)) {
+    console.log("Saved new config to config.json Successfully");
+  } else {
+    throw new Error(
+      "No writable config store is configured. Set Vercel Redis env vars: KV_REST_API_URL/KV_REST_API_TOKEN.",
+    );
+  }
+  appConfig = config;
 }

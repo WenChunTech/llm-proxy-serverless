@@ -50,10 +50,10 @@ browser-based settings page for configuration management.
   circular fallback references.
 - Online settings: `/settings.html` manages providers, model priority, fallback
   models, and the global API key.
-- Dual storage: configuration is loaded from `config.json` first, then from Deno
-  KV `APP_CONFIG` if the file does not exist.
-- Scheduled maintenance: Codex OAuth tokens are refreshed periodically with
-  `Deno.cron`.
+- Shared storage: Cloudflare Worker and Vercel use the same Vercel Redis/KV
+  (`APP_CONFIG`) when pointed at the same Redis REST URL/token.
+- Scheduled maintenance: Cloudflare Workers Cron Triggers refresh OAuth tokens
+  periodically.
 
 ## Supported Compatible Endpoints
 
@@ -98,13 +98,15 @@ For example:
 
 The service loads configuration in the following order:
 
-1. Root `config.json`
-2. `APP_CONFIG` in Deno KV
-3. Built-in empty config
+1. `APP_CONFIG` stored in shared Vercel Redis/KV
+2. Root `config.json` only when running locally outside Cloudflare/Vercel
+3. Read-only bootstrap binding `APP_CONFIG_JSON` or `APP_CONFIG`
+4. Built-in empty config
 
-In practice, if `config.json` exists, runtime updates and settings-page saves
-will write back to that file. If it does not exist, configuration will be stored
-in KV instead.
+Cloudflare Worker and Vercel should be configured with the same Vercel Redis/KV
+REST URL and token. Runtime updates and settings-page saves write to Redis first
+when Redis credentials are present. The Vercel env names `KV_REST_API_URL` and `KV_REST_API_TOKEN` are used as
+the single shared Redis configuration for both Vercel and Cloudflare.
 
 ### Configuration Example
 
@@ -276,37 +278,17 @@ The current model-loading feature applies to these provider types:
 
 ## Running the Service
 
-The current implementation relies on Deno APIs such as:
-
-- `Deno.openKv()`
-- `Deno.cron()`
-- `deno serve`
-
 ### Local Development
 
 ```bash
-deno serve \
-  --allow-net \
-  --allow-read \
-  --allow-write \
-  --allow-env \
-  --unstable-kv \
-  --unstable-cron \
-  --watch \
-  src/index.ts
+bun install
+bun run dev
 ```
 
 ### Normal Startup
 
 ```bash
-deno serve \
-  --allow-net \
-  --allow-read \
-  --allow-write \
-  --allow-env \
-  --unstable-kv \
-  --unstable-cron \
-  src/index.ts
+bun run start
 ```
 
 Default address:
@@ -314,6 +296,34 @@ Default address:
 ```text
 http://localhost:3000
 ```
+
+### Cloudflare Worker Deployment
+
+`wrangler.toml` points to `src/worker.ts`, binds static assets from `public/`,
+bundles `pkg/converter_wasm_bg.wasm`, and configures a daily cron trigger. Copy
+the same Vercel Redis/KV values into Cloudflare Worker secrets.
+
+```bash
+bun install
+bunx wrangler secret put KV_REST_API_URL
+bunx wrangler secret put KV_REST_API_TOKEN
+bun run deploy:dry-run
+bun run deploy
+```
+
+### Vercel Deployment
+
+Use the Redis/KV integration variables created by Vercel. The code prefers
+`KV_REST_API_URL` and `KV_REST_API_TOKEN`.
+
+```bash
+vercel env add KV_REST_API_URL production
+vercel env add KV_REST_API_TOKEN production
+bun run build
+```
+
+`APP_CONFIG`/`APP_CONFIG_JSON` can still bootstrap a read-only initial config,
+but Vercel Redis/KV is the source of truth once Redis credentials are configured.
 
 ## Quick Usage Examples
 
@@ -436,7 +446,8 @@ Key retry behaviors:
 
 ```text
 src/
-  index.ts                  Service entry point and cron registration
+  index.ts                  Bun local service entry point
+  worker.ts                 Cloudflare Worker entry point and scheduled task
   server.ts                 Hono routes and static asset serving
   config.ts                 Config loading, persistence, and poller initialization
   middleware/               Initialization and auth middleware

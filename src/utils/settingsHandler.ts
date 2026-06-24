@@ -1,8 +1,7 @@
 import { Context } from "hono";
-import { timingSafeEqual } from "node:crypto";
-import { Buffer } from "node:buffer";
 import { appConfig, updateConfig } from "../config";
 import { Config } from "../types/config";
+import { timingSafeCompare } from "./runtime";
 import { logger } from "./logger";
 import {
   getProviderDescriptors,
@@ -150,13 +149,6 @@ function getRequestApiKey(c: Context): string {
     }
   }
   return c.req.header("x-api-key") || "";
-}
-
-function timingSafeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  return timingSafeEqual(bufA, bufB);
 }
 
 function checkAuth(c: Context): { ok: boolean; response?: Response } {

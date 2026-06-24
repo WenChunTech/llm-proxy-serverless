@@ -38,9 +38,9 @@ model、全局 API Key 校验，以及可直接在浏览器里维护配置的设
 - 模型回退：`fallback_models` 可定义模型失败后的回退链，并检测循环引用。
 - 在线配置：`/settings.html` 可管理 provider、模型优先级、fallback 和全局 API
   Key。
-- 双存储：优先读取根目录 `config.json`；如果文件不存在，则从 Deno KV 的
-  `APP_CONFIG` 读取。
-- 定时维护：通过 `Deno.cron` 定期刷新 Codex OAuth token。
+- 共享存储：Cloudflare Worker 与 Vercel 指向同一组 Vercel Redis/KV
+  REST URL/token 时，会共用 Redis 中的 `APP_CONFIG`。
+- 定时维护：通过 Cloudflare Workers Cron Triggers 定期刷新 OAuth token。
 
 ## 支持的兼容端点
 
@@ -85,13 +85,14 @@ Gemini 端点通过路径后缀区分调用类型：
 
 服务启动时会按下面的优先级读取配置：
 
-1. 根目录 `config.json`
-2. Deno KV 中的 `APP_CONFIG`
-3. 内置空配置
+1. 共享 Vercel Redis/KV 中的 `APP_CONFIG`
+2. 仅本地、非 Cloudflare/Vercel 运行时的根目录 `config.json`
+3. 只读启动配置绑定 `APP_CONFIG_JSON` 或 `APP_CONFIG`
+4. 内置空配置
 
-也就是说，如果你放了
-`config.json`，运行时和设置页保存都会优先写回这个文件；如果没有这个文件，才会写入
-KV。
+Cloudflare Worker 与 Vercel 需要配置同一组 Vercel Redis/KV REST URL/token。
+只要存在 Redis 凭据，运行时和设置页保存都会优先写入 Redis。代码只使用 `.env` 中的 Vercel 变量 `KV_REST_API_URL` 和
+`KV_REST_API_TOKEN` 作为 Cloudflare 与 Vercel 的同一套 Redis 配置。
 
 ### 配置示例
 
@@ -258,37 +259,17 @@ KV。
 
 ## 运行方式
 
-当前代码直接依赖 Deno API，例如：
-
-- `Deno.openKv()`
-- `Deno.cron()`
-- `deno serve`
-
 ### 本地开发
 
 ```bash
-deno serve \
-  --allow-net \
-  --allow-read \
-  --allow-write \
-  --allow-env \
-  --unstable-kv \
-  --unstable-cron \
-  --watch \
-  src/index.ts
+bun install
+bun run dev
 ```
 
 ### 普通启动
 
 ```bash
-deno serve \
-  --allow-net \
-  --allow-read \
-  --allow-write \
-  --allow-env \
-  --unstable-kv \
-  --unstable-cron \
-  src/index.ts
+bun run start
 ```
 
 默认监听：
@@ -296,6 +277,34 @@ deno serve \
 ```text
 http://localhost:3000
 ```
+
+### Cloudflare Worker 部署
+
+`wrangler.toml` 使用 `src/worker.ts` 作为入口，绑定 `public/` 静态资源，
+打包 `pkg/converter_wasm_bg.wasm`，并配置每日定时刷新任务。这里需要把
+Vercel Redis/KV 的同一组值复制到 Cloudflare Worker secrets。
+
+```bash
+bun install
+bunx wrangler secret put KV_REST_API_URL
+bunx wrangler secret put KV_REST_API_TOKEN
+bun run deploy:dry-run
+bun run deploy
+```
+
+### Vercel 部署
+
+使用 Vercel Redis/KV 集成创建的变量。代码优先读取 `KV_REST_API_URL` 和
+`KV_REST_API_TOKEN`。
+
+```bash
+vercel env add KV_REST_API_URL production
+vercel env add KV_REST_API_TOKEN production
+bun run build
+```
+
+`APP_CONFIG`/`APP_CONFIG_JSON` 仍可作为只读启动配置；一旦配置 Redis 凭据，
+Vercel Redis/KV 就是 Cloudflare 和 Vercel 的配置来源。
 
 ## 快速调用示例
 
@@ -409,7 +418,8 @@ curl --request POST \
 
 ```text
 src/
-  index.ts                  服务入口，注册 cron
+  index.ts                  Bun 本地服务入口
+  worker.ts                 Cloudflare Worker 入口与定时任务
   server.ts                 Hono 路由与静态资源
   config.ts                 配置加载、保存与 poller 初始化
   middleware/               初始化与鉴权中间件
