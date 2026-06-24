@@ -1,7 +1,7 @@
-import { appConfig, updateConfig } from '../../config.js';
-import { IFlowAuth } from '../../types/config.js';
+import { appConfig, updateConfig } from '../../config';
+import { IFlowAuth } from '../../types/config';
 import { URLSearchParams } from 'url';
-import { authenticateWithCookie } from './auth_cookie.js';
+import { authenticateWithCookie } from './auth_cookie';
 
 // --- iFlow Constants (from cmd/iflow.js) ---
 const IFLOW_OAUTH_TOKEN_ENDPOINT = "https://iflow.cn/oauth/token";

@@ -1,8 +1,8 @@
-import { fetchWithRetry } from '../../utils/fetch.js';
-import { qwenPoller } from '../../config.js';
-import { convertToQwenRequestTo, convertQwenResponseTo, convertQwenStreamResponseTo } from './adapter.js';
-import { TargetType } from '../../../pkg/converter_wasm.js';
-import { getAccessToken } from './auth.js';
+import { fetchWithRetry } from '../../utils/fetch';
+import { qwenPoller } from '../../config';
+import { convertToQwenRequestTo, convertQwenResponseTo, convertQwenStreamResponseTo } from './adapter';
+import { TargetType } from '../../../pkg/converter_wasm';
+import { getAccessToken } from './auth';
 
 export class QwenProvider {
     model: string;

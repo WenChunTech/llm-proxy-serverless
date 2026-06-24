@@ -3,13 +3,12 @@
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "deploy": "npx wrangler deploy src/index.ts",
-    "build": "bun build src/index.ts --target bun --outdir dist",
+    "build": "bun build src/index.ts --target bun --outdir api --entry-naming index.js --minify-whitespace && bun scripts/strip-trailing-whitespace.js",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "start": "bun src/index.ts"
   },
   "type": "module",
   "dependencies": {
-    "@hono/node-server": "^1.19.6",
     "@upstash/redis": "^1.35.6",
     "google-auth-library": "^10.4.1",
     "hono": "^4.10.1",

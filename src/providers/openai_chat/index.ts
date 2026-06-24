@@ -1,7 +1,7 @@
-import { fetchWithRetry } from '../../utils/fetch.js';
-import { openAIPoller } from '../../config.js';
-import { convertToOpenAIRequestTo, convertOpenAIResponseTo, convertOpenAIStreamResponseTo } from './adapter.js';
-import { TargetType } from '../../../pkg/converter_wasm.js';
+import { fetchWithRetry } from '../../utils/fetch';
+import { openAIPoller } from '../../config';
+import { convertToOpenAIRequestTo, convertOpenAIResponseTo, convertOpenAIStreamResponseTo } from './adapter';
+import { TargetType } from '../../../pkg/converter_wasm';
 
 export class OpenAIProvider {
     apiKey: string;

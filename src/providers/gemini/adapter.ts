@@ -4,8 +4,8 @@ import {
   geminiResponseConvertTo,
   openaiRequestConvertTo,
   TargetType,
-} from "converter-wasm";
-import { StreamEvent } from "../../streaming/sse.js";
+} from "../../../pkg/converter_wasm";
+import { StreamEvent } from "../../streaming/sse";
 
 export function convertToGeminiRequestTo(body: any, source: any) {
   switch (source) {

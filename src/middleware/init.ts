@@ -1,17 +1,14 @@
 import { Context, Next } from 'hono';
-import { initConfig } from '../config.js';
-import initWasm from '../../pkg/converter_wasm.js';
+import { initConfig } from '../config';
+import initWasm from '../../pkg/converter_wasm';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
 
 let isInitialized = false;
 let initPromise: Promise<void> | null = null;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const wasmPath = path.join(__dirname, '../..', 'node_modules', 'converter-wasm', 'converter_wasm_bg.wasm');
+const wasmPath = path.join(process.cwd(), 'pkg', 'converter_wasm_bg.wasm');
 const wasmBuffer = fs.readFileSync(wasmPath);
 
 const ensureInitialized = async (): Promise<void> => {

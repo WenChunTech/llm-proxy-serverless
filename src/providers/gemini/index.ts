@@ -1,12 +1,12 @@
-import { geminiPoller } from "../../config.js";
-import { GeminiConfig } from "../../types/config.js";
-import { fetchWithRetry } from "../../utils/fetch.js";
+import { geminiPoller } from "../../config";
+import { GeminiConfig } from "../../types/config";
+import { fetchWithRetry } from "../../utils/fetch";
 import {
   convertGeminiResponseTo,
   convertGeminiStreamResponseTo,
   convertToGeminiRequestTo,
-} from "./adapter.js";
-import { TargetType } from "converter-wasm";
+} from "./adapter";
+import { TargetType } from "../../../pkg/converter_wasm";
 
 export class GeminiProvider {
   geminiConfig: GeminiConfig;

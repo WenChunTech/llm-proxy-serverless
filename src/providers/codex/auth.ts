@@ -1,4 +1,4 @@
-import { CodexAuth } from "../../types/config.ts";
+import { CodexAuth } from "../../types/config";
 
 const TOKEN_URL = "https://auth.openai.com/oauth/token";
 const CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";

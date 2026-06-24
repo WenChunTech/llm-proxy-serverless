@@ -1,4 +1,4 @@
-import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders.ts";
+import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders";
 
 const GEMINI_CLI_VERSION = "0.22.0";
 

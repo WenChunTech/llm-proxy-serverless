@@ -1,6 +1,6 @@
 import { OAuth2Client } from 'google-auth-library';
-import { GeminiCliAuth } from '../../types/config.js';
-import { appConfig, updateConfig } from '../../config.js';
+import { GeminiCliAuth } from '../../types/config';
+import { appConfig, updateConfig } from '../../config';
 
 // 定义本地类型以避免直接导入 gaxios
 interface GaxiosOptions {

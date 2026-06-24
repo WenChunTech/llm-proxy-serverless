@@ -1,5 +1,5 @@
-import { QwenAuth } from "../../types/config.ts";
-import { logger } from "../../utils/logger.ts";
+import { QwenAuth } from "../../types/config";
+import { logger } from "../../utils/logger";
 
 const QWEN_OAUTH_TOKEN_ENDPOINT = "https://chat.qwen.ai/api/v1/oauth2/token";
 const QWEN_OAUTH_CLIENT_ID = "f0304373b74a44d2b584a3fb70ca9e56";

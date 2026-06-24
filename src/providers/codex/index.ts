@@ -1,14 +1,14 @@
-import { codexPoller } from "../../config.ts";
-import { CodexConfig } from "../../types/config.ts";
+import { codexPoller } from "../../config";
+import { CodexConfig } from "../../types/config";
 import {
   convertCodexResponseTo,
   convertCodexStreamResponseTo,
   convertToCodexRequestTo,
-} from "./adapter.ts";
-import { ProviderType } from "../../../pkg/converter_wasm.js";
-import { RequestLogger } from "../../utils/logger.ts";
-import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders.ts";
-import type { Provider } from "../_base/interface.ts";
+} from "./adapter";
+import { ProviderType } from "../../../pkg/converter_wasm";
+import { RequestLogger } from "../../utils/logger";
+import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders";
+import type { Provider } from "../_base/interface";
 
 const CODEX_USER_AGENT =
   "codex-tui/0.122.0 (Mac OS; arm64) iTerm.app (codex-tui; 0.122.0)";

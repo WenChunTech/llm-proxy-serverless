@@ -3,7 +3,7 @@ import {
   clearErrorLogs,
   type ErrorLogType,
   getErrorLogs,
-} from "../services/errorLog.ts";
+} from "../services/errorLog";
 
 const VALID_TYPES: ErrorLogType[] = [
   "request_conversion",

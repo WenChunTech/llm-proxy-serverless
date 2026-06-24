@@ -1,14 +1,28 @@
 {
-    "git": {
-        "deploymentEnabled": {
-            "deno": false,
-            "cloudflare": true
-        }
-    },
-    "crons": [
-        {
-            "path": "/api/refresh-tokens",
-            "schedule": "0 1 * * *"
-        }
-    ]
+  "bunVersion": "1.x",
+  "installCommand": "bun install",
+  "buildCommand": "bun run build",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "{pkg,public}/**"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.js"
+    }
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "deno": false,
+      "cloudflare": true
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/refresh-tokens",
+      "schedule": "0 1 * * *"
+    }
+  ]
 }

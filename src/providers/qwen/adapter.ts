@@ -1,5 +1,5 @@
-import { claudeRequestConvertTo, geminiRequestConvertTo, openaiResponseConvertTo, TargetType } from '../../../pkg/converter_wasm.js';
-import { StreamEvent } from '../../streaming/sse.js';
+import { claudeRequestConvertTo, geminiRequestConvertTo, openaiResponseConvertTo, TargetType } from '../../../pkg/converter_wasm';
+import { StreamEvent } from '../../streaming/sse';
 
 export function convertToQwenRequestTo(body: any, source: any) {
     switch (source) {

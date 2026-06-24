@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { Buffer } from "node:buffer";
 import { Context, Next } from "hono";
-import { appConfig } from "../config.ts";
+import { appConfig } from "../config";
 
 function getRequestApiKey(c: Context): string {
   const authorization = c.req.header("Authorization");

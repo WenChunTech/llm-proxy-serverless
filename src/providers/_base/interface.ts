@@ -1,7 +1,7 @@
 import { Context } from "hono";
-import { ProviderType } from "../../../pkg/converter_wasm.js";
-import { RequestLogger } from "../../utils/logger.ts";
-import type { HeaderMap } from "../../utils/httpHeaders.ts";
+import { ProviderType } from "../../../pkg/converter_wasm";
+import { RequestLogger } from "../../utils/logger";
+import type { HeaderMap } from "../../utils/httpHeaders";
 
 export interface Provider {
   model: string;

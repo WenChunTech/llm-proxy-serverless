@@ -1,7 +1,7 @@
-import { fetchWithRetry } from '../../utils/fetch.js';
-import { claudePoller } from '../../config.js';
-import { convertToClaudeRequestTo, convertClaudeResponseTo, convertClaudeStreamResponseTo } from './adapter.js';
-import { TargetType } from '../../../pkg/converter_wasm.js';
+import { fetchWithRetry } from '../../utils/fetch';
+import { claudePoller } from '../../config';
+import { convertToClaudeRequestTo, convertClaudeResponseTo, convertClaudeStreamResponseTo } from './adapter';
+import { TargetType } from '../../../pkg/converter_wasm';
 
 export class ClaudeProvider {
     apiKey: string;

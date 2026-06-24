@@ -1,14 +1,14 @@
-import { openAIResponsesPoller } from "../../config.ts";
-import { OpenAIResponsesConfig } from "../../types/config.ts";
+import { openAIResponsesPoller } from "../../config";
+import { OpenAIResponsesConfig } from "../../types/config";
 import {
   convertOpenAIResponsesResponseTo,
   convertOpenAIResponsesStreamResponseTo,
   convertToOpenAIResponsesRequestTo,
-} from "./adapter.ts";
-import { ProviderType } from "../../../pkg/converter_wasm.js";
-import { RequestLogger } from "../../utils/logger.ts";
-import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders.ts";
-import type { Provider } from "../_base/interface.ts";
+} from "./adapter";
+import { ProviderType } from "../../../pkg/converter_wasm";
+import { RequestLogger } from "../../utils/logger";
+import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders";
+import type { Provider } from "../_base/interface";
 
 export class OpenAIResponsesProvider implements Provider {
   model: string;

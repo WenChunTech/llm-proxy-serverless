@@ -1,120 +1,154 @@
-import { claudeStreamWrapperConvertTo, geminiCliResponseConvertToGeminiResponse, geminiCliStreamWrapperConvertTo,geminiStreamWrapperConvertTo, getDefaultStreamState, openaiStreamWrapperConvertTo, TargetType } from "converter-wasm";
+import {
+  claudeStreamWrapperConvertTo,
+  geminiCliResponseConvertToGeminiResponse,
+  geminiCliStreamWrapperConvertTo,
+  geminiStreamWrapperConvertTo,
+  newStreamState,
+  openAIResponsesStreamWrapperConvertTo,
+  openaiChatStreamWrapperConvertTo,
+  ProviderType,
+} from "../../pkg/converter_wasm.js";
+import { logger, RequestLogger } from "../utils/logger";
+import { saveErrorLog } from "../services/errorLog";
 
 const responseConvert = (
   wrapper: any,
-  sourceType: TargetType,
-  targetType: TargetType,
+  sourceType: ProviderType,
+  targetType: ProviderType,
 ) => {
-  if (sourceType === TargetType.GeminiCli) {
+  if (sourceType === ProviderType.GeminiCli) {
     return geminiCliStreamWrapperConvertTo(wrapper, targetType);
-  } else if (sourceType === TargetType.Gemini) {
+  }
+  if (sourceType === ProviderType.Gemini) {
     return geminiStreamWrapperConvertTo(wrapper, targetType);
-  } else if (sourceType === TargetType.OpenAI) {
-    return openaiStreamWrapperConvertTo(wrapper, targetType);
-  } else if (sourceType === TargetType.Claude) {
+  }
+  if (sourceType === ProviderType.Chat) {
+    return openaiChatStreamWrapperConvertTo(wrapper, targetType);
+  }
+  if (sourceType === ProviderType.Responses) {
+    return openAIResponsesStreamWrapperConvertTo(wrapper, targetType);
+  }
+  if (sourceType === ProviderType.Claude) {
     return claudeStreamWrapperConvertTo(wrapper, targetType);
+  }
+  throw new Error(`Unsupported source type for stream conversion: ${sourceType}`);
+};
+
+function writeChunks(stream: any, chunks: any[]) {
+  for (const chunk of chunks) {
+    stream.writeSSE({
+      event: chunk.type,
+      data: JSON.stringify(chunk),
+    });
+  }
+}
+
+export const StreamEvent = async (
+  stream: any,
+  response: Response,
+  sourceType: ProviderType,
+  targetType: ProviderType,
+  requestLogger?: RequestLogger,
+) => {
+  if (!response.body) {
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let state = newStreamState(sourceType, targetType);
+  let buffer = "";
+
+  const handleData = (data: string) => {
+    if (!data || data === "[DONE]") return;
+    const wrapper = {
+      chunk: JSON.parse(data),
+      state,
+    };
+    const streamsWrapper = responseConvert(wrapper, sourceType, targetType);
+    state = streamsWrapper.state;
+    writeChunks(stream, streamsWrapper.chunks || []);
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      const lastLine = lines.pop();
+      if (lastLine !== undefined) {
+        buffer = lastLine;
+      }
+
+      for (const line of lines) {
+        if (line.startsWith("data:")) {
+          handleData(line.substring(5).trim());
+        }
+      }
+    }
+
+    if (buffer.startsWith("data:")) {
+      handleData(buffer.substring(5).trim());
+    }
+  } catch (error) {
+    logger.error("[WASM] Stream conversion failed", error);
+    saveErrorLog({
+      type: "stream_conversion",
+      error: {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      request: {
+        sourceType: ProviderType[sourceType],
+        targetType: ProviderType[targetType],
+      },
+    }).catch(() => {});
+    throw error;
   }
 };
 
-export const StreamEvent = async (stream: any, response: Response, sourceType: TargetType, targetType: TargetType) => {
-    if (!response.body) {
-        return;
-    }
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let state = getDefaultStreamState();
-    let buffer = '';
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-            break;
-        }
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        const lastLine = lines.pop();
-        if (lastLine !== undefined) {
-            buffer = lastLine;
-        }
-        for (const line of lines) {
-            if (line.startsWith('data:')) {
-                const data = line.substring(5).trim();
-                if (data) {
-                    let wrapper = {
-                        chunk: JSON.parse(data),
-                        state: state,
-                    }
-                    const streams_wrapper = responseConvert(wrapper, sourceType, targetType);
-                    state = streams_wrapper.state;
-                    let chunks = streams_wrapper.chunks;
-                    for (const chunk of chunks) {
-                        stream.writeSSE({
-                            event: chunk.type,
-                            data: JSON.stringify(chunk),
-                        })
-                    }
-                }
-            }
-        }
-    }
+export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (
+  stream: any,
+  response: Response,
+) => {
+  if (!response.body) {
+    return;
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
 
-    if (buffer.startsWith('data:')) {
-        const data = buffer.substring(5).trim();
-        if (data) {
-            let wrapper = {
-                chunk: JSON.parse(data),
-                inner: state,
-            }
-            const streams_wrapper = responseConvert(wrapper, sourceType, targetType);
-            state = streams_wrapper.inner;
-            let chunks = streams_wrapper.chunks;
-            for (const chunk of chunks) {
-                stream.writeSSE({
-                    event: chunk.type,
-                    data: JSON.stringify(chunk),
-                })
-            }
-        }
-    }
-}
+  const handleData = (data: string) => {
+    if (!data || data === "[DONE]") return;
+    const responseData = geminiCliResponseConvertToGeminiResponse(JSON.parse(data));
+    stream.writeSSE({
+      data: JSON.stringify(responseData),
+    });
+  };
 
-export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (stream: any, response: Response) => {
-    if (!response.body) {
-        return;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
     }
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-            break;
-        }
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        const lastLine = lines.pop();
-        if (lastLine !== undefined) {
-            buffer = lastLine;
-        }
-        for (const line of lines) {
-            if (line.startsWith('data:')) {
-                const data = line.substring(5).trim();
-                if (data) {
-                    const responseData = geminiCliResponseConvertToGeminiResponse(JSON.parse(data));
-                    stream.writeSSE({
-                        data: JSON.stringify(responseData),
-                    })
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    const lastLine = lines.pop();
+    if (lastLine !== undefined) {
+      buffer = lastLine;
+    }
+    for (const line of lines) {
+      if (line.startsWith("data:")) {
+        handleData(line.substring(5).trim());
+      }
+    }
+  }
 
-                }
-            }
-        }
-    }
-    if (buffer.startsWith('data:')) {
-        const data = buffer.substring(5).trim();
-        if (data) {
-            const responseData = geminiCliResponseConvertToGeminiResponse(JSON.parse(data));
-            stream.writeSSE({
-                data: JSON.stringify(responseData),
-            })
-        }
-    }
-}
+  if (buffer.startsWith("data:")) {
+    handleData(buffer.substring(5).trim());
+  }
+};

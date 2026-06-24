@@ -1,4 +1,4 @@
-import { appConfig } from "../config.ts";
+import { appConfig } from "../config";
 import {
   ClaudeConfig,
   CodexConfig,
@@ -10,16 +10,16 @@ import {
   OpenAIChatConfig,
   OpenAIResponsesConfig,
   QwenConfig,
-} from "../types/config.ts";
-import { PROVIDERS } from "./_base/index.ts";
-import { GeminiCliProvider } from "./gemini_cli/index.ts";
-import { GeminiProvider } from "./gemini/index.ts";
-import { OpenAIProvider } from "./openai_chat/index.ts";
-import { OpenAIResponsesProvider } from "./openai_responses/index.ts";
-import { ClaudeProvider } from "./claude/index.ts";
-import { QwenProvider } from "./qwen/index.ts";
-import { IflowProvider } from "./iflow/index.ts";
-import { CodexProvider } from "./codex/index.ts";
+} from "../types/config";
+import { PROVIDERS } from "./_base/index";
+import { GeminiCliProvider } from "./gemini_cli/index";
+import { GeminiProvider } from "./gemini/index";
+import { OpenAIProvider } from "./openai_chat/index";
+import { OpenAIResponsesProvider } from "./openai_responses/index";
+import { ClaudeProvider } from "./claude/index";
+import { QwenProvider } from "./qwen/index";
+import { IflowProvider } from "./iflow/index";
+import { CodexProvider } from "./codex/index";
 
 export type ProviderId =
   | typeof PROVIDERS.GEMINI_CLI

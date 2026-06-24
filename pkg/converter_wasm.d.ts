@@ -9,6 +9,19 @@ export enum ProviderType {
     Claude = 4,
 }
 
+export type TargetType = ProviderType;
+
+export const TargetType: {
+    readonly OpenAI: ProviderType.Chat;
+    readonly Chat: ProviderType.Chat;
+    readonly OpenAIChat: ProviderType.Chat;
+    readonly OpenAIResponses: ProviderType.Responses;
+    readonly Responses: ProviderType.Responses;
+    readonly GeminiCli: ProviderType.GeminiCli;
+    readonly Gemini: ProviderType.Gemini;
+    readonly Claude: ProviderType.Claude;
+};
+
 export function claudeRequestConvertTo(req: any, target: ProviderType): any;
 
 export function claudeResponseConvertTo(req: any, target: ProviderType): any;
@@ -42,6 +55,12 @@ export function openaiChatRequestConvertTo(req: any, target: ProviderType): any;
 export function openaiChatResponseConvertTo(req: any, target: ProviderType): any;
 
 export function openaiChatStreamWrapperConvertTo(resp: any, target: ProviderType): any;
+
+export function openaiRequestConvertTo(req: any, target: ProviderType): any;
+
+export function openaiResponseConvertTo(resp: any, target: ProviderType): any;
+
+export function openaiStreamWrapperConvertTo(resp: any, target: ProviderType): any;
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 

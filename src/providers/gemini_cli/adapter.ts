@@ -4,8 +4,8 @@ import {
     geminiCliResponseConvertTo,
     geminiRequestConvertToGeminiCliRequest,
     TargetType
-} from '../../../pkg/converter_wasm.js';
-import { StreamEvent, geminiCliStreamResponseConvertToGeminiStreamResponse } from '../../streaming/sse.js';
+} from '../../../pkg/converter_wasm';
+import { StreamEvent, geminiCliStreamResponseConvertToGeminiStreamResponse } from '../../streaming/sse';
 
 export function convertToGeminiCliRequestTo(body: any, source: any) {
     switch (source) {

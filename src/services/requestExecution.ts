@@ -1,8 +1,8 @@
-import { ProviderType } from "../../pkg/converter_wasm.js";
-import { getProvider, getProviderInstance } from "../providers/factory.ts";
-import type { Provider } from "../providers/_base/interface.ts";
-import { logger, RequestLogger } from "../utils/logger.ts";
-import { saveErrorLog } from "../services/errorLog.ts";
+import { ProviderType } from "../../pkg/converter_wasm";
+import { getProvider, getProviderInstance } from "../providers/factory";
+import type { Provider } from "../providers/_base/interface";
+import { logger, RequestLogger } from "../utils/logger";
+import { saveErrorLog } from "../services/errorLog";
 import {
   calculateBackoffDelay,
   getAllProvidersForModel,
@@ -10,9 +10,9 @@ import {
   getProviderConfigs,
   isGeminiCliProvider,
   MAX_RETRIES,
-} from "../utils/retryStrategy.ts";
-import { supportsProjects } from "../providers/registry.ts";
-import type { HeaderMap } from "../utils/httpHeaders.ts";
+} from "../utils/retryStrategy";
+import { supportsProjects } from "../providers/registry";
+import type { HeaderMap } from "../utils/httpHeaders";
 
 export interface ExecuteModelRequestParams {
   model: string;

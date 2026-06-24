@@ -1,8 +1,8 @@
-import { fetchWithRetry } from '../../utils/fetch.js';
-import { iflowPoller } from '../../config.js';
-import { convertToIFlowRequestTo, convertIFlowResponseTo, convertIFlowStreamResponseTo } from './adapter.js';
-import { TargetType } from 'converter-wasm';
-import { getAccessToken } from './auth.js';
+import { fetchWithRetry } from '../../utils/fetch';
+import { iflowPoller } from '../../config';
+import { convertToIFlowRequestTo, convertIFlowResponseTo, convertIFlowStreamResponseTo } from './adapter';
+import { TargetType } from '../../../pkg/converter_wasm';
+import { getAccessToken } from './auth';
 
 export class IflowProvider {
     model: string;

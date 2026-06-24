@@ -1,4 +1,4 @@
-import { IFlowAuth } from '../../types/config.js';
+import { IFlowAuth } from '../../types/config';
 
 // --- Constants ---
 const iFlowAPIKeyEndpoint = "https://platform.iflow.cn/api/openapi/apikey";

@@ -1,9 +1,9 @@
-import { appConfig } from "../config.ts";
+import { appConfig } from "../config";
 import {
   getProviderConfigsById,
   getProviderDescriptor,
   getProvidersForModel,
-} from "../providers/registry.ts";
+} from "../providers/registry";
 
 export interface RetryState {
   providerIndex: number;

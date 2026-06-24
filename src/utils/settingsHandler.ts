@@ -1,15 +1,15 @@
 import { Context } from "hono";
 import { timingSafeEqual } from "node:crypto";
 import { Buffer } from "node:buffer";
-import { appConfig, updateConfig } from "../config.ts";
-import { Config } from "../types/config.ts";
-import { logger } from "./logger.ts";
+import { appConfig, updateConfig } from "../config";
+import { Config } from "../types/config";
+import { logger } from "./logger";
 import {
   getProviderDescriptors,
   normalizeModelPriority,
   type ProviderConfig,
   type ProviderId,
-} from "../providers/registry.ts";
+} from "../providers/registry";
 
 const VALID_PROVIDERS = getProviderDescriptors().map((descriptor) => descriptor.id);
 

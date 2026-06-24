@@ -1,4 +1,4 @@
-import { kv } from "./kv.ts";
+import { kv } from "./kv";
 
 const ERROR_LOG_EXPIRY_MS = 0.5 * 60 * 60 * 1000;
 const MAX_ERROR_LOG_VALUE_BYTES = 60 * 1024;
@@ -9,6 +9,7 @@ const MIN_LOG_BODY_BYTES = 4 * 1024;
 
 export type ErrorLogType =
   | "request_conversion"
+  | "stream_conversion"
   | "response_conversion"
   | "response_500";
 
@@ -272,6 +273,7 @@ export async function getErrorLogs(options?: {
     reverse: true,
   });
   for await (const entry of iter) {
+    if (!entry.value) continue;
     if (options?.type && entry.value.type !== options.type) continue;
     entries.push(await resolveErrorLogEntry(entry.value));
     if (entries.length >= limit) break;

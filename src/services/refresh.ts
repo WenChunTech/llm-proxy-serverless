@@ -1,6 +1,6 @@
-import { appConfig } from '../config.js';
-import { isAccessTokenExpired, refreshAccessToken as refreshIflowToken } from '../providers/iflow/auth.js';
-import { refreshAccessToken as refreshQwenToken, isAccessTokenExpired as isQwenAccessTokenExpired } from '../providers/qwen/auth.js';
+import { appConfig } from '../config';
+import { isAccessTokenExpired, refreshAccessToken as refreshIflowToken } from '../providers/iflow/auth';
+import { refreshAccessToken as refreshQwenToken, isAccessTokenExpired as isQwenAccessTokenExpired } from '../providers/qwen/auth';
 
 export const refreshAllTokens = async () => {
     const results = {

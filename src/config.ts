@@ -1,5 +1,5 @@
 import fs from "fs";
-import { getCredentials, updateCredentials } from './services/credentials.js';
+import { getCredentials, updateCredentials } from './services/credentials';
 import {
   ClaudeConfig,
   CodexConfig,
@@ -10,8 +10,8 @@ import {
   OpenAIChatConfig,
   OpenAIResponsesConfig,
   QwenConfig,
-} from "./types/config.js";
-import Poller from "./services/polling.js";
+} from "./types/config";
+import Poller from "./services/polling";
 
 export let appConfig: Config = {
   gemini_cli: [],
@@ -65,7 +65,7 @@ export const updateConfig = async (config: Config) => {
         fs.writeFileSync(CONFIG_FILE, JSON.stringify(config));
         console.log("Saved new config to config.json Successfully");
     } else {
-        updateCredentials(APP_CONFIG, config);
+        await updateCredentials(APP_CONFIG, config);
         console.log("Saved new config to kv store Successfully");
     }
     appConfig = config;

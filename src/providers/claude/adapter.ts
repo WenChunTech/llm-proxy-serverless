@@ -1,5 +1,5 @@
-import { geminiRequestConvertTo, openaiRequestConvertTo, openaiResponseConvertTo, TargetType } from '../../../pkg/converter_wasm.js';
-import { StreamEvent } from '../../streaming/sse.js';
+import { geminiRequestConvertTo, openaiRequestConvertTo, openaiResponseConvertTo, TargetType } from '../../../pkg/converter_wasm';
+import { StreamEvent } from '../../streaming/sse';
 
 export function convertToClaudeRequestTo(body: any, source: any) {
     switch (source) {

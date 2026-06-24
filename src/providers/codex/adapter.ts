@@ -4,9 +4,9 @@ import {
   openaiChatRequestConvertTo,
   openAIResponsesResponseConvertTo,
   ProviderType,
-} from "../../../pkg/converter_wasm.js";
-import { StreamEvent } from "../../streaming/sse.ts";
-import { RequestLogger } from "../../utils/logger.ts";
+} from "../../../pkg/converter_wasm";
+import { StreamEvent } from "../../streaming/sse";
+import { RequestLogger } from "../../utils/logger";
 
 export function convertToCodexRequestTo(body: any, source: any) {
   switch (source) {
