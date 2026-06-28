@@ -15,6 +15,7 @@ import {
   handleSettingsGet,
   handleSettingsPost,
   handleSettingsVerify,
+  handleTestProvider,
   handleUpdateModelPriority,
 } from "./utils/settingsHandler";
 import {
@@ -126,6 +127,10 @@ app.post("/api/settings/provider/add", async (c) => {
 
 app.post("/api/settings/provider/models", async (c) => {
   return handleFetchProviderModels(c);
+});
+
+app.post("/api/settings/provider/test", async (c) => {
+  return handleTestProvider(c);
 });
 
 app.post("/api/settings/provider/remove", async (c) => {

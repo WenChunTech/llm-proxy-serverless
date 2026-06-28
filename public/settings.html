@@ -861,6 +861,7 @@
         claude: "Claude",
         codex: "Codex",
       };
+      const DEFAULT_PROVIDER_TEST_PROMPT = "你是什么大模型？";
       const TRANSLATIONS = {
         en: {
           pageTitle: "LLM Proxy - Settings",
@@ -984,6 +985,24 @@
           loadModelsMissingBaseUrl: "Please enter the base URL first.",
           loadModelsFailed: "Failed to load models: {message}",
           autoFetchingModels: "Fetching models...",
+          providerTestTitle: "Provider Test",
+          providerTestDescription:
+            "Send a prompt with the current unsaved provider settings and show the raw upstream response.",
+          providerTestPromptLabel: "Test Prompt",
+          providerTestModelLabel: "Test Model",
+          providerTestModelPlaceholder: "Enter models first",
+          providerTestStreamLabel: "Use streaming output",
+          testProviderButton: "Test Provider",
+          copyProviderTestCurlButton: "Copy curl",
+          providerTesting: "Testing...",
+          providerTestCurlCopied: "curl command copied.",
+          providerTestCurlCopyFailed: "Failed to copy curl: {message}",
+          providerTestResultPlaceholder:
+            "The raw provider response will appear here.",
+          providerTestMissingBaseUrl: "Please enter the base URL first.",
+          providerTestMissingModel: "Please enter at least one model first.",
+          providerTestFailed: "Provider test failed: {message}",
+          providerTestStatus: "HTTP {status} {statusText}",
           apiKeyPlaceholder: "Enter API key",
           invalidServerResponse: "Invalid server response",
           enterApiKey: "Please enter an API key.",
@@ -1143,6 +1162,23 @@
           loadModelsMissingBaseUrl: "请先填写 Base URL。",
           loadModelsFailed: "获取模型失败：{message}",
           autoFetchingModels: "正在获取模型...",
+          providerTestTitle: "Provider 测试",
+          providerTestDescription:
+            "使用当前未保存的 Provider 配置发送提示词，并在这里展示上游原始响应。",
+          providerTestPromptLabel: "测试提示词",
+          providerTestModelLabel: "测试模型",
+          providerTestModelPlaceholder: "请先填写模型",
+          providerTestStreamLabel: "使用流式输出",
+          testProviderButton: "测试 Provider",
+          copyProviderTestCurlButton: "复制 curl",
+          providerTesting: "测试中...",
+          providerTestCurlCopied: "curl 命令已复制。",
+          providerTestCurlCopyFailed: "复制 curl 失败：{message}",
+          providerTestResultPlaceholder: "Provider 原始响应会显示在这里。",
+          providerTestMissingBaseUrl: "请先填写 Base URL。",
+          providerTestMissingModel: "请先填写至少一个模型。",
+          providerTestFailed: "Provider 测试失败：{message}",
+          providerTestStatus: "HTTP {status} {statusText}",
           apiKeyPlaceholder: "请输入 API Key",
           invalidServerResponse: "服务端响应无效",
           enterApiKey: "请输入 API Key。",
@@ -2182,6 +2218,64 @@
         `;
       }
 
+      function renderProviderTestSection() {
+        return `
+          <div class="provider-entry rounded-[1.25rem] p-4 space-y-3">
+            <div>
+              <h3 class="text-lg font-semibold">${
+          escapeHtml(t("providerTestTitle"))
+        }</h3>
+              <p class="mt-1 text-sm text-gray-400">${
+          escapeHtml(t("providerTestDescription"))
+        }</p>
+            </div>
+            <div class="form-group">
+              <label class="form-label">${
+          escapeHtml(t("providerTestPromptLabel"))
+        }</label>
+              <textarea
+                id="providerTestPrompt"
+                class="form-input"
+                rows="2"
+              >${escapeHtml(DEFAULT_PROVIDER_TEST_PROMPT)}</textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">${
+          escapeHtml(t("providerTestModelLabel"))
+        }</label>
+              <select id="providerTestModel" class="form-input"></select>
+            </div>
+            <label class="inline-flex items-center gap-3 text-sm">
+              <input type="checkbox" id="providerTestStream" checked />
+              <span>${escapeHtml(t("providerTestStreamLabel"))}</span>
+            </label>
+            <div class="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                id="providerTestButton"
+                onclick="testProviderConfig()"
+                class="btn-secondary text-white px-3 py-2 rounded-full"
+              >
+                ${escapeHtml(t("testProviderButton"))}
+              </button>
+              <button
+                type="button"
+                id="providerTestCurlButton"
+                onclick="copyProviderTestCurl()"
+                class="btn-secondary text-white px-3 py-2 rounded-full"
+              >
+                ${escapeHtml(t("copyProviderTestCurlButton"))}
+              </button>
+              <span id="providerTestStatus" class="text-sm text-gray-400"></span>
+            </div>
+            <pre
+              id="providerTestResult"
+              class="form-input min-h-[8rem] max-h-72 overflow-auto whitespace-pre-wrap break-all text-sm font-mono"
+            >${escapeHtml(t("providerTestResultPlaceholder"))}</pre>
+          </div>
+        `;
+      }
+
       function getProviderFieldsTemplate(provider) {
         const modelsPlaceholder = {
           gemini_cli: "gemini-2.5-pro,gemini-2.5-flash",
@@ -2222,7 +2316,8 @@
               t("apiKeyLabel"),
               t("apiKeyPlaceholder"),
               "password",
-            ) + renderModelField(modelsPlaceholder[provider], true);
+            ) + renderModelField(modelsPlaceholder[provider], true) +
+              renderProviderTestSection();
           case "qwen":
           case "iflow":
             return enabledField +
@@ -2241,7 +2336,8 @@
               t("apiKeyLabel"),
               t("apiKeyPlaceholder"),
               "password",
-            ) + renderModelField(modelsPlaceholder[provider], true);
+            ) + renderModelField(modelsPlaceholder[provider], true) +
+              renderProviderTestSection();
           case "claude":
             return enabledField + renderTextInput(
               "field-base_url",
@@ -2254,7 +2350,8 @@
               t("apiKeyLabel"),
               t("apiKeyPlaceholder"),
               "password",
-            ) + renderModelField(modelsPlaceholder[provider], true);
+            ) + renderModelField(modelsPlaceholder[provider], true) +
+              renderProviderTestSection();
           case "codex":
             return enabledField +
               renderTextInput(
@@ -2384,6 +2481,279 @@
         }
       }
 
+      function applyProviderTestTone(element, type = "neutral") {
+        if (!element) return;
+        element.classList.remove(
+          "text-red-400",
+          "text-green-400",
+          "text-gray-400",
+        );
+        if (type === "error") {
+          element.classList.add("text-red-400");
+        } else if (type === "success") {
+          element.classList.add("text-green-400");
+        } else {
+          element.classList.add("text-gray-400");
+        }
+      }
+
+      function setProviderTestStatus(message, type = "neutral") {
+        const status = document.getElementById("providerTestStatus");
+        if (!status) return;
+        status.textContent = message;
+        status.dataset.type = type;
+        status.className = "text-sm";
+        applyProviderTestTone(status, type);
+      }
+
+      function setProviderTestResult(message = "", type = "neutral") {
+        const result = document.getElementById("providerTestResult");
+        if (!result) return;
+        result.textContent = message || t("providerTestResultPlaceholder");
+        result.dataset.type = type;
+        result.dataset.hasResult = message ? "true" : "false";
+        result.className =
+          "form-input min-h-[8rem] max-h-72 overflow-auto whitespace-pre-wrap break-all text-sm font-mono";
+        applyProviderTestTone(result, message ? type : "neutral");
+      }
+
+      function setProviderTestButtonState(isTesting) {
+        const button = document.getElementById("providerTestButton");
+        if (!button) return;
+        button.disabled = isTesting;
+        button.textContent = isTesting
+          ? t("providerTesting")
+          : t("testProviderButton");
+        button.classList.toggle("opacity-70", isTesting);
+        button.classList.toggle("cursor-not-allowed", isTesting);
+      }
+
+      function getProviderTestState() {
+        const prompt = document.getElementById("providerTestPrompt");
+        const model = document.getElementById("providerTestModel");
+        const stream = document.getElementById("providerTestStream");
+        const status = document.getElementById("providerTestStatus");
+        const result = document.getElementById("providerTestResult");
+
+        return {
+          testPrompt: prompt?.value,
+          testModel: model?.value || "",
+          testStream: !!stream?.checked,
+          testStatus: status?.textContent || "",
+          testStatusType: status?.dataset.type || "neutral",
+          testResult: result?.dataset.hasResult === "true"
+            ? result.textContent || ""
+            : "",
+          testResultType: result?.dataset.type || "neutral",
+        };
+      }
+
+      function syncProviderTestModelOptions(preferredModel = "") {
+        const select = document.getElementById("providerTestModel");
+        if (!select) return;
+
+        const currentModel = preferredModel || select.value;
+        const models = Array.from(new Set(readModelsFromTextarea()));
+
+        if (models.length === 0) {
+          select.innerHTML = `<option value="">${
+            escapeHtml(t("providerTestModelPlaceholder"))
+          }</option>`;
+          select.disabled = true;
+          return;
+        }
+
+        select.disabled = false;
+        select.innerHTML = models.map((model) => `
+          <option value="${escapeHtml(model)}">${escapeHtml(model)}</option>
+        `).join("");
+        select.value = models.includes(currentModel) ? currentModel : models[0];
+      }
+
+      function getCurrentProviderTestContext() {
+        const providerType = document.getElementById("providerType")?.value || "";
+        if (!providerType) {
+          throw new Error(t("selectProviderType"));
+        }
+
+        const providerConfig = buildProviderConfigFromForm();
+        const baseUrl = providerConfig.base_url || "";
+        const model = document.getElementById("providerTestModel")?.value ||
+          (Array.isArray(providerConfig.models) ? providerConfig.models[0] : "");
+
+        if (!baseUrl) {
+          throw new Error(t("providerTestMissingBaseUrl"));
+        }
+
+        if (!model) {
+          throw new Error(t("providerTestMissingModel"));
+        }
+
+        const promptInput = document.getElementById("providerTestPrompt");
+        const prompt = promptInput?.value.trim() || DEFAULT_PROVIDER_TEST_PROMPT;
+        if (promptInput && !promptInput.value.trim()) {
+          promptInput.value = prompt;
+        }
+
+        const stream = !!document.getElementById("providerTestStream")
+          ?.checked;
+
+        return {
+          providerType,
+          providerConfig,
+          baseUrl,
+          apiKey: providerConfig.api_key || "",
+          model,
+          prompt,
+          stream,
+        };
+      }
+
+      function appendProviderTestPath(baseUrl, path) {
+        const url = new URL(baseUrl);
+        const basePath = url.pathname.replace(/\/+$/, "");
+        const nextPath = path.replace(/^\/+/, "");
+        url.pathname = `${basePath}/${nextPath}`.replace(/\/+/g, "/");
+        return url.toString();
+      }
+
+      function buildProviderTestCurlRequest(context) {
+        const { providerType, baseUrl, apiKey, model, prompt, stream } = context;
+        const jsonHeaders = { "Content-Type": "application/json" };
+
+        if (providerType === "openai_chat") {
+          const headers = { ...jsonHeaders };
+          if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+          return {
+            endpoint: appendProviderTestPath(baseUrl, "chat/completions"),
+            headers,
+            body: {
+              model,
+              messages: [{ role: "user", content: prompt }],
+              stream,
+            },
+          };
+        }
+
+        if (providerType === "openai_responses") {
+          const headers = { ...jsonHeaders };
+          if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+          return {
+            endpoint: appendProviderTestPath(baseUrl, "responses"),
+            headers,
+            body: {
+              model,
+              input: prompt,
+              stream,
+            },
+          };
+        }
+
+        if (providerType === "claude") {
+          const headers = {
+            ...jsonHeaders,
+            "anthropic-version": "2023-06-01",
+          };
+          if (apiKey) headers["x-api-key"] = apiKey;
+          return {
+            endpoint: appendProviderTestPath(baseUrl, "v1/messages"),
+            headers,
+            body: {
+              model,
+              max_tokens: 1024,
+              messages: [{ role: "user", content: prompt }],
+              stream,
+            },
+          };
+        }
+
+        if (providerType === "gemini") {
+          const headers = { ...jsonHeaders };
+          if (apiKey) {
+            headers.Authorization = `Bearer ${apiKey}`;
+            headers["x-goog-api-key"] = apiKey;
+          }
+          const action = stream ? "streamGenerateContent" : "generateContent";
+          const endpoint = appendProviderTestPath(
+            baseUrl,
+            `v1beta/models/${encodeURIComponent(model)}:${action}`,
+          );
+          const url = new URL(endpoint);
+          if (stream) {
+            url.searchParams.set("alt", "sse");
+          }
+          return {
+            endpoint: url.toString(),
+            headers,
+            body: {
+              contents: [
+                {
+                  role: "user",
+                  parts: [{ text: prompt }],
+                },
+              ],
+            },
+          };
+        }
+
+        throw new Error(`Unsupported provider: ${providerType}`);
+      }
+
+      function shellQuote(value) {
+        return `'${String(value).replaceAll("'", "'\\''")}'`;
+      }
+
+      function formatCurlCommand(request) {
+        const parts = ["curl"];
+        parts.push("-X", "POST", shellQuote(request.endpoint));
+
+        Object.entries(request.headers).forEach(([name, value]) => {
+          parts.push("-H", shellQuote(`${name}: ${value}`));
+        });
+
+        parts.push("-d", shellQuote(JSON.stringify(request.body)));
+        return parts.join(" ");
+      }
+
+      async function copyTextToClipboard(text) {
+        if (navigator.clipboard?.writeText && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand("copy");
+        textarea.remove();
+        if (!copied) {
+          throw new Error("Clipboard API unavailable");
+        }
+      }
+
+      async function copyProviderTestCurl() {
+        try {
+          const context = getCurrentProviderTestContext();
+          const request = buildProviderTestCurlRequest(context);
+          await copyTextToClipboard(
+            formatCurlCommand(request),
+          );
+          setProviderTestStatus(t("providerTestCurlCopied"), "success");
+        } catch (error) {
+          const message = error instanceof Error && error.message
+            ? error.message
+            : t("invalidServerResponse");
+          setProviderTestResult(
+            t("providerTestCurlCopyFailed", { message }),
+            "error",
+          );
+        }
+      }
+
       function syncModelSelectionFromTextarea() {
         const selected = new Set(readModelsFromTextarea());
         Array.from(
@@ -2398,6 +2768,7 @@
           item.classList.toggle("bg-indigo-500/10", checkbox.checked);
         });
         updateModelSelectionSummary();
+        syncProviderTestModelOptions();
         filterModelOptions();
       }
 
@@ -2514,6 +2885,7 @@
           modelInputMode: getCurrentModelMode(),
           enabled: !!document.getElementById("field-enabled")?.checked,
           projects: readCommaSeparatedValues("field-projects"),
+          ...getProviderTestState(),
         };
 
         const baseUrlInput = document.getElementById("field-base_url");
@@ -2542,9 +2914,28 @@
         }
         setCommaSeparatedValues("field-projects", values.projects || []);
 
+        const testPromptInput = document.getElementById("providerTestPrompt");
+        const testStreamInput = document.getElementById("providerTestStream");
+        if (testPromptInput) {
+          testPromptInput.value = values.testPrompt ||
+            DEFAULT_PROVIDER_TEST_PROMPT;
+        }
+        if (testStreamInput) {
+          testStreamInput.checked = values.testStream !== false;
+        }
+        setProviderTestStatus(
+          values.testStatus || "",
+          values.testStatusType || "neutral",
+        );
+        setProviderTestResult(
+          values.testResult || "",
+          values.testResultType || "neutral",
+        );
+
         setModelsTextarea(
           Array.isArray(values.models) ? values.models : [],
         );
+        syncProviderTestModelOptions(values.testModel || "");
         setAvailableModelOptions(
           Array.isArray(values.availableModelOptions) &&
             values.availableModelOptions.length > 0
@@ -2731,6 +3122,83 @@
             fetchButton.textContent = t("fetchModelsButton");
           }
           syncModelSelectionFromTextarea();
+        }
+      }
+
+      async function testProviderConfig() {
+        let context;
+        try {
+          context = getCurrentProviderTestContext();
+        } catch (error) {
+          setProviderTestResult(
+            error instanceof Error ? error.message : String(error),
+            "error",
+          );
+          return;
+        }
+        const { providerType, providerConfig, model, prompt, stream } = context;
+        setProviderTestButtonState(true);
+        setProviderTestStatus("", "neutral");
+        setProviderTestResult("", "neutral");
+
+        try {
+          const response = await authFetch("/api/settings/provider/test", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              providerType,
+              config: providerConfig,
+              model,
+              prompt,
+              stream,
+            }),
+          });
+          const tone = response.ok ? "success" : "error";
+          setProviderTestStatus(
+            t("providerTestStatus", {
+              status: response.status,
+              statusText: response.statusText || "",
+            }),
+            tone,
+          );
+
+          const result = document.getElementById("providerTestResult");
+          if (stream && response.body && result) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let raw = "";
+            result.textContent = "";
+            result.dataset.hasResult = "false";
+            result.dataset.type = tone;
+            applyProviderTestTone(result, tone);
+
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              raw += decoder.decode(value, { stream: true });
+              result.textContent = raw;
+              result.dataset.hasResult = raw ? "true" : "false";
+              result.scrollTop = result.scrollHeight;
+            }
+            raw += decoder.decode();
+            setProviderTestResult(raw, tone);
+            return;
+          }
+
+          setProviderTestResult(await response.text(), tone);
+        } catch (error) {
+          const message = error instanceof Error && error.message
+            ? error.message
+            : t("invalidServerResponse");
+          setProviderTestStatus("", "neutral");
+          setProviderTestResult(
+            t("providerTestFailed", { message }),
+            "error",
+          );
+        } finally {
+          setProviderTestButtonState(false);
         }
       }
 

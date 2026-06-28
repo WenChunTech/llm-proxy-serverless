@@ -90,6 +90,7 @@ For example:
 - `POST /api/settings`
 - `POST /api/settings/provider/add`
 - `POST /api/settings/provider/models`
+- `POST /api/settings/provider/test`
 - `POST /api/settings/provider/remove`
 - `POST /api/settings/model-priority`
 - `POST /api/settings/fallback-model`
@@ -261,6 +262,8 @@ The settings page currently supports:
 - Entering the management UI after validating the global API key
 - Updating the global API key
 - Adding, editing, and removing provider configs
+- Testing provider configs with raw streaming or non-streaming responses and
+  copying the same test as a `curl` command
 - Loading model lists from `/models` for supported provider types based on
   `base_url`
 - Reordering `model_priority` with drag and drop

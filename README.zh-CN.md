@@ -77,6 +77,7 @@ Gemini 端点通过路径后缀区分调用类型：
 - `POST /api/settings`
 - `POST /api/settings/provider/add`
 - `POST /api/settings/provider/models`
+- `POST /api/settings/provider/test`
 - `POST /api/settings/provider/remove`
 - `POST /api/settings/model-priority`
 - `POST /api/settings/fallback-model`
@@ -243,6 +244,7 @@ Cloudflare Worker 与 Vercel 需要配置同一组 Vercel Redis/KV REST URL/toke
 - 验证全局 API Key 后进入管理界面
 - 修改全局 API Key
 - 新增、编辑、删除 provider 配置
+- 测试 provider 配置并展示原始流式或非流式响应，也可复制同等测试的 `curl` 命令
 - 对部分 provider 根据 `base_url` 调用 `/models` 拉取模型列表
 - 拖拽调整 `model_priority`
 - 增删 `fallback_models`

@@ -11,6 +11,25 @@ import {
 } from "../providers/registry";
 
 const VALID_PROVIDERS = getProviderDescriptors().map((descriptor) => descriptor.id);
+const PROVIDER_TEST_DEFAULT_PROMPT = "你是什么大模型？";
+const TESTABLE_PROVIDERS = new Set([
+  "gemini",
+  "openai_chat",
+  "openai_responses",
+  "claude",
+]);
+
+interface ProviderTestConfigInput {
+  base_url?: unknown;
+  api_key?: unknown;
+  models?: unknown;
+}
+
+interface ProviderTestFetchRequest {
+  endpoint: string;
+  headers: Record<string, string>;
+  body: Record<string, unknown>;
+}
 
 function cloneConfig(config: Config): Config {
   return JSON.parse(JSON.stringify(config));
@@ -187,6 +206,155 @@ function buildProviderModelsEndpoint(baseUrl: string, providerType?: string): st
   }
 
   return url.toString();
+}
+
+function getTrimmedString(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function getFirstModel(models: unknown): string {
+  if (!Array.isArray(models)) {
+    return "";
+  }
+
+  for (const model of models) {
+    const normalizedModel = getTrimmedString(model);
+    if (normalizedModel) {
+      return normalizedModel;
+    }
+  }
+
+  return "";
+}
+
+function appendPathToBaseUrl(baseUrl: string, path: string): string {
+  const url = new URL(baseUrl);
+  const basePath = url.pathname.replace(/\/+$/, "");
+  const nextPath = path.replace(/^\/+/, "");
+  url.pathname = `${basePath}/${nextPath}`.replace(/\/+/g, "/");
+  return url.toString();
+}
+
+function withJsonHeaders(
+  headers: Record<string, string> = {},
+): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    ...headers,
+  };
+}
+
+function buildProviderTestRequest(
+  providerType: string,
+  baseUrl: string,
+  apiKey: string,
+  model: string,
+  prompt: string,
+  stream: boolean,
+): ProviderTestFetchRequest {
+  switch (providerType) {
+    case "openai_chat": {
+      const headers = withJsonHeaders();
+      if (apiKey) {
+        headers.Authorization = `Bearer ${apiKey}`;
+      }
+
+      return {
+        endpoint: appendPathToBaseUrl(baseUrl, "chat/completions"),
+        headers,
+        body: {
+          model,
+          messages: [{ role: "user", content: prompt }],
+          stream,
+        },
+      };
+    }
+    case "openai_responses": {
+      const headers = withJsonHeaders();
+      if (apiKey) {
+        headers.Authorization = `Bearer ${apiKey}`;
+      }
+
+      return {
+        endpoint: appendPathToBaseUrl(baseUrl, "responses"),
+        headers,
+        body: {
+          model,
+          input: prompt,
+          stream,
+        },
+      };
+    }
+    case "claude": {
+      const headers = withJsonHeaders({
+        "anthropic-version": "2023-06-01",
+      });
+      if (apiKey) {
+        headers["x-api-key"] = apiKey;
+      }
+
+      return {
+        endpoint: appendPathToBaseUrl(baseUrl, "v1/messages"),
+        headers,
+        body: {
+          model,
+          max_tokens: 1024,
+          messages: [{ role: "user", content: prompt }],
+          stream,
+        },
+      };
+    }
+    case "gemini": {
+      const headers = withJsonHeaders();
+      if (apiKey) {
+        headers.Authorization = `Bearer ${apiKey}`;
+        headers["x-goog-api-key"] = apiKey;
+      }
+
+      const action = stream ? "streamGenerateContent" : "generateContent";
+      const endpoint = appendPathToBaseUrl(
+        baseUrl,
+        `v1beta/models/${encodeURIComponent(model)}:${action}`,
+      );
+      const url = new URL(endpoint);
+      if (stream) {
+        url.searchParams.set("alt", "sse");
+      }
+
+      return {
+        endpoint: url.toString(),
+        headers,
+        body: {
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }],
+            },
+          ],
+        },
+      };
+    }
+    default:
+      throw new Error(`Unsupported provider: ${providerType}`);
+  }
+}
+
+function buildProviderTestResponseHeaders(
+  response: Response,
+  stream: boolean,
+): Headers {
+  const headers = new Headers();
+  headers.set(
+    "Content-Type",
+    response.headers.get("content-type") ||
+      (stream
+        ? "text/event-stream; charset=utf-8"
+        : "text/plain; charset=utf-8"),
+  );
+  headers.set("Cache-Control", "no-cache");
+  headers.set("X-Provider-Test-Status", String(response.status));
+  headers.set("X-Provider-Test-Status-Text", response.statusText);
+  return headers;
 }
 
 // Check if auth is required (no response means no api_key configured)
@@ -469,6 +637,105 @@ export async function handleFetchProviderModels(c: Context) {
       {
         success: false,
         error: "Failed to fetch provider models: " + String(error),
+      },
+      502,
+    );
+  }
+}
+
+export async function handleTestProvider(c: Context) {
+  try {
+    const auth = checkAuth(c);
+    if (!auth.ok) return auth.response;
+
+    const body = await c.req.json() as {
+      providerType?: unknown;
+      config?: unknown;
+      model?: unknown;
+      prompt?: unknown;
+      stream?: unknown;
+    };
+    const providerType = getTrimmedString(body.providerType);
+
+    if (!TESTABLE_PROVIDERS.has(providerType)) {
+      return c.json(
+        {
+          success: false,
+          error: `Unsupported provider: ${providerType}`,
+        },
+        400,
+      );
+    }
+
+    const providerConfig = body.config && typeof body.config === "object"
+      ? body.config as ProviderTestConfigInput
+      : {};
+    const baseUrl = getTrimmedString(providerConfig.base_url);
+    const apiKey = getTrimmedString(providerConfig.api_key);
+    const model = getTrimmedString(body.model) ||
+      getFirstModel(providerConfig.models);
+    const prompt = getTrimmedString(body.prompt) || PROVIDER_TEST_DEFAULT_PROMPT;
+    const stream = body.stream === true;
+
+    if (!baseUrl) {
+      return c.json(
+        {
+          success: false,
+          error: "Base URL is required",
+        },
+        400,
+      );
+    }
+
+    if (!model) {
+      return c.json(
+        {
+          success: false,
+          error: "At least one model is required",
+        },
+        400,
+      );
+    }
+
+    let providerRequest: ProviderTestFetchRequest;
+    try {
+      providerRequest = buildProviderTestRequest(
+        providerType,
+        baseUrl,
+        apiKey,
+        model,
+        prompt,
+        stream,
+      );
+    } catch (error) {
+      return c.json(
+        {
+          success: false,
+          error: error instanceof Error
+            ? error.message
+            : "Invalid provider test request",
+        },
+        400,
+      );
+    }
+
+    const response = await fetch(providerRequest.endpoint, {
+      method: "POST",
+      headers: providerRequest.headers,
+      body: JSON.stringify(providerRequest.body),
+    });
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: buildProviderTestResponseHeaders(response, stream),
+    });
+  } catch (error) {
+    logger.error("Failed to test provider:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to test provider: " + String(error),
       },
       502,
     );
