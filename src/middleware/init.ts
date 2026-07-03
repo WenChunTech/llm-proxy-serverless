@@ -3,6 +3,7 @@ import { initConfig } from "../config";
 import initWasm from "../../pkg/converter_wasm";
 // @ts-ignore Wrangler imports .wasm files as compiled modules.
 import converterWasm from "../../pkg/converter_wasm_bg.wasm";
+import { logger } from "../utils/logger";
 
 let isInitialized = false;
 let initPromise: Promise<void> | null = null;
@@ -45,14 +46,14 @@ export const ensureInitialized = async (): Promise<void> => {
 
   initPromise = (async () => {
     try {
-      console.log("Initializing WASM and config...");
+      logger.info("Initializing WASM and config...");
       await initWasm({ module_or_path: await getWasmModuleOrBytes() as any });
-      console.log("Initializing config...");
+      logger.info("Initializing config...");
       await initConfig();
       isInitialized = true;
-      console.log("Initialization completed successfully");
+      logger.info("Initialization completed successfully");
     } catch (error) {
-      console.error("Initialization failed:", error);
+      logger.error("Initialization failed:", error);
       initPromise = null; // 重置，允许重试
       throw error;
     }

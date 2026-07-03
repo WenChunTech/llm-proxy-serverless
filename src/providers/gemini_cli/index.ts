@@ -1,7 +1,6 @@
 import { geminiCliPoller } from '../../config';
 import { GeminiCliConfig } from '../../types/config';
 import { getAccessToken, fetchGeminiCLiStreamResponse, fetchGeminiCLiResponse } from './auth';
-import { fetchWithRetry } from '../../utils/fetch';
 import { convertToGeminiCliRequestTo, convertGeminiCliResponseTo, convertGeminiStreamResponseTo } from './adapter';
 import { TargetType } from '../../../pkg/converter_wasm';
 
@@ -35,9 +34,9 @@ export class GeminiCliProvider {
         const token = await getAccessToken(this.geminiConfig.auth);
         reqData.project = project;
         if (is_streaming) {
-            return fetchWithRetry(fetchGeminiCLiStreamResponse, { token, data: reqData });
+            return fetchGeminiCLiStreamResponse({ token, data: reqData });
         } else {
-            return fetchWithRetry(fetchGeminiCLiResponse, { token, data: reqData });
+            return fetchGeminiCLiResponse({ token, data: reqData });
         }
     }
 

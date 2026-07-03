@@ -1,4 +1,5 @@
 import { IFlowAuth } from '../../types/config';
+import { logger } from '../../utils/logger';
 
 // --- Constants ---
 const iFlowAPIKeyEndpoint = "https://platform.iflow.cn/api/openapi/apikey";
@@ -117,14 +118,14 @@ async function refreshAPIKey(cookie: string, name: string): Promise<iFlowKeyData
 export async function authenticateWithCookie(cookie: string): Promise<IFlowAuth> {
     // Step 1: Get initial API key information to obtain the name
     const keyInfo = await fetchAPIKeyInfo(cookie);
-    console.info('[iFlow Cookie Auth] Retrieved API key info:', keyInfo);
+    logger.info('[iFlow Cookie Auth] Retrieved API key info:', keyInfo);
     if (!keyInfo.name) {
         throw new Error("[iFlow Cookie Auth] Failed to retrieve API key name from initial fetch.");
     }
 
     // Step 2: Refresh the API key using the obtained name
     const refreshedKeyInfo = await refreshAPIKey(cookie, keyInfo.name);
-    console.info('[iFlow Cookie Auth] Refreshed API key info:', refreshedKeyInfo);
+    logger.info('[iFlow Cookie Auth] Refreshed API key info:', refreshedKeyInfo);
     const expiryDate = new Date(refreshedKeyInfo.expireTime).getTime();
     const auth: IFlowAuth = {
         access_token: "",

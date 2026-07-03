@@ -1,6 +1,5 @@
 import { geminiPoller } from "../../config";
 import { GeminiConfig } from "../../types/config";
-import { fetchWithRetry } from "../../utils/fetch";
 import {
   convertGeminiResponseTo,
   convertGeminiStreamResponseTo,
@@ -34,14 +33,11 @@ export class GeminiProvider {
         "Authorization": `Bearer ${this.geminiConfig.api_key}`,
       };
       const body = JSON.stringify(reqData);
-      const fetcher = async () =>
-        fetch(url, {
-          method: "POST",
-          headers: headers,
-          body: body,
-        });
-
-      return fetchWithRetry(fetcher, {});
+      return fetch(url, {
+        method: "POST",
+        headers: headers,
+        body: body,
+      });
     } else {
       const url =
         `${this.geminiConfig.base_url}/v1beta/models/${this.model}:generateContent`;
@@ -51,14 +47,11 @@ export class GeminiProvider {
         "Authorization": `Bearer ${this.geminiConfig.api_key}`,
       };
       const body = JSON.stringify(reqData);
-      const fetcher = async () =>
-        fetch(url, {
-          method: "POST",
-          headers: headers,
-          body: body,
-        });
-
-      return fetchWithRetry(fetcher, {});
+      return fetch(url, {
+        method: "POST",
+        headers: headers,
+        body: body,
+      });
     }
   }
 

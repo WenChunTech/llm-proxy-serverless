@@ -9,7 +9,6 @@ const MIN_LOG_BODY_BYTES = 4 * 1024;
 
 export type ErrorLogType =
   | "request_conversion"
-  | "stream_conversion"
   | "response_conversion"
   | "response_500";
 

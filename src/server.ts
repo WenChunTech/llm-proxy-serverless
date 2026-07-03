@@ -3,6 +3,7 @@ import { serveStatic } from "hono/serve-static";
 import { ProviderType } from "../pkg/converter_wasm";
 
 import { handleModelRequest } from "./utils/routeHandlers";
+import { handleImageGeneration } from "./utils/imageHandler";
 import { getModelsResponse } from "./services/models";
 import { initMiddleware } from "./middleware/init";
 import { authMiddleware } from "./middleware/auth";
@@ -91,6 +92,10 @@ app.use(
 
 app.post("/v1/chat/completions", async (c) => {
   return handleModelRequest(c, ProviderType.Chat);
+});
+
+app.post("/v1/images/generations", async (c) => {
+  return handleImageGeneration(c);
 });
 
 app.post("/v1/responses", async (c) => {

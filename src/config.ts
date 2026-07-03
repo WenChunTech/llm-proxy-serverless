@@ -1,6 +1,7 @@
 import { getCredentials, updateCredentials } from './services/credentials';
 import { hasRedisRuntimeConfig } from "./services/redis";
 import { getEnv, isDeploymentRuntime } from "./utils/runtime";
+import { logger } from "./utils/logger";
 import {
   ClaudeConfig,
   CodexConfig,
@@ -81,13 +82,13 @@ export const initConfig = async () => {
     try {
       loadedConfig = await getCredentials<Config>(APP_CONFIG);
       if (loadedConfig) {
-        console.log("Load config from shared Redis Successfully");
+        logger.info("Load config from shared Redis Successfully");
       }
     } catch (error) {
       if (isDeploymentRuntime()) {
         throw error;
       }
-      console.warn(
+      logger.warn(
         "Failed to load shared Redis; falling back to local config.",
         error instanceof Error ? error.message : error,
       );
@@ -97,19 +98,19 @@ export const initConfig = async () => {
   if (!loadedConfig && !isDeploymentRuntime()) {
     loadedConfig = await readConfigFile();
     if (loadedConfig) {
-      console.log("Load config from config.json Successfully");
+      logger.info("Load config from config.json Successfully");
     }
   }
 
   if (!loadedConfig) {
     loadedConfig = readConfigFromEnv();
     if (loadedConfig) {
-      console.log("Load config from environment Successfully");
+      logger.info("Load config from environment Successfully");
     }
   }
 
   if (!loadedConfig) {
-    console.warn("No external config loaded; using built-in empty config.");
+    logger.warn("No external config loaded; using built-in empty config.");
   }
 
   if (loadedConfig) {
@@ -128,9 +129,9 @@ export const initConfig = async () => {
 export const updateConfig = async (config: Config) => {
   if (hasRedisRuntimeConfig()) {
     await updateCredentials(APP_CONFIG, config);
-    console.log("Saved new config to shared Redis Successfully");
+    logger.info("Saved new config to shared Redis Successfully");
   } else if (!isDeploymentRuntime() && await writeConfigFile(config)) {
-    console.log("Saved new config to config.json Successfully");
+    logger.info("Saved new config to config.json Successfully");
   } else {
     throw new Error(
       "No writable config store is configured. Set Vercel Redis env vars: KV_REST_API_URL/KV_REST_API_TOKEN.",

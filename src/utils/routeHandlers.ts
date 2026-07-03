@@ -1,50 +1,153 @@
 import { Context } from 'hono';
 import { streamSSE } from "hono/streaming";
-import { TargetType } from '../../pkg/converter_wasm';
-import { getProvider } from '../providers/factory';
+import { ProviderType } from "../../pkg/converter_wasm";
+import { logger, RequestLogger } from "./logger";
+import { saveErrorLog } from "../services/errorLog";
+import { executeModelRequest } from "../services/requestExecution";
+import {
+  getForwardableRequestHeaders,
+  getProxyResponseHeaders,
+  withUpstreamResponseHeaders,
+} from "./httpHeaders";
 
 function proxyResponse(response: Response) {
-  const newHeaders = new Headers(response.headers);
-  newHeaders.delete('content-encoding');
-  newHeaders.delete('content-length');
-
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers: newHeaders,
+    headers: getProxyResponseHeaders(response.headers),
   });
+}
+
+function applyUpstreamHeaders(c: Context, response: Response) {
+  getProxyResponseHeaders(response.headers).forEach((value, name) => {
+    c.header(name, value);
+  });
+}
+
+function parseModelRequest(
+  c: Context,
+  targetType: ProviderType,
+  body: Record<string, unknown>,
+) {
+  let isStreaming = body.stream;
+  let model = body.model;
+
+  if (targetType === ProviderType.Gemini) {
+    model = c.req.param("modelName").split(":")[0];
+    isStreaming =
+      c.req.param("modelName").split(":")[1] === "streamGenerateContent";
+    body.model = model;
+  }
+
+  return {
+    model: String(model),
+    isStreaming: Boolean(isStreaming),
+  };
 }
 
 export async function handleModelRequest(
   c: Context,
-  targetType: TargetType
+  targetType: ProviderType,
 ) {
   const body = await c.req.json();
-  let is_streaming = body.stream;
-  let model = body.model;
-  if (targetType === TargetType.Gemini) {
-    model = c.req.param("modelName").split(":")[0];
-    is_streaming = c.req.param("modelName").split(":")[1] === "streamGenerateContent";
-    body.model = model;
-  }
-  const provider = getProvider(model);
-  const req: any = await provider.convertRequestTo(body, targetType);
-  if (provider.getProviderType() != TargetType.Gemini && provider.getProviderType() != TargetType.GeminiCli) {
-    req.stream = is_streaming;
-  }
+  const originalBody = structuredClone(body) as Record<string, unknown>;
 
-  const resp: Response = await provider.fetchResponse(is_streaming, req);
-  if (!resp.ok) {
+  const requestLogger = new RequestLogger();
+  requestLogger.saveRequestBody(body);
+
+  const { model, isStreaming } = parseModelRequest(c, targetType, body);
+
+  logger.info("[request-entry]", {
+    requestId: requestLogger.getRequestId(),
+    method: c.req.method,
+    path: c.req.path,
+    targetType: ProviderType[targetType],
+    model,
+    isStreaming,
+  });
+
+  const { response: resp, provider: actualProvider } =
+    await executeModelRequest({
+      model,
+      targetType,
+      isStreaming,
+      body,
+      originalBody,
+      requestLogger,
+      forwardedHeaders: getForwardableRequestHeaders(c.req.raw.headers),
+    });
+
+  if (!resp.ok) return proxyResponse(resp);
+
+  if (targetType === actualProvider.getProviderType()) {
+    if (isStreaming) {
+      applyUpstreamHeaders(c, resp);
+      return streamSSE(c, async (stream) => {
+        const reader = resp.body!.getReader();
+        const decoder = new TextDecoder();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const text = decoder.decode(value, { stream: true });
+            requestLogger.saveSSEDataLine(text);
+            await stream.write(text);
+          }
+        } finally {
+          reader.releaseLock();
+        }
+      });
+    }
+    const responseText = await resp.clone().text();
+    requestLogger.saveRawResponse(responseText);
     return proxyResponse(resp);
   }
 
-  if (targetType == provider.getProviderType()) {
-    return proxyResponse(resp);
-  }
-  if (is_streaming) {
+  if (isStreaming) {
+    applyUpstreamHeaders(c, resp);
     return streamSSE(c, async (stream) => {
-      return provider.convertStreamResponseTo(stream, resp, targetType);
+      return actualProvider.convertStreamResponseTo(
+        stream,
+        resp,
+        targetType,
+        requestLogger,
+      );
     });
   }
-  return provider.convertResponseTo(c, resp, targetType);
+
+  const clonedResp = resp.clone();
+  const responseText = await clonedResp.text();
+  requestLogger.saveRawResponse(responseText);
+
+  try {
+    const convertedResponse = await actualProvider.convertResponseTo(
+      c,
+      resp,
+      targetType,
+    );
+    return withUpstreamResponseHeaders(convertedResponse, resp);
+  } catch (error) {
+    const providerType = actualProvider.getProviderType();
+    logger.error(
+      `[WASM] Response conversion failed (source=${
+        ProviderType[providerType]
+      }, target=${ProviderType[targetType]}):`,
+      error,
+      `\nOriginal response body:`,
+      responseText,
+    );
+    saveErrorLog({
+      type: "response_conversion",
+      error: {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      },
+      request: {
+        sourceType: ProviderType[actualProvider.getProviderType()],
+        targetType: ProviderType[targetType],
+      },
+      response: { body: responseText },
+    }).catch(() => {});
+    throw error;
+  }
 }

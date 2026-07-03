@@ -1,4 +1,3 @@
-import { fetchWithRetry } from '../../utils/fetch';
 import { claudePoller } from '../../config';
 import { convertToClaudeRequestTo, convertClaudeResponseTo, convertClaudeStreamResponseTo } from './adapter';
 import { TargetType } from '../../../pkg/converter_wasm';
@@ -30,13 +29,11 @@ export class ClaudeProvider {
         };
         const body = JSON.stringify({ ...reqData, stream: is_streaming });
 
-        const fetcher = async () => fetch(url, {
+        return fetch(url, {
             method: 'POST',
             headers: headers,
             body: body,
         });
-
-        return fetchWithRetry(fetcher, {});
     }
 
     async convertResponseTo(c: any, response: Response, target: any) {

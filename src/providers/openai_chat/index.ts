@@ -1,4 +1,3 @@
-import { fetchWithRetry } from '../../utils/fetch';
 import { openAIPoller } from '../../config';
 import { convertToOpenAIRequestTo, convertOpenAIResponseTo, convertOpenAIStreamResponseTo } from './adapter';
 import { TargetType } from '../../../pkg/converter_wasm';
@@ -28,14 +27,11 @@ export class OpenAIProvider {
       "Authorization": `Bearer ${this.apiKey}`,
     };
     const body = JSON.stringify(reqData);
-    const fetcher = async () =>
-      fetch(url, {
-        method: "POST",
-        headers: headers,
-        body: body,
-      });
-
-        return fetchWithRetry(fetcher, {});
+    return fetch(url, {
+      method: "POST",
+      headers: headers,
+      body: body,
+    });
     }
 
     async convertResponseTo(c: any, response: Response, target: any) {

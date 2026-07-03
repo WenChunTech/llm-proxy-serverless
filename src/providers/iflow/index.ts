@@ -1,4 +1,3 @@
-import { fetchWithRetry } from '../../utils/fetch';
 import { iflowPoller } from '../../config';
 import { convertToIFlowRequestTo, convertIFlowResponseTo, convertIFlowStreamResponseTo } from './adapter';
 import { TargetType } from '../../../pkg/converter_wasm';
@@ -27,13 +26,11 @@ export class IflowProvider {
             'Content-Type': 'application/json',
         };
 
-        const fetcher = async () => fetch(endpoint, {
+        return fetch(endpoint, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(reqData)
         });
-
-        return fetchWithRetry(fetcher, {});
     }
 
     async convertResponseTo(c: any, response: any, target: any) {

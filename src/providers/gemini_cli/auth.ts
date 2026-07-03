@@ -1,5 +1,6 @@
 import { GeminiCliAuth } from "../../types/config";
 import { appConfig, updateConfig } from "../../config";
+import { logger } from "../../utils/logger";
 
 const OAUTH_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
 const OAUTH_CLIENT_ID = "681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com";
@@ -13,7 +14,7 @@ function isAccessTokenExpired(auth: GeminiCliAuth) {
 }
 
 async function refreshAccessToken(auth: GeminiCliAuth) {
-  console.log("[Gemini Auth] Refreshing access token...");
+  logger.info("[Gemini Auth] Refreshing access token...");
 
   const response = await fetch(OAUTH_TOKEN_ENDPOINT, {
     method: "POST",
@@ -43,7 +44,7 @@ async function refreshAccessToken(auth: GeminiCliAuth) {
     token_type?: string;
   };
 
-  console.log("[Gemini Auth] Refreshed Token");
+  logger.info("[Gemini Auth] Refreshed Token");
   const updatedAuth: GeminiCliAuth = {
     ...auth,
     access_token: credentials.access_token,
