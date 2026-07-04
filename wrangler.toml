@@ -17,3 +17,10 @@ crons = ["0 1 * * *"]
 type = "CompiledWasm"
 globs = ["**/*.wasm"]
 fallthrough = true
+
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+[observability.traces]
+enabled = false

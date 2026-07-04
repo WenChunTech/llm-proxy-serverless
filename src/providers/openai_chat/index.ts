@@ -1,6 +1,7 @@
 import { openAIPoller } from '../../config';
 import { convertToOpenAIRequestTo, convertOpenAIResponseTo, convertOpenAIStreamResponseTo } from './adapter';
-import { TargetType } from '../../../pkg/converter_wasm';
+import { ProviderType } from '../../../pkg/converter_wasm';
+import { RequestLogger } from '../../utils/logger';
 
 export class OpenAIProvider {
     apiKey: string;
@@ -13,7 +14,7 @@ export class OpenAIProvider {
     }
 
     getProviderType() {
-        return TargetType.OpenAI;
+        return ProviderType.Chat;
     }
 
     async convertRequestTo(body: any, source: any) {
@@ -38,7 +39,7 @@ export class OpenAIProvider {
         return convertOpenAIResponseTo(c, response, target);
     }
 
-    async convertStreamResponseTo(stream: any, response: Response, target: any) {
-        return convertOpenAIStreamResponseTo(stream, response, target);
+    async convertStreamResponseTo(stream: any, response: Response, target: any, requestLogger?: RequestLogger) {
+        return convertOpenAIStreamResponseTo(stream, response, target, requestLogger);
     }
 }

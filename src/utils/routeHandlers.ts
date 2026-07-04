@@ -85,6 +85,7 @@ export async function handleModelRequest(
       return streamSSE(c, async (stream) => {
         const reader = resp.body!.getReader();
         const decoder = new TextDecoder();
+        stream.onAbort(() => { reader.cancel().catch(() => {}); });
         try {
           while (true) {
             const { done, value } = await reader.read();
@@ -93,6 +94,11 @@ export async function handleModelRequest(
             requestLogger.saveSSEDataLine(text);
             await stream.write(text);
           }
+        } catch (error) {
+          logger.error("[stream-passthrough-error]", {
+            requestId: requestLogger.getRequestId(),
+            error: error instanceof Error ? error.message : String(error),
+          });
         } finally {
           reader.releaseLock();
         }
@@ -106,12 +112,20 @@ export async function handleModelRequest(
   if (isStreaming) {
     applyUpstreamHeaders(c, resp);
     return streamSSE(c, async (stream) => {
-      return actualProvider.convertStreamResponseTo(
-        stream,
-        resp,
-        targetType,
-        requestLogger,
-      );
+      stream.onAbort(() => { resp.body?.getReader().cancel().catch(() => {}); });
+      try {
+        await actualProvider.convertStreamResponseTo(
+          stream,
+          resp,
+          targetType,
+          requestLogger,
+        );
+      } catch (error) {
+        logger.error("[stream-conversion-error]", {
+          requestId: requestLogger.getRequestId(),
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     });
   }
 
@@ -147,7 +161,11 @@ export async function handleModelRequest(
         targetType: ProviderType[targetType],
       },
       response: { body: responseText },
-    }).catch(() => {});
+    }).catch((err) => {
+      logger.error("[saveErrorLog-failed]", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
     throw error;
   }
 }

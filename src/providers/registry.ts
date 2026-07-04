@@ -153,6 +153,40 @@ const PROVIDER_ALIASES: Record<string, ProviderId> = {
   codex: PROVIDERS.CODEX,
 };
 
+let modelProviderIndex: Map<string, ProviderId[]> | null = null;
+
+function buildModelProviderIndex(): Map<string, ProviderId[]> {
+  const index = new Map<string, ProviderId[]>();
+  for (const descriptor of PROVIDER_DESCRIPTORS) {
+    const configs = (appConfig[descriptor.configKey] || []) as ProviderConfig[];
+    for (const config of configs) {
+      if (!isProviderConfigEnabled(config)) continue;
+      for (const model of config.models) {
+        let providers = index.get(model);
+        if (!providers) {
+          providers = [];
+          index.set(model, providers);
+        }
+        if (!providers.includes(descriptor.id)) {
+          providers.push(descriptor.id);
+        }
+      }
+    }
+  }
+  return index;
+}
+
+export function getConfiguredProvidersForModel(model: string): ProviderId[] {
+  if (!modelProviderIndex) {
+    modelProviderIndex = buildModelProviderIndex();
+  }
+  return modelProviderIndex.get(model) || [];
+}
+
+export function invalidateModelIndex(): void {
+  modelProviderIndex = null;
+}
+
 export function normalizeProviderId(
   providerId: string,
 ): ProviderId | undefined {
@@ -216,11 +250,7 @@ export function getProviderConfigsByModel(
 }
 
 export function getProvidersForModel(model: string): ProviderId[] {
-  const configuredProviders = PROVIDER_DESCRIPTORS
-    .filter((descriptor) =>
-      getProviderConfigsByModel(descriptor.id, model).length > 0
-    )
-    .map((descriptor) => descriptor.id);
+  const configuredProviders = getConfiguredProvidersForModel(model);
 
   if (configuredProviders.length === 0) {
     return [PROVIDERS.OPENAI_CHAT];

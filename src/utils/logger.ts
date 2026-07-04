@@ -64,19 +64,23 @@ export const logger = {
 export class RequestLogger {
   private logDir: string;
   private requestId: string;
-  private static _readOnlyChecked = false;
+  private _initialized = false;
   private static _readOnly = false;
 
   constructor(requestId?: string) {
     this.requestId = requestId || this.generateRequestId();
-    if (!RequestLogger._readOnlyChecked) {
-      RequestLogger._readOnly = this.detectReadOnlyFs();
-      RequestLogger._readOnlyChecked = true;
-    }
-    this.logDir = RequestLogger._readOnly ? "" : this.createLogDir();
+    this.logDir = "";
+  }
+
+  private ensureDir(): void {
+    if (this._initialized) return;
+    this._initialized = true;
     if (!RequestLogger._readOnly) {
-      logger.debug(`[RequestLogger] Created log directory: ${this.logDir}`);
+      RequestLogger._readOnly = this.detectReadOnlyFs();
     }
+    if (RequestLogger._readOnly) return;
+    this.logDir = this.createLogDir();
+    logger.debug(`[RequestLogger] Created log directory: ${this.logDir}`);
   }
 
   private detectReadOnlyFs(): boolean {
@@ -89,10 +93,6 @@ export class RequestLogger {
       logger.info("[RequestLogger] Filesystem is read-only, file logging disabled");
       return true;
     }
-  }
-
-  private get readOnly(): boolean {
-    return RequestLogger._readOnly;
   }
 
   private generateRequestId(): string {
@@ -121,7 +121,8 @@ export class RequestLogger {
   }
 
   saveRequestBody(body: any): void {
-    if (currentLogLevel < LogLevel.DEBUG || this.readOnly) return;
+    if (currentLogLevel < LogLevel.DEBUG || RequestLogger._readOnly) return;
+    this.ensureDir();
     try {
       const filePath = path.join(this.logDir, "request.json");
       fs.writeFileSync(filePath, JSON.stringify(body, null, 2), "utf-8");
@@ -132,7 +133,8 @@ export class RequestLogger {
   }
 
   saveSSEDataLine(line: string): void {
-    if (currentLogLevel < LogLevel.DEBUG || this.readOnly) return;
+    if (currentLogLevel < LogLevel.DEBUG || RequestLogger._readOnly) return;
+    this.ensureDir();
     try {
       const filePath = path.join(this.logDir, "response.log");
       fs.appendFileSync(filePath, line + "\n", "utf-8");
@@ -143,7 +145,8 @@ export class RequestLogger {
   }
 
   saveRawResponse(data: string): void {
-    if (currentLogLevel < LogLevel.DEBUG || this.readOnly) return;
+    if (currentLogLevel < LogLevel.DEBUG || RequestLogger._readOnly) return;
+    this.ensureDir();
     try {
       const filePath = path.join(this.logDir, "response.json");
       fs.appendFileSync(filePath, data, "utf-8");

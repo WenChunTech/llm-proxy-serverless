@@ -2,7 +2,8 @@ import { geminiCliPoller } from '../../config';
 import { GeminiCliConfig } from '../../types/config';
 import { getAccessToken, fetchGeminiCLiStreamResponse, fetchGeminiCLiResponse } from './auth';
 import { convertToGeminiCliRequestTo, convertGeminiCliResponseTo, convertGeminiStreamResponseTo } from './adapter';
-import { TargetType } from '../../../pkg/converter_wasm';
+import { ProviderType } from '../../../pkg/converter_wasm';
+import { RequestLogger } from '../../utils/logger';
 
 export class GeminiCliProvider {
     geminiConfig: GeminiCliConfig;
@@ -15,7 +16,7 @@ export class GeminiCliProvider {
     }
 
     getProviderType() {
-        return TargetType.GeminiCli
+        return ProviderType.GeminiCli
     }
 
     async convertRequestTo(body: any, source: any) {
@@ -44,7 +45,7 @@ export class GeminiCliProvider {
         return convertGeminiCliResponseTo(c, response, target);
     }
 
-    async convertStreamResponseTo(stream: any, response: Response, target: any) {
-        return convertGeminiStreamResponseTo(stream, response, target);
+    async convertStreamResponseTo(stream: any, response: Response, target: any, requestLogger?: RequestLogger) {
+        return convertGeminiStreamResponseTo(stream, response, target, requestLogger);
     }
 }

@@ -1,6 +1,7 @@
 import { claudePoller } from '../../config';
 import { convertToClaudeRequestTo, convertClaudeResponseTo, convertClaudeStreamResponseTo } from './adapter';
-import { TargetType } from '../../../pkg/converter_wasm';
+import { ProviderType } from '../../../pkg/converter_wasm';
+import { RequestLogger } from '../../utils/logger';
 
 export class ClaudeProvider {
     apiKey: string;
@@ -13,7 +14,7 @@ export class ClaudeProvider {
     }
 
     getProviderType() {
-        return TargetType.Claude;
+        return ProviderType.Claude;
     }
 
     async convertRequestTo(body: any, source: any) {
@@ -40,7 +41,7 @@ export class ClaudeProvider {
         return convertClaudeResponseTo(c, response, target);
     }
 
-    async convertStreamResponseTo(stream: any, response: Response, target: any) {
-        return convertClaudeStreamResponseTo(stream, response, target);
+    async convertStreamResponseTo(stream: any, response: Response, target: any, requestLogger?: RequestLogger) {
+        return convertClaudeStreamResponseTo(stream, response, target, requestLogger);
     }
 }

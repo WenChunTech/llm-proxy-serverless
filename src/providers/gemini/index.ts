@@ -5,7 +5,8 @@ import {
   convertGeminiStreamResponseTo,
   convertToGeminiRequestTo,
 } from "./adapter";
-import { TargetType } from "../../../pkg/converter_wasm";
+import { ProviderType } from "../../../pkg/converter_wasm";
+import { RequestLogger } from "../../utils/logger";
 
 export class GeminiProvider {
   geminiConfig: GeminiConfig;
@@ -16,7 +17,7 @@ export class GeminiProvider {
   }
 
   getProviderType() {
-    return TargetType.Gemini;
+    return ProviderType.Gemini;
   }
 
   async convertRequestTo(body: any, source: any) {
@@ -56,16 +57,16 @@ export class GeminiProvider {
   }
 
   async convertResponseTo(c: any, response: Response, target: any) {
-    if (target === TargetType.Gemini) {
+    if (target === ProviderType.Gemini) {
       return response;
     }
     return convertGeminiResponseTo(c, response, target);
   }
 
-  async convertStreamResponseTo(stream: any, response: Response, target: any) {
-    if (target === TargetType.Gemini) {
+  async convertStreamResponseTo(stream: any, response: Response, target: any, requestLogger?: RequestLogger) {
+    if (target === ProviderType.Gemini) {
       return response;
     }
-    return convertGeminiStreamResponseTo(stream, response, target);
+    return convertGeminiStreamResponseTo(stream, response, target, requestLogger);
   }
 }

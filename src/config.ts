@@ -3,6 +3,7 @@ import { hasRedisRuntimeConfig } from "./services/redis";
 import { getEnv, isDeploymentRuntime } from "./utils/runtime";
 import { logger } from "./utils/logger";
 import {
+  BaseProviderConfig,
   ClaudeConfig,
   CodexConfig,
   Config,
@@ -12,7 +13,9 @@ import {
   OpenAIChatConfig,
   OpenAIResponsesConfig,
   QwenConfig,
+  isProviderConfigEnabled,
 } from "./types/config";
+import { invalidateModelIndex } from "./providers/registry";
 import Poller from "./services/polling";
 
 export let appConfig: Config = {
@@ -75,6 +78,10 @@ export let claudePoller: Poller<ClaudeConfig>;
 export let iflowPoller: Poller<IFlowConfig>;
 export let codexPoller: Poller<CodexConfig>;
 
+function filterEnabled<T extends BaseProviderConfig>(items: T[]): T[] {
+  return items.filter(isProviderConfigEnabled);
+}
+
 export const initConfig = async () => {
   let loadedConfig: Config | null | undefined;
 
@@ -116,14 +123,14 @@ export const initConfig = async () => {
   if (loadedConfig) {
     appConfig = loadedConfig;
   }
-  geminiCliPoller = new Poller(appConfig.gemini_cli || []);
-  geminiPoller = new Poller(appConfig.gemini || []);
-  qwenPoller = new Poller(appConfig.qwen || []);
-  openAIPoller = new Poller(appConfig.openai_chat || []);
-  openAIResponsesPoller = new Poller(appConfig.openai_responses || []);
-  claudePoller = new Poller(appConfig.claude || []);
-  iflowPoller = new Poller(appConfig.iflow || []);
-  codexPoller = new Poller(appConfig.codex || []);
+  geminiCliPoller = new Poller(filterEnabled(appConfig.gemini_cli || []));
+  geminiPoller = new Poller(filterEnabled(appConfig.gemini || []));
+  qwenPoller = new Poller(filterEnabled(appConfig.qwen || []));
+  openAIPoller = new Poller(filterEnabled(appConfig.openai_chat || []));
+  openAIResponsesPoller = new Poller(filterEnabled(appConfig.openai_responses || []));
+  claudePoller = new Poller(filterEnabled(appConfig.claude || []));
+  iflowPoller = new Poller(filterEnabled(appConfig.iflow || []));
+  codexPoller = new Poller(filterEnabled(appConfig.codex || []));
 };
 
 export const updateConfig = async (config: Config) => {
@@ -138,4 +145,5 @@ export const updateConfig = async (config: Config) => {
     );
   }
   appConfig = config;
+  invalidateModelIndex();
 }

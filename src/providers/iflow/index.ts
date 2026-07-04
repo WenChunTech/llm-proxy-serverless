@@ -1,7 +1,8 @@
 import { iflowPoller } from '../../config';
 import { convertToIFlowRequestTo, convertIFlowResponseTo, convertIFlowStreamResponseTo } from './adapter';
-import { TargetType } from '../../../pkg/converter_wasm';
+import { ProviderType } from '../../../pkg/converter_wasm';
 import { getAccessToken } from './auth';
+import { RequestLogger } from '../../utils/logger';
 
 export class IflowProvider {
     model: string;
@@ -14,7 +15,7 @@ export class IflowProvider {
     }
 
     getProviderType() {
-        return TargetType.OpenAI;
+        return ProviderType.Chat;
     }
 
     async fetchResponse(_is_streaming: boolean, reqData: any) {
@@ -37,7 +38,7 @@ export class IflowProvider {
         return convertIFlowResponseTo(c, response, target);
     }
 
-    async convertStreamResponseTo(stream: any, response: any, target: any) {
-        return convertIFlowStreamResponseTo(stream, response, target);
+    async convertStreamResponseTo(stream: any, response: any, target: any, requestLogger?: RequestLogger) {
+        return convertIFlowStreamResponseTo(stream, response, target, requestLogger);
     }
 }

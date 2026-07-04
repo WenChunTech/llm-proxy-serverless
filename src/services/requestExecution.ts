@@ -39,7 +39,7 @@ interface AttemptTarget {
 }
 
 interface RetryBudget {
-  totalAttempts: number;
+  attempts: number;
 }
 
 type AttemptOutcome =
@@ -95,7 +95,11 @@ async function buildProviderRequest(
         sourceType: ProviderType[targetType],
         targetType: ProviderType[provider.getProviderType()],
       },
-    }).catch(() => {});
+    }).catch((err) => {
+      logger.error("[saveErrorLog-failed]", {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
     throw error;
   }
 }
@@ -114,11 +118,8 @@ function buildAttemptLogDetails(
     requestId,
     model,
     provider: providerName,
-    // attempt 是全局尝试序号；为保证兜底模型可达，可能临时超过 MAX_RETRIES
     attempt,
-    // provider_slot 表示提供商序号
     provider_slot: `${providerIndex + 1}`,
-    // base_url 表示实际使用的配置地址
     base_url: baseUrl,
     ...(projectIndex !== undefined
       ? { project_slot: `${projectIndex + 1}` }
@@ -133,7 +134,7 @@ function shouldAttemptTarget(
   hasFallbackChain: boolean,
   forceFallbackPass: boolean,
 ): boolean {
-  if (retryBudget.totalAttempts < MAX_RETRIES) {
+  if (retryBudget.attempts < MAX_RETRIES) {
     return true;
   }
 
@@ -142,31 +143,6 @@ function shouldAttemptTarget(
   }
 
   return hasFallbackChain && passStartedBeforeLimit;
-}
-
-function logProviderAttempt(
-  requestId: string,
-  model: string,
-  providerName: string,
-  attempt: number,
-  providerIndex: number,
-  baseUrl: string,
-  projectIndex?: number,
-  project?: string,
-) {
-  logger.info(
-    "[provider-attempt]",
-    buildAttemptLogDetails(
-      requestId,
-      model,
-      providerName,
-      attempt,
-      providerIndex,
-      baseUrl,
-      projectIndex,
-      project,
-    ),
-  );
 }
 
 async function extractErrorMessage(resp: Response): Promise<string> {
@@ -246,17 +222,6 @@ async function tryAttemptTarget(
   } = target;
   const currentProvider = getProviderInstance(providerName, model) as Provider;
 
-  logProviderAttempt(
-    requestId,
-    model,
-    providerName,
-    attempt,
-    providerIndex,
-    baseUrl,
-    projectIndex,
-    project,
-  );
-
   const baseDetails = buildAttemptLogDetails(
     requestId,
     model,
@@ -267,6 +232,8 @@ async function tryAttemptTarget(
     projectIndex,
     project,
   );
+
+  logger.info("[provider-attempt]", baseDetails);
 
   let providerRequest: Record<string, unknown>;
   let resp: Response;
@@ -387,7 +354,7 @@ async function executeSingleModelRequest(
 
   // MAX_RETRIES 是全局尝试上限；如果还没进入兜底链，会先完成当前遍历并继续走到兜底模型。
   for (let pass = 1; ; pass++) {
-    const passStartedBeforeLimit = retryBudget.totalAttempts < MAX_RETRIES;
+    const passStartedBeforeLimit = retryBudget.attempts < MAX_RETRIES;
     const forceFallbackPass = isFallbackModel && pass === 1;
     let foundValidProvider = false;
 
@@ -404,8 +371,8 @@ async function executeSingleModelRequest(
       }
 
       foundValidProvider = true;
-      const attempt = retryBudget.totalAttempts + 1;
-      retryBudget.totalAttempts = attempt;
+      const attempt = retryBudget.attempts + 1;
+      retryBudget.attempts = attempt;
 
       const outcome = await tryAttemptTarget(
         target,
@@ -432,16 +399,16 @@ async function executeSingleModelRequest(
     }
 
     // 如果这一轮没有有效的提供商/配置，或已达最大重试次数
-    if (!foundValidProvider || retryBudget.totalAttempts >= MAX_RETRIES) {
+    if (!foundValidProvider || retryBudget.attempts >= MAX_RETRIES) {
       break;
     }
 
     // 计算退避延迟并 sleep
-    const delayMs = calculateBackoffDelay(retryBudget.totalAttempts);
+    const delayMs = calculateBackoffDelay(retryBudget.attempts);
     logger.info("[retry-backoff]", {
       requestId,
       model,
-      attempt: retryBudget.totalAttempts,
+      attempt: retryBudget.attempts,
       nextAttemptAfterMs: delayMs,
     });
     await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -471,7 +438,7 @@ export async function executeModelRequest(
     forwardedHeaders,
   } = params;
   const modelsToTry = [model, ...getFallbackChain(model)];
-  const retryBudget: RetryBudget = { totalAttempts: 0 };
+  const retryBudget: RetryBudget = { attempts: 0 };
   const hasFallbackChain = modelsToTry.length > 1;
 
   let lastResult: ExecuteModelRequestResult | null = null;

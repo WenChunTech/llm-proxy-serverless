@@ -745,31 +745,3 @@ async function __wbg_init(module_or_path) {
 }
 
 export { initSync, __wbg_init as default };
-
-export const TargetType = Object.freeze({
-    OpenAI: ProviderType.Chat,
-    Chat: ProviderType.Chat,
-    OpenAIChat: ProviderType.Chat,
-    OpenAIResponses: ProviderType.Responses,
-    Responses: ProviderType.Responses,
-    GeminiCli: ProviderType.GeminiCli,
-    Gemini: ProviderType.Gemini,
-    Claude: ProviderType.Claude,
-    [ProviderType.Chat]: "OpenAI",
-    [ProviderType.Responses]: "Responses",
-    [ProviderType.GeminiCli]: "GeminiCli",
-    [ProviderType.Gemini]: "Gemini",
-    [ProviderType.Claude]: "Claude",
-});
-
-export function openaiRequestConvertTo(req, target) {
-    return openaiChatRequestConvertTo(req, target);
-}
-
-export function openaiResponseConvertTo(resp, target) {
-    return openaiChatResponseConvertTo(resp, target);
-}
-
-export function openaiStreamWrapperConvertTo(resp, target) {
-    return openaiChatStreamWrapperConvertTo(resp, target);
-}

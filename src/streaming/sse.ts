@@ -107,7 +107,6 @@ export const StreamEvent = async (
               },
               response: { body: data },
             }).catch(() => {});
-            throw error;
           }
         }
       }
@@ -157,7 +156,6 @@ export const StreamEvent = async (
           },
           response: { body: data },
         }).catch(() => {});
-        throw error;
       }
     }
   }
@@ -220,7 +218,6 @@ export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (
               },
               response: { body: data },
             }).catch(() => {});
-            throw error;
           }
         }
       }
@@ -259,7 +256,6 @@ export const geminiCliStreamResponseConvertToGeminiStreamResponse = async (
           },
           response: { body: data },
         }).catch(() => {});
-        throw error;
       }
     }
   }

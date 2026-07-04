@@ -1,7 +1,8 @@
 import { qwenPoller } from '../../config';
 import { convertToQwenRequestTo, convertQwenResponseTo, convertQwenStreamResponseTo } from './adapter';
-import { TargetType } from '../../../pkg/converter_wasm';
+import { ProviderType } from '../../../pkg/converter_wasm';
 import { getAccessToken } from './auth';
+import { RequestLogger } from '../../utils/logger';
 
 export class QwenProvider {
     model: string;
@@ -14,7 +15,7 @@ export class QwenProvider {
     }
 
     getProviderType() {
-        return TargetType.OpenAI;
+        return ProviderType.Chat;
     }
 
     async fetchResponse(_is_streaming: boolean, reqData: any) {
@@ -37,7 +38,7 @@ export class QwenProvider {
         return convertQwenResponseTo(c, response, target);
     }
 
-    async convertStreamResponseTo(stream: any, response: any, target: any) {
-        return convertQwenStreamResponseTo(stream, response, target);
+    async convertStreamResponseTo(stream: any, response: any, target: any, requestLogger?: RequestLogger) {
+        return convertQwenStreamResponseTo(stream, response, target, requestLogger);
     }
 }

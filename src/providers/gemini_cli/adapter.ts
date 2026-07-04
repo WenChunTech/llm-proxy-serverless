@@ -1,23 +1,27 @@
 import {
-    openaiRequestConvertTo,
-    claudeRequestConvertTo,
-    geminiCliResponseConvertTo,
-    geminiRequestConvertToGeminiCliRequest,
-    TargetType
-} from '../../../pkg/converter_wasm';
+  claudeRequestConvertTo,
+  geminiCliResponseConvertTo,
+  geminiRequestConvertToGeminiCliRequest,
+  openAIResponsesRequestConvertTo,
+  openaiChatRequestConvertTo,
+  ProviderType,
+} from "../../../pkg/converter_wasm";
 import { StreamEvent, geminiCliStreamResponseConvertToGeminiStreamResponse } from '../../streaming/sse';
+import { RequestLogger } from '../../utils/logger';
 
 export function convertToGeminiCliRequestTo(body: any, source: any) {
-    switch (source) {
-        case TargetType.OpenAI:
-            return openaiRequestConvertTo(body, TargetType.GeminiCli);
-        case TargetType.Claude:
-            return claudeRequestConvertTo(body, TargetType.GeminiCli);
-        case TargetType.Gemini:
-            return geminiRequestConvertToGeminiCliRequest(body);
-        default:
-            throw new Error(`Unsupported source type for Gemini provider: ${source}`);
-    }
+  switch (source) {
+    case ProviderType.Chat:
+      return openaiChatRequestConvertTo(body, ProviderType.GeminiCli);
+    case ProviderType.Responses:
+      return openAIResponsesRequestConvertTo(body, ProviderType.GeminiCli);
+    case ProviderType.Claude:
+      return claudeRequestConvertTo(body, ProviderType.GeminiCli);
+    case ProviderType.Gemini:
+      return geminiRequestConvertToGeminiCliRequest(body);
+    default:
+      throw new Error(`Unsupported source type for Gemini provider: ${source}`);
+  }
 }
 
 export async function convertGeminiCliResponseTo(c: any, response: Response, target: any) {
@@ -26,9 +30,9 @@ export async function convertGeminiCliResponseTo(c: any, response: Response, tar
     return c.json(resp)
 }
 
-export async function convertGeminiStreamResponseTo(stream: any, response: Response, target: any) {
-    if (target === TargetType.Gemini) {
-        return geminiCliStreamResponseConvertToGeminiStreamResponse(stream, response);
+export async function convertGeminiStreamResponseTo(stream: any, response: Response, target: any, requestLogger?: RequestLogger) {
+    if (target === ProviderType.Gemini) {
+        return geminiCliStreamResponseConvertToGeminiStreamResponse(stream, response, requestLogger);
     }
-    return StreamEvent(stream, response, TargetType.GeminiCli, target);
+    return StreamEvent(stream, response, ProviderType.GeminiCli, target, requestLogger);
 }

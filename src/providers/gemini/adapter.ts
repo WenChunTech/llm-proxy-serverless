@@ -2,20 +2,24 @@ import {
   claudeRequestConvertTo,
   geminiCliResponseConvertTo,
   geminiResponseConvertTo,
-  openaiRequestConvertTo,
-  TargetType,
+  openAIResponsesRequestConvertTo,
+  openaiChatRequestConvertTo,
+  ProviderType,
 } from "../../../pkg/converter_wasm";
 import { StreamEvent } from "../../streaming/sse";
+import { RequestLogger } from "../../utils/logger";
 
 export function convertToGeminiRequestTo(body: any, source: any) {
   switch (source) {
-    case TargetType.OpenAI:
-      return openaiRequestConvertTo(body, TargetType.Gemini);
-    case TargetType.Claude:
-      return claudeRequestConvertTo(body, TargetType.Gemini);
-    case TargetType.GeminiCli:
-      return geminiCliResponseConvertTo(body, TargetType.Gemini);
-    case TargetType.Gemini:
+    case ProviderType.Chat:
+      return openaiChatRequestConvertTo(body, ProviderType.Gemini);
+    case ProviderType.Responses:
+      return openAIResponsesRequestConvertTo(body, ProviderType.Gemini);
+    case ProviderType.Claude:
+      return claudeRequestConvertTo(body, ProviderType.Gemini);
+    case ProviderType.GeminiCli:
+      return geminiCliResponseConvertTo(body, ProviderType.Gemini);
+    case ProviderType.Gemini:
       return body;
     default:
       throw new Error(`Unsupported source type for Gemini provider: ${source}`);
@@ -36,6 +40,7 @@ export async function convertGeminiStreamResponseTo(
   stream: any,
   response: Response,
   target: any,
+  requestLogger?: RequestLogger,
 ) {
-  return StreamEvent(stream, response, TargetType.Gemini, target);
+  return StreamEvent(stream, response, ProviderType.Gemini, target, requestLogger);
 }

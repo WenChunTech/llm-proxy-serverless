@@ -1,4 +1,5 @@
 {
+  "framework": null,
   "bunVersion": "1.x",
   "installCommand": "bun install",
   "buildCommand": "bun run build",
@@ -8,10 +9,10 @@
     }
   },
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/index.js"
-    }
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/v1/(.*)", "destination": "/api/index.js" },
+    { "source": "/v1beta/(.*)", "destination": "/api/index.js" },
+    { "source": "/api/(.*)", "destination": "/api/index.js" }
   ],
   "git": {
     "deploymentEnabled": {
