@@ -442,8 +442,10 @@ Key retry behaviors:
 - `4xx` responses switch directly to the next provider.
 - Network errors and non-`4xx` responses continue to the next config, or the
   next Gemini CLI project.
-- The maximum total number of attempts is controlled by `MAX_RETRIES`, currently
-  `15`.
+- The maximum total attempt budget is controlled by `MAX_RETRIES`, currently
+  `5`. If the budget is reached before entering `fallback_models`, the executor
+  finishes the current model's provider/config/project pass and then continues
+  into the fallback model so the fallback chain remains reachable.
 
 ### Key Directories
 

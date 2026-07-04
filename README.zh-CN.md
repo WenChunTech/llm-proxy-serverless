@@ -414,7 +414,9 @@ curl --request POST \
 - `4xx` 响应会直接切到下一个 provider。
 - 网络错误或非 `4xx` 响应会继续尝试同 provider 的下一份配置，或 Gemini CLI
   的下一个项目。
-- 最大总尝试次数由 `MAX_RETRIES` 控制，当前值为 `15`。
+- 最大总尝试预算由 `MAX_RETRIES` 控制，当前值为 `5`。如果在进入
+  `fallback_models` 前达到上限，会先完成当前模型本轮 provider、配置和
+  project 遍历，然后继续进入兜底模型，确保兜底链可达。
 
 ### 关键目录
 

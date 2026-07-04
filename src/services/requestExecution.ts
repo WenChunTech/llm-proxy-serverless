@@ -38,6 +38,10 @@ interface AttemptTarget {
   projectIndex?: number;
 }
 
+interface RetryBudget {
+  totalAttempts: number;
+}
+
 type AttemptOutcome =
   | { kind: "success"; result: ExecuteModelRequestResult }
   | {
@@ -110,7 +114,7 @@ function buildAttemptLogDetails(
     requestId,
     model,
     provider: providerName,
-    // attempt 是全局重试次数（1-5）
+    // attempt 是全局尝试序号；为保证兜底模型可达，可能临时超过 MAX_RETRIES
     attempt,
     // provider_slot 表示提供商序号
     provider_slot: `${providerIndex + 1}`,
@@ -121,6 +125,23 @@ function buildAttemptLogDetails(
       : {}),
     ...(project !== undefined ? { project } : {}),
   };
+}
+
+function shouldAttemptTarget(
+  retryBudget: RetryBudget,
+  passStartedBeforeLimit: boolean,
+  hasFallbackChain: boolean,
+  forceFallbackPass: boolean,
+): boolean {
+  if (retryBudget.totalAttempts < MAX_RETRIES) {
+    return true;
+  }
+
+  if (forceFallbackPass) {
+    return true;
+  }
+
+  return hasFallbackChain && passStartedBeforeLimit;
 }
 
 function logProviderAttempt(
@@ -333,6 +354,9 @@ async function executeSingleModelRequest(
   requestBody: Record<string, unknown>,
   originalBody: Record<string, unknown>,
   requestLogger: RequestLogger,
+  retryBudget: RetryBudget,
+  hasFallbackChain: boolean,
+  isFallbackModel: boolean,
   forwardedHeaders?: HeaderMap,
 ): Promise<ExecuteModelRequestResult | null> {
   const requestId = requestLogger.getRequestId();
@@ -361,12 +385,27 @@ async function executeSingleModelRequest(
   let lastResult: ExecuteModelRequestResult | null = null;
   let lastError: Error | undefined;
 
-  // 最多尝试 MAX_RETRIES 次（每轮遍历所有提供商/配置/项目）
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+  // MAX_RETRIES 是全局尝试上限；如果还没进入兜底链，会先完成当前遍历并继续走到兜底模型。
+  for (let pass = 1; ; pass++) {
+    const passStartedBeforeLimit = retryBudget.totalAttempts < MAX_RETRIES;
+    const forceFallbackPass = isFallbackModel && pass === 1;
     let foundValidProvider = false;
 
     for (const target of targets) {
+      if (
+        !shouldAttemptTarget(
+          retryBudget,
+          passStartedBeforeLimit,
+          hasFallbackChain,
+          forceFallbackPass,
+        )
+      ) {
+        break;
+      }
+
       foundValidProvider = true;
+      const attempt = retryBudget.totalAttempts + 1;
+      retryBudget.totalAttempts = attempt;
 
       const outcome = await tryAttemptTarget(
         target,
@@ -393,16 +432,16 @@ async function executeSingleModelRequest(
     }
 
     // 如果这一轮没有有效的提供商/配置，或已达最大重试次数
-    if (!foundValidProvider || attempt >= MAX_RETRIES) {
+    if (!foundValidProvider || retryBudget.totalAttempts >= MAX_RETRIES) {
       break;
     }
 
     // 计算退避延迟并 sleep
-    const delayMs = calculateBackoffDelay(attempt);
+    const delayMs = calculateBackoffDelay(retryBudget.totalAttempts);
     logger.info("[retry-backoff]", {
       requestId,
       model,
-      attempt,
+      attempt: retryBudget.totalAttempts,
       nextAttemptAfterMs: delayMs,
     });
     await new Promise((resolve) => setTimeout(resolve, delayMs));
@@ -432,6 +471,8 @@ export async function executeModelRequest(
     forwardedHeaders,
   } = params;
   const modelsToTry = [model, ...getFallbackChain(model)];
+  const retryBudget: RetryBudget = { totalAttempts: 0 };
+  const hasFallbackChain = modelsToTry.length > 1;
 
   let lastResult: ExecuteModelRequestResult | null = null;
 
@@ -452,6 +493,9 @@ export async function executeModelRequest(
       { ...body, model: currentModel },
       originalBody,
       requestLogger,
+      retryBudget,
+      hasFallbackChain,
+      index > 0,
       forwardedHeaders,
     );
 
