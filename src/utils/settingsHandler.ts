@@ -1,6 +1,6 @@
 import { Context } from "hono";
 import { appConfig, updateConfig } from "../config";
-import { Config } from "../types/config";
+import { CodexAuth, CodexConfig, Config } from "../types/config";
 import { timingSafeCompare } from "./runtime";
 import { logger } from "./logger";
 import {
@@ -12,6 +12,14 @@ import {
 
 const VALID_PROVIDERS = getProviderDescriptors().map((descriptor) => descriptor.id);
 const PROVIDER_TEST_DEFAULT_PROMPT = "你是什么大模型？";
+const DEFAULT_CODEX_BASE_URL = "https://chatgpt.com/backend-api/codex";
+const CODEX_USER_AGENT =
+  "codex-tui/0.135.0 (Mac OS 26.5.0; arm64) iTerm.app/3.6.10 (codex-tui; 0.135.0)";
+const CODEX_TOKEN_URL = "https://auth.openai.com/oauth/token";
+const CODEX_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
+const CODEX_VALIDATION_MODEL = "gpt-5.4-mini";
+const CODEX_VALIDATION_CONCURRENCY = 5;
+const CODEX_VALIDATION_TIMEOUT_MS = 30_000;
 const TESTABLE_PROVIDERS = new Set([
   "gemini",
   "openai_chat",
@@ -31,8 +39,554 @@ interface ProviderTestFetchRequest {
   body: Record<string, unknown>;
 }
 
+interface CodexValidationFetchResponse {
+  statusCode: number;
+  body: unknown;
+  rawBody: string;
+}
+
+interface CodexValidationClassification {
+  valid: boolean;
+  reason: string;
+  errType: string;
+  errCode: string;
+  errMsg: string;
+  statusCode: number;
+}
+
+interface CodexValidationTask {
+  providerIndex: number;
+  config: CodexConfig;
+  auth: CodexAuth;
+  authIndex: number;
+  authCount: number;
+  isAuthArray: boolean;
+  model: string;
+}
+
+interface CodexValidationResult {
+  providerIndex: number;
+  authIndex: number;
+  authCount: number;
+  isAuthArray: boolean;
+  label: string;
+  email: string;
+  accountId: string;
+  planType: string;
+  disabled: boolean;
+  skipped: boolean;
+  valid: boolean;
+  reason: string;
+  statusCode: number;
+  errorMessage: string;
+  refreshed: boolean;
+  auth?: CodexAuth;
+}
+
 function cloneConfig(config: Config): Config {
   return JSON.parse(JSON.stringify(config));
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function getRecordString(
+  value: Record<string, unknown>,
+  key: string,
+): string {
+  const item = value[key];
+  return typeof item === "string" ? item : "";
+}
+
+function parseCodexJwtClaims(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) {
+      return null;
+    }
+    let base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (base64.length % 4 !== 0) {
+      base64 += "=";
+    }
+    return JSON.parse(atob(base64));
+  } catch {
+    return null;
+  }
+}
+
+function getCodexAuthAccountId(auth: CodexAuth): string {
+  return auth.account_id || auth.chatgpt_account_id || "";
+}
+
+function getCodexAuthPlanType(auth: CodexAuth): string {
+  return auth.plan_type || auth.chatgpt_plan_type || "";
+}
+
+function getCodexAuthLabel(
+  providerIndex: number,
+  authIndex: number,
+  auth: CodexAuth,
+): string {
+  return auth.email || auth.name || getCodexAuthAccountId(auth) ||
+    `Codex #${providerIndex + 1} Auth #${authIndex + 1}`;
+}
+
+function getCodexBaseUrl(config: CodexConfig, auth: CodexAuth): string {
+  return auth.base_url || config.base_url || DEFAULT_CODEX_BASE_URL;
+}
+
+function buildCodexRequestHeaders(
+  auth: CodexAuth,
+  stream: boolean,
+): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${auth.access_token}`,
+    "User-Agent": CODEX_USER_AGENT,
+    "Originator": "codex-tui",
+    "Connection": "Keep-Alive",
+    "Accept": stream ? "text/event-stream" : "application/json",
+  };
+  const accountId = getCodexAuthAccountId(auth);
+  if (accountId) {
+    headers["chatgpt-account-id"] = accountId;
+  }
+  return headers;
+}
+
+function buildCodexProbeBody(
+  model: string,
+  stream: boolean,
+): Record<string, unknown> {
+  return {
+    model,
+    input: [
+      {
+        content: "hello",
+        role: "user",
+      },
+    ],
+    instructions: "",
+    store: false,
+    stream,
+  };
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function makeCodexValidationRequest(
+  baseUrl: string,
+  auth: CodexAuth,
+  model: string,
+): Promise<CodexValidationFetchResponse> {
+  const url = `${baseUrl.replace(/\/+$/, "")}/responses`;
+  const stream = true;
+
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: "POST",
+      headers: buildCodexRequestHeaders(auth, stream),
+      body: JSON.stringify(buildCodexProbeBody(model, stream)),
+    },
+    CODEX_VALIDATION_TIMEOUT_MS,
+  );
+
+  const rawBody = await response.text();
+  let body: unknown = null;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    body = null;
+  }
+
+  return {
+    statusCode: response.status,
+    body,
+    rawBody,
+  };
+}
+
+async function refreshCodexAuthForValidation(
+  auth: CodexAuth,
+): Promise<{ ok: true; auth: CodexAuth } | { ok: false; error: string }> {
+  if (!auth.refresh_token) {
+    return {
+      ok: false,
+      error: "No refresh token available",
+    };
+  }
+
+  const response = await fetchWithTimeout(
+    CODEX_TOKEN_URL,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json",
+      },
+      body: new URLSearchParams({
+        client_id: CODEX_CLIENT_ID,
+        grant_type: "refresh_token",
+        refresh_token: auth.refresh_token,
+        scope: "openid profile email",
+      }).toString(),
+    },
+    CODEX_VALIDATION_TIMEOUT_MS,
+  );
+
+  let tokenData: Record<string, unknown> | null = null;
+  let rawBody = "";
+  try {
+    rawBody = await response.text();
+    tokenData = JSON.parse(rawBody);
+  } catch {
+    tokenData = null;
+  }
+
+  const accessToken = tokenData ? getRecordString(tokenData, "access_token") : "";
+  if (!response.ok || !tokenData || !accessToken) {
+    return {
+      ok: false,
+      error: getRecordString(tokenData || {}, "error_description") ||
+        getRecordString(tokenData || {}, "error") ||
+        rawBody ||
+        `HTTP ${response.status}`,
+    };
+  }
+
+  let accountId = getCodexAuthAccountId(auth);
+  let email = auth.email || "";
+  let planType = getCodexAuthPlanType(auth);
+
+  const idToken = typeof tokenData.id_token === "string"
+    ? tokenData.id_token
+    : auth.id_token;
+  if (idToken) {
+    const claims = parseCodexJwtClaims(idToken);
+    if (claims) {
+      email = getRecordString(claims, "email") || email;
+      const authInfo = claims["https://api.openai.com/auth"];
+      if (isRecord(authInfo)) {
+        accountId = getRecordString(authInfo, "chatgpt_account_id") ||
+          accountId;
+        planType = getRecordString(authInfo, "chatgpt_plan_type") ||
+          planType;
+      }
+    }
+  }
+
+  const expiresIn = typeof tokenData.expires_in === "number"
+    ? tokenData.expires_in
+    : 3600;
+  const expiryDate = Date.now() + expiresIn * 1000;
+
+  return {
+    ok: true,
+    auth: {
+      ...auth,
+      id_token: idToken || auth.id_token,
+      access_token: accessToken,
+      refresh_token: typeof tokenData.refresh_token === "string"
+        ? tokenData.refresh_token
+        : auth.refresh_token,
+      account_id: accountId,
+      email,
+      plan_type: planType,
+      expiry_date: expiryDate,
+      expired: new Date(expiryDate).toISOString(),
+      last_refresh: new Date().toISOString(),
+    },
+  };
+}
+
+function classifyCodexValidationResponse(
+  response: CodexValidationFetchResponse,
+): CodexValidationClassification {
+  const { statusCode, body, rawBody } = response;
+  const bodyRecord = isRecord(body) ? body : {};
+  const errorRecord = isRecord(bodyRecord.error) ? bodyRecord.error : {};
+  const errType = getRecordString(errorRecord, "type").toLowerCase();
+  const errCode = getRecordString(errorRecord, "code").toLowerCase();
+  const errMsg = getRecordString(errorRecord, "message") ||
+    (typeof bodyRecord.error === "string" ? bodyRecord.error : "");
+  const lower = rawBody.toLowerCase();
+
+  if (
+    statusCode === 401 ||
+    errType === "authentication_error" ||
+    errCode === "invalid_api_key" ||
+    lower.includes("invalid or expired token")
+  ) {
+    return {
+      valid: false,
+      reason: "invalid_auth",
+      errType,
+      errCode,
+      errMsg,
+      statusCode,
+    };
+  }
+
+  if (statusCode === 200 || statusCode === 201) {
+    return { valid: true, reason: "ok", errType, errCode, errMsg, statusCode };
+  }
+
+  if (statusCode === 402) {
+    return {
+      valid: false,
+      reason: "payment_required",
+      errType,
+      errCode,
+      errMsg,
+      statusCode,
+    };
+  }
+
+  if (statusCode === 403) {
+    return {
+      valid: false,
+      reason: "forbidden",
+      errType,
+      errCode,
+      errMsg,
+      statusCode,
+    };
+  }
+
+  if (statusCode === 429) {
+    return {
+      valid: true,
+      reason: "rate_limited",
+      errType,
+      errCode,
+      errMsg,
+      statusCode,
+    };
+  }
+
+  if (statusCode >= 400 && statusCode < 500) {
+    return {
+      valid: true,
+      reason: "request_error",
+      errType,
+      errCode,
+      errMsg,
+      statusCode,
+    };
+  }
+
+  if (statusCode >= 500) {
+    return {
+      valid: true,
+      reason: "server_error",
+      errType,
+      errCode,
+      errMsg,
+      statusCode,
+    };
+  }
+
+  return {
+    valid: false,
+    reason: "unexpected",
+    errType,
+    errCode,
+    errMsg,
+    statusCode,
+  };
+}
+
+function buildCodexValidationResult(
+  task: CodexValidationTask,
+  classification: CodexValidationClassification,
+  auth: CodexAuth,
+  options: { skipped?: boolean; refreshed?: boolean } = {},
+): CodexValidationResult {
+  const validatedAuth: CodexAuth = {
+    ...auth,
+    _validated_at: new Date().toISOString(),
+    _validation_status: classification.reason,
+  };
+
+  return {
+    providerIndex: task.providerIndex,
+    authIndex: task.authIndex,
+    authCount: task.authCount,
+    isAuthArray: task.isAuthArray,
+    label: getCodexAuthLabel(task.providerIndex, task.authIndex, auth),
+    email: auth.email || "",
+    accountId: getCodexAuthAccountId(auth),
+    planType: getCodexAuthPlanType(auth),
+    disabled: task.config.enabled === false || auth.disabled === true,
+    skipped: options.skipped === true,
+    valid: classification.valid,
+    reason: classification.reason,
+    statusCode: classification.statusCode,
+    errorMessage: classification.errMsg,
+    refreshed: options.refreshed === true,
+    auth: options.skipped ? undefined : validatedAuth,
+  };
+}
+
+async function validateCodexAuthTask(
+  task: CodexValidationTask,
+): Promise<CodexValidationResult> {
+  if (task.config.enabled === false || task.auth.disabled === true) {
+    return buildCodexValidationResult(
+      task,
+      {
+        valid: false,
+        reason: "disabled",
+        errType: "",
+        errCode: "",
+        errMsg: "",
+        statusCode: 0,
+      },
+      task.auth,
+      { skipped: true },
+    );
+  }
+
+  if (!task.auth.access_token) {
+    return buildCodexValidationResult(
+      task,
+      {
+        valid: false,
+        reason: "missing_access_token",
+        errType: "",
+        errCode: "",
+        errMsg: "Missing access_token",
+        statusCode: 0,
+      },
+      task.auth,
+      { skipped: true },
+    );
+  }
+
+  const baseUrl = getCodexBaseUrl(task.config, task.auth);
+
+  try {
+    const response = await makeCodexValidationRequest(
+      baseUrl,
+      task.auth,
+      task.model,
+    );
+    let classification = classifyCodexValidationResponse(response);
+    let auth = task.auth;
+    let refreshed = false;
+
+    if (
+      !classification.valid &&
+      classification.reason === "invalid_auth" &&
+      task.auth.refresh_token
+    ) {
+      const refreshResult = await refreshCodexAuthForValidation(task.auth);
+      if (refreshResult.ok) {
+        auth = refreshResult.auth;
+        refreshed = true;
+        const retry = await makeCodexValidationRequest(
+          getCodexBaseUrl(task.config, auth),
+          auth,
+          task.model,
+        );
+        classification = classifyCodexValidationResponse(retry);
+      } else {
+        classification = {
+          valid: false,
+          reason: "refresh_failed",
+          errType: "",
+          errCode: "",
+          errMsg: refreshResult.error,
+          statusCode: 0,
+        };
+      }
+    }
+
+    return buildCodexValidationResult(task, classification, auth, {
+      refreshed,
+    });
+  } catch (error) {
+    return buildCodexValidationResult(
+      task,
+      {
+        valid: false,
+        reason: "request_failed",
+        errType: "",
+        errCode: "",
+        errMsg: error instanceof Error ? error.message : String(error),
+        statusCode: 0,
+      },
+      task.auth,
+    );
+  }
+}
+
+function getCodexValidationTasks(
+  codexConfigs: CodexConfig[],
+  model: string,
+): CodexValidationTask[] {
+  const tasks: CodexValidationTask[] = [];
+
+  codexConfigs.forEach((config, providerIndex) => {
+    const authList = Array.isArray(config.auth) ? config.auth : [config.auth];
+    authList.forEach((auth, authIndex) => {
+      if (!auth || typeof auth !== "object") {
+        return;
+      }
+      tasks.push({
+        providerIndex,
+        config,
+        auth,
+        authIndex,
+        authCount: authList.length,
+        isAuthArray: Array.isArray(config.auth),
+        model,
+      });
+    });
+  });
+
+  return tasks;
+}
+
+async function runCodexValidationTasks(
+  tasks: CodexValidationTask[],
+): Promise<CodexValidationResult[]> {
+  const results: CodexValidationResult[] = [];
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < tasks.length) {
+      const task = tasks[cursor++];
+      results.push(await validateCodexAuthTask(task));
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(CODEX_VALIDATION_CONCURRENCY, tasks.length) },
+    () => worker(),
+  );
+  await Promise.all(workers);
+
+  return results.sort((a, b) =>
+    a.providerIndex - b.providerIndex || a.authIndex - b.authIndex
+  );
 }
 
 function normalizeFallbackConfig(
@@ -736,6 +1290,51 @@ export async function handleTestProvider(c: Context) {
       {
         success: false,
         error: "Failed to test provider: " + String(error),
+      },
+      502,
+    );
+  }
+}
+
+export async function handleValidateCodexAuths(c: Context) {
+  try {
+    const auth = checkAuth(c);
+    if (!auth.ok) return auth.response;
+
+    const body = await c.req.json().catch(() => ({}));
+    const sourceConfig = body?.config && typeof body.config === "object"
+      ? body.config as Partial<Config>
+      : appConfig;
+    const model = getTrimmedString(body?.model) || CODEX_VALIDATION_MODEL;
+    const codexConfigs = Array.isArray(sourceConfig.codex)
+      ? sourceConfig.codex as CodexConfig[]
+      : [];
+    const tasks = getCodexValidationTasks(codexConfigs, model);
+    const results = await runCodexValidationTasks(tasks);
+    const checkedResults = results.filter((result) => !result.skipped);
+
+    return c.json({
+      success: true,
+      data: {
+        model,
+        total: results.length,
+        checked: checkedResults.length,
+        valid: checkedResults.filter((result) => result.valid).length,
+        invalid: checkedResults.filter((result) => !result.valid).length,
+        skipped: results.filter((result) => result.skipped).length,
+        rateLimited: checkedResults.filter((result) =>
+          result.reason === "rate_limited"
+        ).length,
+        refreshed: checkedResults.filter((result) => result.refreshed).length,
+        results,
+      },
+    });
+  } catch (error) {
+    logger.error("Failed to validate Codex auths:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to validate Codex auths: " + String(error),
       },
       502,
     );

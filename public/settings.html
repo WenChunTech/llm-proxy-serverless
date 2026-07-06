@@ -600,7 +600,15 @@
               >
                 💾 Save Providers
               </button>
+              <button
+                id="validateCodexAuthsButton"
+                onclick="validateCodexAuths()"
+                class="btn-secondary text-white px-5 py-3 rounded-full"
+              >
+                Validate Codex Auths
+              </button>
             </div>
+            <div id="codexValidationSummary" class="pt-4"></div>
           </div>
         </div>
 
@@ -682,6 +690,7 @@
             <option value="openai_chat">OpenAI Chat</option>
             <option value="openai_responses">OpenAI Responses</option>
             <option value="claude">Claude</option>
+            <option value="codex">Codex</option>
           </select>
         </div>
 
@@ -805,6 +814,8 @@
       let settingsApiKey = null;
       let draggedElement = null;
       let importConfigState = null;
+      let codexValidationState = null;
+      let codexValidationFilter = "all";
 
       const THEME_KEY = "llm-proxy-theme";
       const LANGUAGE_KEY = "llm-proxy-language";
@@ -823,6 +834,7 @@
         "openai_chat",
         "openai_responses",
         "claude",
+        "codex",
       ];
       const DEFAULT_MODEL_PRIORITY = [
         "gemini_cli",
@@ -886,6 +898,7 @@
           fallbackTabButton: "Fallback Models",
           openAddProviderButton: "+ Add New Provider",
           saveProvidersButton: "💾 Save Providers",
+          validateCodexAuthsButton: "Validate Codex Auths",
           priorityDescription:
             "Drag to reorder providers by priority. The first provider in the list has the highest priority.",
           savePriorityButton: "💾 Save Priority",
@@ -965,6 +978,74 @@
           authJsonInvalid:
             "Auth JSON must be a valid JSON object: {message}",
           authJsonConfigured: "configured",
+          codexAuthJsonHint:
+            "Paste a CodexAuth object or CodexAuth[] array, or upload a JSON file.",
+          codexAuthUploadButton: "Upload JSON file",
+          codexAuthUploadSuccess: "Codex auth JSON loaded.",
+          codexAuthUploadFailed:
+            "Failed to load Codex auth JSON: {message}",
+          codexAuthInvalidShape:
+            "Codex Auth JSON must be a CodexAuth object or CodexAuth[] array.",
+          codexAuthArrayEmpty: "CodexAuth[] cannot be empty.",
+          codexAuthMissingAccessToken:
+            "Codex auth #{index} must include access_token.",
+          codexAuthCount: "{count} auths ({disabled} disabled)",
+          validateCodexAuthsEmpty: "No Codex auth entries are configured.",
+          codexValidationRunning: "Validating...",
+          codexValidationTitle: "Codex Auth Validation",
+          codexValidationDescription:
+            "Checks all Codex auth entries in the current settings. Refreshed tokens are staged locally; save providers to persist them.",
+          codexValidationComplete:
+            "Codex validation completed: {valid} valid, {invalid} invalid, {rateLimited} rate-limited, {skipped} skipped.",
+          codexValidationFailed:
+            "Failed to validate Codex auths: {message}",
+          codexValidationSummary: "{checked} checked / {total} total",
+          codexValidationVisibleSummary:
+            "{visible} visible / {total} total",
+          codexValidationFilterLabel: "Filter status",
+          codexValidationFilterAll: "All",
+          codexValidationFilterOk: "Valid",
+          codexValidationFilterInvalid: "Invalid",
+          codexValidationFilterRateLimited: "Rate limited",
+          codexValidationFilterDisabled: "Disabled",
+          codexValidationFilterSkipped: "Skipped",
+          codexValidationNoFilteredResults:
+            "No Codex auths match the selected status.",
+          codexValidationDisableFiltered: "Disable Filtered",
+          codexValidationDeleteFiltered: "Delete Filtered",
+          codexValidationDeleteFilteredConfirm:
+            "Delete {count} filtered Codex auth(s)?",
+          codexValidationHttpStatus: "HTTP {status}",
+          codexValidationSkipped: "skipped",
+          codexValidationRefreshed: "token refreshed",
+          codexValidationAutoDisabled: "auto disabled",
+          codexValidationDisable: "Disable",
+          codexValidationDelete: "Delete",
+          codexAuthRateLimitedAutoDisabled:
+            "Rate-limited Codex auths were automatically disabled. Click 'Save Providers' to persist changes.",
+          codexAuthDisabledPending:
+            "Codex auth disabled. Click 'Save Providers' to apply changes.",
+          codexAuthFilteredDisabledPending:
+            "{count} filtered Codex auth(s) disabled. Click 'Save Providers' to apply changes.",
+          codexAuthDeletedPending:
+            "Codex auth deleted. Click 'Save Providers' to apply changes.",
+          codexAuthFilteredDeletedPending:
+            "{count} filtered Codex auth(s) deleted. Click 'Save Providers' to apply changes.",
+          codexAuthActionUnavailable:
+            "This Codex auth could not be found in the current configuration.",
+          codexValidationReason_ok: "Valid",
+          codexValidationReason_invalid_auth: "Invalid auth",
+          codexValidationReason_payment_required: "Payment required",
+          codexValidationReason_forbidden: "Forbidden",
+          codexValidationReason_rate_limited: "Rate limited",
+          codexValidationReason_request_error: "Request error",
+          codexValidationReason_server_error: "Server error",
+          codexValidationReason_unexpected: "Unexpected response",
+          codexValidationReason_refresh_failed: "Refresh failed",
+          codexValidationReason_request_failed: "Request failed",
+          codexValidationReason_disabled: "Disabled",
+          codexValidationReason_missing_access_token:
+            "Missing access token",
           enabledFieldLabel: "Enabled",
           enabledFieldHint:
             "Disabled providers stay in the configuration, but they will not receive traffic or appear in the model list.",
@@ -1070,6 +1151,7 @@
           fallbackTabButton: "回退模型",
           openAddProviderButton: "+ 添加提供商",
           saveProvidersButton: "💾 保存提供商",
+          validateCodexAuthsButton: "校验 Codex Auth",
           priorityDescription:
             "拖拽调整 provider 优先级。列表中的第一个 provider 优先级最高。",
           savePriorityButton: "💾 保存优先级",
@@ -1142,6 +1224,71 @@
           authJsonInvalid:
             "Auth JSON 必须是合法的 JSON 对象：{message}",
           authJsonConfigured: "已配置",
+          codexAuthJsonHint:
+            "粘贴 CodexAuth 对象或 CodexAuth[] 数组，也可以上传 JSON 文件。",
+          codexAuthUploadButton: "上传 JSON 文件",
+          codexAuthUploadSuccess: "Codex auth JSON 已加载。",
+          codexAuthUploadFailed: "加载 Codex auth JSON 失败：{message}",
+          codexAuthInvalidShape:
+            "Codex Auth JSON 必须是 CodexAuth 对象或 CodexAuth[] 数组。",
+          codexAuthArrayEmpty: "CodexAuth[] 不能为空。",
+          codexAuthMissingAccessToken:
+            "第 {index} 个 Codex auth 必须包含 access_token。",
+          codexAuthCount: "{count} 个 auth（{disabled} 个已禁用）",
+          validateCodexAuthsEmpty: "还没有配置 Codex auth。",
+          codexValidationRunning: "校验中...",
+          codexValidationTitle: "Codex Auth 校验",
+          codexValidationDescription:
+            "校验当前设置中的所有 Codex auth。刷新后的 token 会先回填到本地配置，点击保存提供商后才会持久化。",
+          codexValidationComplete:
+            "Codex 校验完成：{valid} 个有效，{invalid} 个无效，{rateLimited} 个限流，{skipped} 个跳过。",
+          codexValidationFailed: "Codex auth 校验失败：{message}",
+          codexValidationSummary: "已校验 {checked} 个 / 共 {total} 个",
+          codexValidationVisibleSummary:
+            "当前显示 {visible} 个 / 共 {total} 个",
+          codexValidationFilterLabel: "过滤状态",
+          codexValidationFilterAll: "全部",
+          codexValidationFilterOk: "有效",
+          codexValidationFilterInvalid: "无效",
+          codexValidationFilterRateLimited: "已限流",
+          codexValidationFilterDisabled: "已禁用",
+          codexValidationFilterSkipped: "已跳过",
+          codexValidationNoFilteredResults:
+            "没有匹配当前状态的 Codex auth。",
+          codexValidationDisableFiltered: "禁用当前筛选项",
+          codexValidationDeleteFiltered: "删除当前筛选项",
+          codexValidationDeleteFilteredConfirm:
+            "确认删除当前筛选出的 {count} 个 Codex auth 吗？",
+          codexValidationHttpStatus: "HTTP {status}",
+          codexValidationSkipped: "已跳过",
+          codexValidationRefreshed: "token 已刷新",
+          codexValidationAutoDisabled: "已自动禁用",
+          codexValidationDisable: "禁用",
+          codexValidationDelete: "删除",
+          codexAuthRateLimitedAutoDisabled:
+            "已自动禁用限流的 Codex auth。点击“保存提供商”后持久化。",
+          codexAuthDisabledPending:
+            "Codex auth 已禁用。点击“保存提供商”后生效。",
+          codexAuthFilteredDisabledPending:
+            "已禁用当前筛选出的 {count} 个 Codex auth。点击“保存提供商”后生效。",
+          codexAuthDeletedPending:
+            "Codex auth 已删除。点击“保存提供商”后生效。",
+          codexAuthFilteredDeletedPending:
+            "已删除当前筛选出的 {count} 个 Codex auth。点击“保存提供商”后生效。",
+          codexAuthActionUnavailable:
+            "当前配置中找不到这个 Codex auth。",
+          codexValidationReason_ok: "有效",
+          codexValidationReason_invalid_auth: "认证无效",
+          codexValidationReason_payment_required: "需要付费",
+          codexValidationReason_forbidden: "无权限",
+          codexValidationReason_rate_limited: "已限流",
+          codexValidationReason_request_error: "请求错误",
+          codexValidationReason_server_error: "服务端错误",
+          codexValidationReason_unexpected: "未知响应",
+          codexValidationReason_refresh_failed: "刷新失败",
+          codexValidationReason_request_failed: "请求失败",
+          codexValidationReason_disabled: "已禁用",
+          codexValidationReason_missing_access_token: "缺少 access_token",
           enabledFieldLabel: "启用",
           enabledFieldHint:
             "禁用后会保留该配置，但它不会继续接收请求，也不会出现在模型列表中。",
@@ -1434,6 +1581,7 @@
         setText("fallbackTabButton", t("fallbackTabButton"));
         setText("openAddProviderButton", t("openAddProviderButton"));
         setText("saveProvidersButton", t("saveProvidersButton"));
+        setText("validateCodexAuthsButton", t("validateCodexAuthsButton"));
         setText("priorityDescription", t("priorityDescription"));
         setText("savePriorityButton", t("savePriorityButton"));
         setText("fallbackDescription", t("fallbackListDescription"));
@@ -1491,13 +1639,19 @@
           renderProviders();
           renderPriority();
           renderFallback();
+          renderCodexValidationSummary();
         }
       }
 
-      function setButtonSavingState(button, isSaving, idleKey) {
+      function setButtonSavingState(
+        button,
+        isSaving,
+        idleKey,
+        loadingKey = "saving",
+      ) {
         if (!button) return;
         button.disabled = isSaving;
-        button.textContent = isSaving ? t("saving") : t(idleKey);
+        button.textContent = isSaving ? t(loadingKey) : t(idleKey);
         button.classList.toggle("opacity-70", isSaving);
         button.classList.toggle("cursor-not-allowed", isSaving);
       }
@@ -1609,6 +1763,32 @@
         return cfg?.enabled !== false;
       }
 
+      function getCodexAuthList(auth) {
+        if (Array.isArray(auth)) {
+          return auth.filter((item) => item && typeof item === "object");
+        }
+        return auth && typeof auth === "object" ? [auth] : [];
+      }
+
+      function describeAuthPreview(provider, auth) {
+        if (!auth) {
+          return "";
+        }
+
+        if (provider !== "codex") {
+          return t("authJsonConfigured");
+        }
+
+        const auths = getCodexAuthList(auth);
+        if (auths.length === 0) {
+          return t("authJsonConfigured");
+        }
+        const disabled = auths.filter((item) => item.disabled === true).length;
+        return auths.length === 1
+          ? t("authJsonConfigured")
+          : t("codexAuthCount", { count: auths.length, disabled });
+      }
+
       function renderGeneralSettings() {
         const globalApiKeyInput = document.getElementById(
           "globalApiKey",
@@ -1700,7 +1880,7 @@
               const authPreview = cfg.auth
                 ? `<p class="text-sm">${
                   escapeHtml(t("authJsonLabel"))
-                }: ${escapeHtml(t("authJsonConfigured"))}</p>`
+                }: ${escapeHtml(describeAuthPreview(provider, cfg.auth))}</p>`
                 : "";
               const projectsPreview = Array.isArray(cfg.projects) &&
                   cfg.projects.length > 0
@@ -2114,6 +2294,166 @@
         );
       }
 
+      function renderCodexAuthJsonField() {
+        return `
+          <div class="form-group">
+            <label class="form-label">${escapeHtml(t("authJsonLabel"))}</label>
+            <div class="mb-3 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onclick="document.getElementById('field-codex-auth-file')?.click()"
+                class="btn-secondary text-white px-3 py-2 rounded-full"
+              >
+                ${escapeHtml(t("codexAuthUploadButton"))}
+              </button>
+            </div>
+            <input
+              type="file"
+              id="field-codex-auth-file"
+              accept="application/json,.json"
+              style="display: none"
+              onchange="handleCodexAuthJsonFileSelected(event)"
+            />
+            <textarea
+              id="field-auth_json"
+              class="form-input"
+              rows="8"
+              placeholder="${escapeHtml(t("codexAuthJsonHint"))}"
+            ></textarea>
+            <p class="mt-2 text-sm text-gray-400">${
+          escapeHtml(t("codexAuthJsonHint"))
+        }</p>
+          </div>
+        `;
+      }
+
+      function isPlainObjectValue(value) {
+        return !!value && typeof value === "object" && !Array.isArray(value);
+      }
+
+      function extractCodexAuthInput(parsed) {
+        if (
+          isPlainObjectValue(parsed) &&
+          Array.isArray(parsed.codex) &&
+          parsed.codex.length > 0 &&
+          isPlainObjectValue(parsed.codex[0]) &&
+          Object.prototype.hasOwnProperty.call(parsed.codex[0], "auth")
+        ) {
+          return {
+            auth: parsed.codex[0].auth,
+            config: parsed.codex[0],
+          };
+        }
+
+        if (
+          isPlainObjectValue(parsed) &&
+          Object.prototype.hasOwnProperty.call(parsed, "auth")
+        ) {
+          return {
+            auth: parsed.auth,
+            config: parsed,
+          };
+        }
+
+        return {
+          auth: parsed,
+          config: null,
+        };
+      }
+
+      function validateCodexAuthObject(auth, index) {
+        if (!isPlainObjectValue(auth)) {
+          throw new Error(t("codexAuthInvalidShape"));
+        }
+
+        if (
+          typeof auth.access_token !== "string" ||
+          auth.access_token.trim() === ""
+        ) {
+          throw new Error(t("codexAuthMissingAccessToken", { index }));
+        }
+      }
+
+      function normalizeCodexAuthJson(parsed) {
+        const { auth } = extractCodexAuthInput(parsed);
+
+        if (Array.isArray(auth)) {
+          if (auth.length === 0) {
+            throw new Error(t("codexAuthArrayEmpty"));
+          }
+          auth.forEach((item, index) => {
+            validateCodexAuthObject(item, index + 1);
+          });
+          return auth;
+        }
+
+        if (isPlainObjectValue(auth)) {
+          validateCodexAuthObject(auth, 1);
+          return auth;
+        }
+
+        throw new Error(t("codexAuthInvalidShape"));
+      }
+
+      async function handleCodexAuthJsonFileSelected(event) {
+        const file = event?.target?.files?.[0];
+        if (!file) return;
+
+        try {
+          const text = await file.text();
+          const parsed = JSON.parse(text);
+          const normalizedAuth = normalizeCodexAuthJson(parsed);
+          const extracted = extractCodexAuthInput(parsed);
+          const authJsonInput = document.getElementById("field-auth_json");
+          if (authJsonInput) {
+            authJsonInput.value = JSON.stringify(normalizedAuth, null, 2);
+          }
+
+          if (isPlainObjectValue(extracted.config)) {
+            if (typeof extracted.config.base_url === "string") {
+              const baseUrlInput = document.getElementById("field-base_url");
+              if (baseUrlInput && !baseUrlInput.value.trim()) {
+                baseUrlInput.value = extracted.config.base_url;
+              }
+            }
+            if (Array.isArray(extracted.config.models)) {
+              setModelsTextarea(
+                extracted.config.models
+                  .map((model) => String(model || "").trim())
+                  .filter(Boolean),
+              );
+              syncModelSelectionFromTextarea();
+            }
+            const enabledInput = document.getElementById("field-enabled");
+            if (
+              enabledInput &&
+              Object.prototype.hasOwnProperty.call(extracted.config, "enabled")
+            ) {
+              enabledInput.checked = extracted.config.enabled !== false;
+            }
+          } else if (
+            isPlainObjectValue(normalizedAuth) &&
+            typeof normalizedAuth.base_url === "string"
+          ) {
+            const baseUrlInput = document.getElementById("field-base_url");
+            if (baseUrlInput && !baseUrlInput.value.trim()) {
+              baseUrlInput.value = normalizedAuth.base_url;
+            }
+          }
+
+          showAlert(t("codexAuthUploadSuccess"), "success");
+        } catch (error) {
+          showAlert(
+            t("codexAuthUploadFailed", {
+              message: error instanceof Error ? error.message : String(error),
+            }),
+            "error",
+          );
+        } finally {
+          event.target.value = "";
+        }
+      }
+
       function renderModelField(placeholder, fetchable) {
         if (!fetchable) {
           return renderTextarea(
@@ -2357,9 +2697,9 @@
               renderTextInput(
                 "field-base_url",
                 t("baseUrlLabel"),
-                "https://api.openai.com/v1",
+                "https://chatgpt.com/backend-api/codex",
                 "text",
-              ) + renderAuthJsonField() +
+              ) + renderCodexAuthJsonField() +
               renderModelField(modelsPlaceholder[provider], false);
           default:
             return enabledField +
@@ -3230,7 +3570,10 @@
           }
           if (rawAuth) {
             try {
-              providerConfig.auth = JSON.parse(rawAuth);
+              const parsedAuth = JSON.parse(rawAuth);
+              providerConfig.auth = providerType === "codex"
+                ? normalizeCodexAuthJson(parsedAuth)
+                : parsedAuth;
             } catch (error) {
               throw new Error(
                 t("authJsonInvalid", {
@@ -3849,6 +4192,600 @@
           renderFallback();
           showAlert(t("fallbackRemovedPending"), "success");
         }
+      }
+
+      function getCodexValidationStats(results = []) {
+        const checked = results.filter((result) => !result.skipped);
+        return {
+          total: results.length,
+          checked: checked.length,
+          valid: checked.filter((result) => result.valid).length,
+          invalid: checked.filter((result) => !result.valid).length,
+          skipped: results.filter((result) => result.skipped).length,
+          rateLimited: checked.filter((result) =>
+            result.reason === "rate_limited"
+          ).length,
+          refreshed: checked.filter((result) => result.refreshed).length,
+        };
+      }
+
+      function getCodexValidationReasonLabel(reason) {
+        return t(`codexValidationReason_${reason}`);
+      }
+
+      function getCodexValidationFilterOptions() {
+        return [
+          ["all", t("codexValidationFilterAll")],
+          ["ok", t("codexValidationFilterOk")],
+          ["invalid", t("codexValidationFilterInvalid")],
+          ["rate_limited", t("codexValidationFilterRateLimited")],
+          ["disabled", t("codexValidationFilterDisabled")],
+          ["skipped", t("codexValidationFilterSkipped")],
+        ];
+      }
+
+      function matchesCodexValidationFilter(result, filter) {
+        switch (filter) {
+          case "ok":
+            return result.reason === "ok";
+          case "invalid":
+            return !result.valid && result.reason !== "disabled";
+          case "rate_limited":
+            return result.reason === "rate_limited";
+          case "disabled":
+            return result.disabled === true || result.reason === "disabled";
+          case "skipped":
+            return result.skipped === true;
+          case "all":
+          default:
+            return true;
+        }
+      }
+
+      function getFilteredCodexValidationResults(results) {
+        return results.filter((result) =>
+          matchesCodexValidationFilter(result, codexValidationFilter)
+        );
+      }
+
+      function getCodexValidationBadgeClass(result) {
+        if (result.skipped) {
+          return "bg-gray-500/20 text-gray-300";
+        }
+        if (result.reason === "ok") {
+          return "bg-green-500/15 text-green-300";
+        }
+        if (result.reason === "rate_limited" || !result.valid) {
+          return "bg-red-500/15 text-red-300";
+        }
+        return "bg-gray-500/20 text-gray-300";
+      }
+
+      function renderCodexValidationSummary() {
+        const container = document.getElementById("codexValidationSummary");
+        if (!container) return;
+
+        if (!codexValidationState) {
+          container.innerHTML = "";
+          return;
+        }
+
+        const results = Array.isArray(codexValidationState.results)
+          ? codexValidationState.results
+          : [];
+        const stats = getCodexValidationStats(results);
+        const filteredResults = getFilteredCodexValidationResults(results);
+
+        if (results.length === 0) {
+          container.innerHTML = `
+            <div class="provider-card p-4">
+              <h3 class="text-lg font-semibold mb-2">${
+            escapeHtml(t("codexValidationTitle"))
+          }</h3>
+              <p class="text-sm text-gray-400">${
+            escapeHtml(t("validateCodexAuthsEmpty"))
+          }</p>
+            </div>
+          `;
+          return;
+        }
+
+        const rows = filteredResults.map((result) => {
+          const details = [];
+          if (result.statusCode > 0) {
+            details.push(
+              t("codexValidationHttpStatus", {
+                status: result.statusCode,
+              }),
+            );
+          }
+          if (result.skipped) {
+            details.push(t("codexValidationSkipped"));
+          }
+          if (result.refreshed) {
+            details.push(t("codexValidationRefreshed"));
+          }
+          if (result.reason === "rate_limited" && result.disabled) {
+            details.push(t("codexValidationAutoDisabled"));
+          }
+          if (result.accountId) {
+            details.push(result.accountId);
+          }
+          if (result.planType) {
+            details.push(result.planType);
+          }
+
+          const actions = `
+              ${
+            result.disabled
+              ? ""
+              : `
+              <button
+                type="button"
+                onclick="disableCodexAuthFromValidation(${result.providerIndex}, ${result.authIndex})"
+                class="btn-secondary text-white px-3 py-2 rounded-full text-sm"
+              >
+                ${escapeHtml(t("codexValidationDisable"))}
+              </button>
+              `
+          }
+              <button
+                type="button"
+                onclick="deleteCodexAuthFromValidation(${result.providerIndex}, ${result.authIndex})"
+                class="btn-danger text-white px-3 py-2 rounded-full text-sm"
+              >
+                ${escapeHtml(t("codexValidationDelete"))}
+              </button>
+            `;
+
+          return `
+            <div class="provider-entry rounded-[1.25rem] p-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div class="provider-entry-main flex-1">
+                <div class="mb-2 flex flex-wrap items-center gap-2">
+                  <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+            getCodexValidationBadgeClass(result)
+          }">
+                    ${escapeHtml(getCodexValidationReasonLabel(result.reason))}
+                  </span>
+                  <span class="text-xs text-gray-400">${
+            escapeHtml(
+              `Codex #${result.providerIndex + 1} / Auth #${
+                result.authIndex + 1
+              }`,
+            )
+          }</span>
+                </div>
+                <p class="font-medium">${escapeHtml(result.label)}</p>
+                ${
+            details.length > 0
+              ? `<p class="text-sm text-gray-400">${escapeHtml(details.join(" | "))}</p>`
+              : ""
+          }
+                ${
+            result.errorMessage
+              ? `<p class="text-sm text-red-400">${escapeHtml(result.errorMessage)}</p>`
+              : ""
+          }
+              </div>
+              <div class="provider-entry-actions flex flex-wrap gap-2">${actions}</div>
+            </div>
+          `;
+        }).join("");
+
+        const filterOptions = getCodexValidationFilterOptions().map(
+          ([value, label]) => `
+            <option value="${escapeHtml(value)}" ${
+            codexValidationFilter === value ? "selected" : ""
+          }>${escapeHtml(label)}</option>
+          `,
+        ).join("");
+        const rowsMarkup = rows || `
+          <p class="text-sm text-gray-400">${
+          escapeHtml(t("codexValidationNoFilteredResults"))
+        }</p>
+        `;
+
+        container.innerHTML = `
+          <div class="provider-card p-4 space-y-4">
+            <div>
+              <h3 class="text-lg font-semibold mb-1">${
+          escapeHtml(t("codexValidationTitle"))
+        }</h3>
+              <p class="text-sm text-gray-400">${
+          escapeHtml(t("codexValidationDescription"))
+        }</p>
+              <p class="mt-2 text-sm text-gray-400">${
+          escapeHtml(
+            t("codexValidationSummary", {
+              checked: stats.checked,
+              total: stats.total,
+            }),
+          )
+        }</p>
+            </div>
+            <div class="fallback-picker-toolbar flex flex-wrap items-end gap-3">
+              <div class="flex-1 min-w-[12rem]">
+                <label class="form-label text-sm">${
+          escapeHtml(t("codexValidationFilterLabel"))
+        }</label>
+                <select
+                  id="codexValidationFilter"
+                  class="form-input"
+                  onchange="setCodexValidationFilter(this.value)"
+                >
+                  ${filterOptions}
+                </select>
+              </div>
+              <button
+                type="button"
+                onclick="disableFilteredCodexAuths()"
+                class="btn-secondary text-white px-3 py-2 rounded-full"
+              >
+                ${escapeHtml(t("codexValidationDisableFiltered"))}
+              </button>
+              <button
+                type="button"
+                onclick="deleteFilteredCodexAuths()"
+                class="btn-danger text-white px-3 py-2 rounded-full"
+              >
+                ${escapeHtml(t("codexValidationDeleteFiltered"))}
+              </button>
+            </div>
+            <p class="text-sm text-gray-400">${
+          escapeHtml(
+            t("codexValidationVisibleSummary", {
+              visible: filteredResults.length,
+              total: results.length,
+            }),
+          )
+        }</p>
+            <div class="space-y-3">${rowsMarkup}</div>
+          </div>
+        `;
+      }
+
+      function setCodexValidationFilter(filter) {
+        codexValidationFilter = getCodexValidationFilterOptions()
+            .some(([value]) => value === filter)
+          ? filter
+          : "all";
+        renderCodexValidationSummary();
+      }
+
+      function findCodexAuthTarget(providerIndex, authIndex) {
+        const codexConfigs = Array.isArray(config?.codex) ? config.codex : [];
+        const codexConfig = codexConfigs[providerIndex];
+        if (!codexConfig || !codexConfig.auth) {
+          return null;
+        }
+
+        if (Array.isArray(codexConfig.auth)) {
+          const auth = codexConfig.auth[authIndex];
+          return auth
+            ? { codexConfigs, codexConfig, auth, isAuthArray: true }
+            : null;
+        }
+
+        return authIndex === 0
+          ? {
+            codexConfigs,
+            codexConfig,
+            auth: codexConfig.auth,
+            isAuthArray: false,
+          }
+          : null;
+      }
+
+      function disableCodexAuthTarget(providerIndex, authIndex) {
+        const target = findCodexAuthTarget(providerIndex, authIndex);
+        if (!target) {
+          return false;
+        }
+
+        target.auth.disabled = true;
+        if (!target.isAuthArray) {
+          target.codexConfig.enabled = false;
+        }
+        return true;
+      }
+
+      function deleteCodexAuthTarget(providerIndex, authIndex) {
+        const target = findCodexAuthTarget(providerIndex, authIndex);
+        if (!target) {
+          return null;
+        }
+
+        let removedConfig = false;
+        if (target.isAuthArray) {
+          target.codexConfig.auth.splice(authIndex, 1);
+          if (target.codexConfig.auth.length === 0) {
+            target.codexConfigs.splice(providerIndex, 1);
+            removedConfig = true;
+          }
+        } else {
+          target.codexConfigs.splice(providerIndex, 1);
+          removedConfig = true;
+        }
+
+        return { removedConfig };
+      }
+
+      function applyCodexValidationAuthUpdates(results) {
+        let autoDisabled = 0;
+
+        results.forEach((result) => {
+          const target = findCodexAuthTarget(
+            result.providerIndex,
+            result.authIndex,
+          );
+          if (!target) return;
+
+          const shouldAutoDisable = result.reason === "rate_limited";
+          const nextAuth = result.auth
+            ? { ...target.auth, ...result.auth }
+            : { ...target.auth };
+
+          if (shouldAutoDisable) {
+            if (nextAuth.disabled !== true) {
+              autoDisabled += 1;
+            }
+            nextAuth.disabled = true;
+            result.disabled = true;
+            result.auth = nextAuth;
+            if (!target.isAuthArray) {
+              target.codexConfig.enabled = false;
+            }
+          } else if (!result.auth) {
+            return;
+          }
+
+          if (target.isAuthArray) {
+            target.codexConfig.auth[result.authIndex] = nextAuth;
+          } else {
+            target.codexConfig.auth = nextAuth;
+          }
+        });
+
+        return autoDisabled;
+      }
+
+      async function validateCodexAuths() {
+        const button = event?.currentTarget || null;
+        setButtonSavingState(
+          button,
+          true,
+          "validateCodexAuthsButton",
+          "codexValidationRunning",
+        );
+
+        try {
+          const response = await authFetch("/api/settings/codex/validate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ config }),
+          });
+          const result = await parseApiResponse(response);
+          if (!result.success) {
+            throw new Error(result.error || t("invalidServerResponse"));
+          }
+
+          codexValidationState = result.data;
+          const autoDisabledCount = applyCodexValidationAuthUpdates(
+            result.data.results || [],
+          );
+          renderProviders();
+          renderCodexValidationSummary();
+
+          const stats = getCodexValidationStats(result.data.results || []);
+          if (stats.total === 0) {
+            showAlert(t("validateCodexAuthsEmpty"), "error");
+          } else {
+            showAlert(
+              t("codexValidationComplete", {
+                valid: stats.valid,
+                invalid: stats.invalid,
+                rateLimited: stats.rateLimited,
+                skipped: stats.skipped,
+              }),
+              stats.invalid > 0 || stats.rateLimited > 0 ? "error" : "success",
+            );
+          }
+          if (autoDisabledCount > 0) {
+            showAlert(t("codexAuthRateLimitedAutoDisabled"), "success");
+          }
+        } catch (error) {
+          showAlert(
+            t("codexValidationFailed", {
+              message: error instanceof Error ? error.message : String(error),
+            }),
+            "error",
+          );
+        } finally {
+          setButtonSavingState(
+            button,
+            false,
+            "validateCodexAuthsButton",
+            "codexValidationRunning",
+          );
+        }
+      }
+
+      function updateCodexValidationResultAfterDisable(
+        providerIndex,
+        authIndex,
+      ) {
+        if (!codexValidationState?.results) return;
+        const result = codexValidationState.results.find((item) =>
+          item.providerIndex === providerIndex && item.authIndex === authIndex
+        );
+        if (!result) return;
+        result.disabled = true;
+        result.skipped = true;
+        result.valid = false;
+        result.reason = "disabled";
+        result.statusCode = 0;
+        result.errorMessage = "";
+        delete result.auth;
+      }
+
+      function updateCodexValidationResultsAfterDelete(
+        providerIndex,
+        authIndex,
+        removedConfig,
+      ) {
+        if (!codexValidationState?.results) return;
+
+        codexValidationState.results = codexValidationState.results
+          .filter((item) => {
+            if (removedConfig) {
+              return item.providerIndex !== providerIndex;
+            }
+            return !(
+              item.providerIndex === providerIndex &&
+              item.authIndex === authIndex
+            );
+          })
+          .map((item) => {
+            if (removedConfig && item.providerIndex > providerIndex) {
+              return { ...item, providerIndex: item.providerIndex - 1 };
+            }
+            if (
+              !removedConfig &&
+              item.providerIndex === providerIndex &&
+              item.authIndex > authIndex
+            ) {
+              return {
+                ...item,
+                authIndex: item.authIndex - 1,
+                authCount: Math.max(0, item.authCount - 1),
+              };
+            }
+            if (!removedConfig && item.providerIndex === providerIndex) {
+              return {
+                ...item,
+                authCount: Math.max(0, item.authCount - 1),
+              };
+            }
+            return item;
+          });
+      }
+
+      function disableCodexAuthFromValidation(providerIndex, authIndex) {
+        if (!disableCodexAuthTarget(providerIndex, authIndex)) {
+          showAlert(t("codexAuthActionUnavailable"), "error");
+          return;
+        }
+
+        updateCodexValidationResultAfterDisable(providerIndex, authIndex);
+        renderProviders();
+        renderCodexValidationSummary();
+        showAlert(t("codexAuthDisabledPending"), "success");
+      }
+
+      function deleteCodexAuthFromValidation(providerIndex, authIndex) {
+        const deleteResult = deleteCodexAuthTarget(providerIndex, authIndex);
+        if (!deleteResult) {
+          showAlert(t("codexAuthActionUnavailable"), "error");
+          return;
+        }
+
+        updateCodexValidationResultsAfterDelete(
+          providerIndex,
+          authIndex,
+          deleteResult.removedConfig,
+        );
+        pruneUnavailableFallbackModels();
+        renderProviders();
+        renderFallback();
+        renderCodexValidationSummary();
+        showAlert(t("codexAuthDeletedPending"), "success");
+      }
+
+      function getFilteredCodexValidationTargets() {
+        const results = Array.isArray(codexValidationState?.results)
+          ? codexValidationState.results
+          : [];
+        return getFilteredCodexValidationResults(results).filter((result) =>
+          findCodexAuthTarget(result.providerIndex, result.authIndex)
+        );
+      }
+
+      function disableFilteredCodexAuths() {
+        const targets = getFilteredCodexValidationTargets();
+        if (targets.length === 0) {
+          showAlert(t("codexValidationNoFilteredResults"), "error");
+          return;
+        }
+
+        let changed = 0;
+        targets.forEach((result) => {
+          if (disableCodexAuthTarget(result.providerIndex, result.authIndex)) {
+            updateCodexValidationResultAfterDisable(
+              result.providerIndex,
+              result.authIndex,
+            );
+            changed += 1;
+          }
+        });
+
+        renderProviders();
+        renderCodexValidationSummary();
+        showAlert(
+          t("codexAuthFilteredDisabledPending", { count: changed }),
+          "success",
+        );
+      }
+
+      function deleteFilteredCodexAuths() {
+        const targets = getFilteredCodexValidationTargets();
+        if (targets.length === 0) {
+          showAlert(t("codexValidationNoFilteredResults"), "error");
+          return;
+        }
+
+        if (
+          !confirm(
+            t("codexValidationDeleteFilteredConfirm", {
+              count: targets.length,
+            }),
+          )
+        ) {
+          return;
+        }
+
+        const orderedTargets = targets
+          .map((result) => ({
+            providerIndex: result.providerIndex,
+            authIndex: result.authIndex,
+          }))
+          .sort((a, b) =>
+            b.providerIndex - a.providerIndex || b.authIndex - a.authIndex
+          );
+
+        let deleted = 0;
+        orderedTargets.forEach(({ providerIndex, authIndex }) => {
+          const deleteResult = deleteCodexAuthTarget(providerIndex, authIndex);
+          if (!deleteResult) {
+            return;
+          }
+          updateCodexValidationResultsAfterDelete(
+            providerIndex,
+            authIndex,
+            deleteResult.removedConfig,
+          );
+          deleted += 1;
+        });
+
+        pruneUnavailableFallbackModels();
+        renderProviders();
+        renderFallback();
+        renderCodexValidationSummary();
+        showAlert(
+          t("codexAuthFilteredDeletedPending", { count: deleted }),
+          "success",
+        );
       }
 
       function openImportConfigDialog() {

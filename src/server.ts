@@ -18,6 +18,7 @@ import {
   handleSettingsVerify,
   handleTestProvider,
   handleUpdateModelPriority,
+  handleValidateCodexAuths,
 } from "./utils/settingsHandler";
 import {
   handleClearErrorLogs,
@@ -136,6 +137,10 @@ app.post("/api/settings/provider/models", async (c) => {
 
 app.post("/api/settings/provider/test", async (c) => {
   return handleTestProvider(c);
+});
+
+app.post("/api/settings/codex/validate", async (c) => {
+  return handleValidateCodexAuths(c);
 });
 
 app.post("/api/settings/provider/remove", async (c) => {
