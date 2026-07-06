@@ -819,6 +819,7 @@
 
       const THEME_KEY = "llm-proxy-theme";
       const LANGUAGE_KEY = "llm-proxy-language";
+      const DEFAULT_CODEX_BASE_URL = "https://chatgpt.com/backend-api/codex";
       const ALL_PROVIDERS = [
         "gemini_cli",
         "gemini",
@@ -981,15 +982,21 @@
           codexAuthJsonHint:
             "Paste a CodexAuth object or CodexAuth[] array, or upload a JSON file.",
           codexAuthUploadButton: "Upload JSON file",
+          codexAuthDirectoryUploadButton: "Upload auth directory",
           codexAuthUploadSuccess: "Codex auth JSON loaded.",
           codexAuthUploadFailed:
             "Failed to load Codex auth JSON: {message}",
+          codexAuthDirectoryUploadSuccess:
+            "Loaded {auths} Codex auth(s) from {files} file(s); skipped {skipped}.",
+          codexAuthDirectoryUploadNoMatches:
+            "No valid Codex auth JSON files were found.",
           codexAuthInvalidShape:
             "Codex Auth JSON must be a CodexAuth object or CodexAuth[] array.",
           codexAuthArrayEmpty: "CodexAuth[] cannot be empty.",
           codexAuthMissingAccessToken:
             "Codex auth #{index} must include access_token.",
-          codexAuthCount: "{count} auths ({disabled} disabled)",
+          codexAuthCount:
+            "{count} auths ({active} active, {disabled} disabled)",
           validateCodexAuthsEmpty: "No Codex auth entries are configured.",
           codexValidationRunning: "Validating...",
           codexValidationTitle: "Codex Auth Validation",
@@ -1005,10 +1012,8 @@
           codexValidationFilterLabel: "Filter status",
           codexValidationFilterAll: "All",
           codexValidationFilterOk: "Valid",
-          codexValidationFilterInvalid: "Invalid",
           codexValidationFilterRateLimited: "Rate limited",
           codexValidationFilterDisabled: "Disabled",
-          codexValidationFilterSkipped: "Skipped",
           codexValidationNoFilteredResults:
             "No Codex auths match the selected status.",
           codexValidationDisableFiltered: "Disable Filtered",
@@ -1227,14 +1232,20 @@
           codexAuthJsonHint:
             "粘贴 CodexAuth 对象或 CodexAuth[] 数组，也可以上传 JSON 文件。",
           codexAuthUploadButton: "上传 JSON 文件",
+          codexAuthDirectoryUploadButton: "上传 auth 目录",
           codexAuthUploadSuccess: "Codex auth JSON 已加载。",
           codexAuthUploadFailed: "加载 Codex auth JSON 失败：{message}",
+          codexAuthDirectoryUploadSuccess:
+            "已从 {files} 个文件加载 {auths} 个 Codex auth，跳过 {skipped} 个。",
+          codexAuthDirectoryUploadNoMatches:
+            "没有找到有效的 Codex auth JSON 文件。",
           codexAuthInvalidShape:
             "Codex Auth JSON 必须是 CodexAuth 对象或 CodexAuth[] 数组。",
           codexAuthArrayEmpty: "CodexAuth[] 不能为空。",
           codexAuthMissingAccessToken:
             "第 {index} 个 Codex auth 必须包含 access_token。",
-          codexAuthCount: "{count} 个 auth（{disabled} 个已禁用）",
+          codexAuthCount:
+            "{count} 个 auth（{active} 个有效，{disabled} 个已禁用）",
           validateCodexAuthsEmpty: "还没有配置 Codex auth。",
           codexValidationRunning: "校验中...",
           codexValidationTitle: "Codex Auth 校验",
@@ -1249,10 +1260,8 @@
           codexValidationFilterLabel: "过滤状态",
           codexValidationFilterAll: "全部",
           codexValidationFilterOk: "有效",
-          codexValidationFilterInvalid: "无效",
           codexValidationFilterRateLimited: "已限流",
           codexValidationFilterDisabled: "已禁用",
-          codexValidationFilterSkipped: "已跳过",
           codexValidationNoFilteredResults:
             "没有匹配当前状态的 Codex auth。",
           codexValidationDisableFiltered: "禁用当前筛选项",
@@ -1432,6 +1441,130 @@
           });
       }
 
+      function normalizeCodexBaseUrl(baseUrl) {
+        const normalized = typeof baseUrl === "string" && baseUrl.trim()
+          ? baseUrl.trim()
+          : DEFAULT_CODEX_BASE_URL;
+        return normalized.replace(/\/+$/, "");
+      }
+
+      function getCodexAuthMergeIdentity(auth) {
+        const accountId = typeof auth?.account_id === "string" &&
+            auth.account_id.trim()
+          ? auth.account_id.trim()
+          : typeof auth?.chatgpt_account_id === "string" &&
+              auth.chatgpt_account_id.trim()
+          ? auth.chatgpt_account_id.trim()
+          : "";
+        if (accountId) {
+          return `account:${accountId}`;
+        }
+
+        const refreshToken = typeof auth?.refresh_token === "string"
+          ? auth.refresh_token.trim()
+          : "";
+        if (refreshToken) {
+          return `refresh:${refreshToken}`;
+        }
+
+        const email = typeof auth?.email === "string"
+          ? auth.email.trim().toLowerCase()
+          : "";
+        if (email) {
+          return `email:${email}`;
+        }
+
+        const name = typeof auth?.name === "string" ? auth.name.trim() : "";
+        if (name) {
+          return `name:${name}`;
+        }
+
+        const idToken = typeof auth?.id_token === "string"
+          ? auth.id_token.trim()
+          : "";
+        if (idToken) {
+          return `id_token:${idToken}`;
+        }
+
+        const accessToken = typeof auth?.access_token === "string"
+          ? auth.access_token.trim()
+          : "";
+        if (accessToken) {
+          return `access_token:${accessToken}`;
+        }
+
+        return "unknown";
+      }
+
+      function getCodexAuthMergeKey(auth, providerBaseUrl) {
+        return `${
+          normalizeCodexBaseUrl(auth?.base_url || providerBaseUrl)
+        }::${getCodexAuthMergeIdentity(auth)}`;
+      }
+
+      function normalizeCodexAuthValue(auth) {
+        const authIsArray = Array.isArray(auth);
+        const deduped = [];
+        const seen = new Set();
+
+        getCodexAuthList(auth).forEach((item) => {
+          const key = getCodexAuthMergeKey(item);
+          if (seen.has(key)) {
+            return;
+          }
+          seen.add(key);
+          deduped.push(item);
+        });
+
+        if (authIsArray) {
+          return deduped;
+        }
+
+        return deduped[0] || auth;
+      }
+
+      function normalizeProviderConfigForMerge(provider, cfg) {
+        const models = normalizeFallbackModels(
+          Array.isArray(cfg?.models) ? cfg.models : [],
+        );
+
+        if (provider === "codex") {
+          return {
+            ...cfg,
+            models,
+            auth: normalizeCodexAuthValue(cfg?.auth),
+          };
+        }
+
+        return {
+          ...cfg,
+          models,
+        };
+      }
+
+      function getProviderMergeKey(provider, cfg) {
+        if (provider === "codex") {
+          const authKeys = Array.from(
+            new Set(
+              getCodexAuthList(cfg?.auth)
+                .map((auth) => getCodexAuthMergeKey(auth, cfg?.base_url)),
+            ),
+          ).sort();
+          if (authKeys.length === 0) {
+            return null;
+          }
+          return `codex::${
+            normalizeCodexBaseUrl(cfg?.base_url)
+          }::${authKeys.join("|")}`;
+        }
+
+        const hasBaseUrl = typeof cfg?.base_url === "string";
+        const hasApiKey = typeof cfg?.api_key === "string";
+        return hasBaseUrl && hasApiKey
+          ? `${cfg.base_url.trim()}::${cfg.api_key.trim()}`
+          : null;
+      }
+
       function mergeLocalProviderConfigsByConnection(provider) {
         const providerConfigs = Array.isArray(config?.[provider])
           ? config[provider]
@@ -1440,43 +1573,34 @@
         const keyedIndex = new Map();
 
         providerConfigs.forEach((cfg) => {
-          const hasBaseUrl = typeof cfg?.base_url === "string";
-          const hasApiKey = typeof cfg?.api_key === "string";
-          const mergeKey = hasBaseUrl && hasApiKey
-            ? `${cfg.base_url.trim()}::${cfg.api_key.trim()}`
-            : null;
-          const models = normalizeFallbackModels(
-            Array.isArray(cfg?.models) ? cfg.models : [],
+          const normalizedConfig = normalizeProviderConfigForMerge(
+            provider,
+            cfg,
           );
+          const mergeKey = getProviderMergeKey(provider, normalizedConfig);
 
           if (!mergeKey) {
-            merged.push({
-              ...cfg,
-              models,
-            });
+            merged.push(normalizedConfig);
             return;
           }
 
           const existingIndex = keyedIndex.get(mergeKey);
           if (existingIndex === undefined) {
-            merged.push({
-              ...cfg,
-              models,
-            });
+            merged.push(normalizedConfig);
             keyedIndex.set(mergeKey, merged.length - 1);
             return;
           }
 
-          merged[existingIndex] = {
+          merged[existingIndex] = normalizeProviderConfigForMerge(provider, {
             ...merged[existingIndex],
-            ...cfg,
+            ...normalizedConfig,
             models: normalizeFallbackModels([
               ...(Array.isArray(merged[existingIndex].models)
                 ? merged[existingIndex].models
                 : []),
-              ...models,
+              ...normalizedConfig.models,
             ]),
-          };
+          });
         });
 
         config[provider] = merged;
@@ -1784,9 +1908,10 @@
           return t("authJsonConfigured");
         }
         const disabled = auths.filter((item) => item.disabled === true).length;
+        const active = auths.length - disabled;
         return auths.length === 1
           ? t("authJsonConfigured")
-          : t("codexAuthCount", { count: auths.length, disabled });
+          : t("codexAuthCount", { count: auths.length, active, disabled });
       }
 
       function renderGeneralSettings() {
@@ -2306,6 +2431,13 @@
               >
                 ${escapeHtml(t("codexAuthUploadButton"))}
               </button>
+              <button
+                type="button"
+                onclick="document.getElementById('field-codex-auth-directory')?.click()"
+                class="btn-secondary text-white px-3 py-2 rounded-full"
+              >
+                ${escapeHtml(t("codexAuthDirectoryUploadButton"))}
+              </button>
             </div>
             <input
               type="file"
@@ -2313,6 +2445,16 @@
               accept="application/json,.json"
               style="display: none"
               onchange="handleCodexAuthJsonFileSelected(event)"
+            />
+            <input
+              type="file"
+              id="field-codex-auth-directory"
+              accept="application/json,.json"
+              webkitdirectory
+              directory
+              multiple
+              style="display: none"
+              onchange="handleCodexAuthDirectorySelected(event)"
             />
             <textarea
               id="field-auth_json"
@@ -2395,6 +2537,28 @@
         throw new Error(t("codexAuthInvalidShape"));
       }
 
+      function isLikelyJsonFile(file) {
+        const fileName = String(file?.webkitRelativePath || file?.name || "")
+          .toLowerCase();
+        return fileName.endsWith(".json") || file?.type === "application/json";
+      }
+
+      function collectCodexAuthsFromDirectoryJson(parsed) {
+        const { auth } = extractCodexAuthInput(parsed);
+        const auths = Array.isArray(auth) ? auth : [auth];
+        const validAuths = [];
+
+        auths.forEach((item, index) => {
+          if (!isPlainObjectValue(item) || item.type !== "codex") {
+            return;
+          }
+          validateCodexAuthObject(item, index + 1);
+          validAuths.push(item);
+        });
+
+        return validAuths;
+      }
+
       async function handleCodexAuthJsonFileSelected(event) {
         const file = event?.target?.files?.[0];
         if (!file) return;
@@ -2442,6 +2606,64 @@
           }
 
           showAlert(t("codexAuthUploadSuccess"), "success");
+        } catch (error) {
+          showAlert(
+            t("codexAuthUploadFailed", {
+              message: error instanceof Error ? error.message : String(error),
+            }),
+            "error",
+          );
+        } finally {
+          event.target.value = "";
+        }
+      }
+
+      async function handleCodexAuthDirectorySelected(event) {
+        const files = Array.from(event?.target?.files || []);
+        if (files.length === 0) return;
+
+        const auths = [];
+        let matchedFiles = 0;
+        let skippedFiles = 0;
+
+        for (const file of files) {
+          if (!isLikelyJsonFile(file)) {
+            skippedFiles += 1;
+            continue;
+          }
+
+          try {
+            const parsed = JSON.parse(await file.text());
+            const fileAuths = collectCodexAuthsFromDirectoryJson(parsed);
+            if (fileAuths.length === 0) {
+              skippedFiles += 1;
+              continue;
+            }
+            auths.push(...fileAuths);
+            matchedFiles += 1;
+          } catch {
+            skippedFiles += 1;
+          }
+        }
+
+        try {
+          if (auths.length === 0) {
+            throw new Error(t("codexAuthDirectoryUploadNoMatches"));
+          }
+
+          const authJsonInput = document.getElementById("field-auth_json");
+          if (authJsonInput) {
+            authJsonInput.value = JSON.stringify(auths, null, 2);
+          }
+
+          showAlert(
+            t("codexAuthDirectoryUploadSuccess", {
+              auths: auths.length,
+              files: matchedFiles,
+              skipped: skippedFiles,
+            }),
+            "success",
+          );
         } catch (error) {
           showAlert(
             t("codexAuthUploadFailed", {
@@ -4217,10 +4439,8 @@
         return [
           ["all", t("codexValidationFilterAll")],
           ["ok", t("codexValidationFilterOk")],
-          ["invalid", t("codexValidationFilterInvalid")],
           ["rate_limited", t("codexValidationFilterRateLimited")],
           ["disabled", t("codexValidationFilterDisabled")],
-          ["skipped", t("codexValidationFilterSkipped")],
         ];
       }
 

@@ -625,7 +625,137 @@ function normalizeModelList(models: string[]): string[] {
     });
 }
 
-function getProviderMergeKey(config: ProviderConfig): string | null {
+function normalizeCodexBaseUrl(baseUrl?: string): string {
+  const normalized = typeof baseUrl === "string" && baseUrl.trim()
+    ? baseUrl.trim()
+    : DEFAULT_CODEX_BASE_URL;
+  return normalized.replace(/\/+$/, "");
+}
+
+function getNormalizedCodexAuthList(
+  auth: CodexAuth | CodexAuth[],
+): CodexAuth[] {
+  return (Array.isArray(auth) ? auth : [auth]).filter((item): item is CodexAuth =>
+    !!item && typeof item === "object"
+  );
+}
+
+function getCodexAuthMergeIdentity(auth: CodexAuth): string {
+  const accountId = getCodexAuthAccountId(auth).trim();
+  if (accountId) {
+    return `account:${accountId}`;
+  }
+
+  const refreshToken = typeof auth.refresh_token === "string"
+    ? auth.refresh_token.trim()
+    : "";
+  if (refreshToken) {
+    return `refresh:${refreshToken}`;
+  }
+
+  const email = typeof auth.email === "string"
+    ? auth.email.trim().toLowerCase()
+    : "";
+  if (email) {
+    return `email:${email}`;
+  }
+
+  const name = typeof auth.name === "string" ? auth.name.trim() : "";
+  if (name) {
+    return `name:${name}`;
+  }
+
+  const idToken = typeof auth.id_token === "string" ? auth.id_token.trim() : "";
+  if (idToken) {
+    return `id_token:${idToken}`;
+  }
+
+  const accessToken = typeof auth.access_token === "string"
+    ? auth.access_token.trim()
+    : "";
+  if (accessToken) {
+    return `access_token:${accessToken}`;
+  }
+
+  return "unknown";
+}
+
+function getCodexAuthMergeKey(
+  auth: CodexAuth,
+  providerBaseUrl?: string,
+): string {
+  return `${
+    normalizeCodexBaseUrl(auth.base_url || providerBaseUrl)
+  }::${getCodexAuthMergeIdentity(auth)}`;
+}
+
+function normalizeCodexAuthValue(
+  auth: CodexAuth | CodexAuth[],
+): CodexAuth | CodexAuth[] {
+  const authIsArray = Array.isArray(auth);
+  const deduped: CodexAuth[] = [];
+  const seen = new Set<string>();
+
+  for (const item of getNormalizedCodexAuthList(auth)) {
+    const key = getCodexAuthMergeKey(item);
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    deduped.push(item);
+  }
+
+  if (authIsArray) {
+    return deduped;
+  }
+
+  return deduped[0] || auth;
+}
+
+function normalizeProviderConfigForMerge(
+  providerId: ProviderId,
+  config: ProviderConfig,
+): ProviderConfig {
+  const normalizedModels = normalizeModelList(
+    Array.isArray(config.models) ? config.models : [],
+  );
+
+  if (providerId === "codex") {
+    return {
+      ...(config as CodexConfig),
+      models: normalizedModels,
+      auth: normalizeCodexAuthValue((config as CodexConfig).auth),
+    } as ProviderConfig;
+  }
+
+  return {
+    ...config,
+    models: normalizedModels,
+  } as ProviderConfig;
+}
+
+function getProviderMergeKey(
+  providerId: ProviderId,
+  config: ProviderConfig,
+): string | null {
+  if (providerId === "codex") {
+    const codexConfig = config as CodexConfig;
+    const authKeys = Array.from(
+      new Set(
+        getNormalizedCodexAuthList(codexConfig.auth)
+          .map((auth) => getCodexAuthMergeKey(auth, codexConfig.base_url)),
+      ),
+    ).sort();
+
+    if (authKeys.length === 0) {
+      return null;
+    }
+
+    return `codex::${
+      normalizeCodexBaseUrl(codexConfig.base_url)
+    }::${authKeys.join("|")}`;
+  }
+
   if ("base_url" in config && "api_key" in config) {
     const baseUrl = typeof config.base_url === "string"
       ? config.base_url.trim()
@@ -640,10 +770,11 @@ function getProviderMergeKey(config: ProviderConfig): string | null {
 }
 
 function mergeProviderConfig(
+  providerId: ProviderId,
   existing: ProviderConfig,
   incoming: ProviderConfig,
 ): ProviderConfig {
-  return {
+  const merged = {
     ...existing,
     ...incoming,
     models: normalizeModelList([
@@ -651,45 +782,46 @@ function mergeProviderConfig(
       ...(Array.isArray(incoming.models) ? incoming.models : []),
     ]),
   } as ProviderConfig;
+
+  return normalizeProviderConfigForMerge(providerId, merged);
 }
 
 function mergeProviderConfigsByConnection(
+  providerId: ProviderId,
   existing: ProviderConfig[],
   incoming: ProviderConfig[],
 ): ProviderConfig[] {
-  const merged = [...existing];
+  const merged = existing.map((config) =>
+    normalizeProviderConfigForMerge(providerId, config)
+  );
   const keyedIndex = new Map<string, number>();
 
   merged.forEach((config, index) => {
-    const key = getProviderMergeKey(config);
+    const key = getProviderMergeKey(providerId, config);
     if (key) {
       keyedIndex.set(key, index);
     }
   });
 
   for (const config of incoming) {
-    const mergeKey = getProviderMergeKey(config);
+    const normalizedConfig = normalizeProviderConfigForMerge(providerId, config);
+    const mergeKey = getProviderMergeKey(providerId, normalizedConfig);
     if (!mergeKey) {
-      merged.push({
-        ...config,
-        models: normalizeModelList(config.models || []),
-      } as ProviderConfig);
+      merged.push(normalizedConfig);
       continue;
     }
 
     const existingIndex = keyedIndex.get(mergeKey);
     if (existingIndex === undefined) {
-      merged.push({
-        ...config,
-        models: normalizeModelList(config.models || []),
-      } as ProviderConfig);
+      merged.push(normalizedConfig);
       keyedIndex.set(mergeKey, merged.length - 1);
       continue;
     }
 
     merged[existingIndex] = mergeProviderConfig(
+      providerId,
       merged[existingIndex],
-      config,
+      normalizedConfig,
     );
   }
 
@@ -707,7 +839,7 @@ function normalizeAllProviderConfigs(config: Config): Config {
       : [];
 
     (normalizedConfig as unknown as Record<string, unknown>)[providerId] =
-      mergeProviderConfigsByConnection([], providerConfigs);
+      mergeProviderConfigsByConnection(providerId, [], providerConfigs);
   }
 
   return normalizedConfig;
@@ -1466,6 +1598,7 @@ export async function handleImportSettings(c: Context) {
 
       (updatedConfig as unknown as Record<string, unknown>)[providerId] =
         mergeProviderConfigsByConnection(
+          providerId as ProviderId,
           existingProviderConfigs,
           selectedConfigs,
         );
