@@ -23,7 +23,7 @@
   "crons": [
     {
       "path": "/api/refresh-tokens",
-      "schedule": "0 1 * * *"
+      "schedule": "45 13 * * *"
     }
   ]
 }

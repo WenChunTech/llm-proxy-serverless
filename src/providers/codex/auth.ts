@@ -27,7 +27,12 @@ function parseJWT(token: string): any {
  * Check if the access token is expired.
  */
 export function isTokenExpired(auth: CodexAuth): boolean {
-  return Date.now() >= auth.expiry_date - 60_000; // 1 minute buffer
+  const expiryDate = auth.expiry_date
+    ? auth.expiry_date
+    : auth.expired
+      ? new Date(auth.expired).getTime()
+      : 0;
+  return Date.now() >= expiryDate - 60_000;
 }
 
 /**
@@ -37,14 +42,16 @@ export async function refreshCodexToken(
   auth: CodexAuth,
 ): Promise<CodexAuth> {
   if (!auth.refresh_token) {
-    throw new Error("No refresh token available for Codex auth");
+    throw new Error(
+      "No refresh token available for Codex auth. The credential format only provides session_token, not refresh_token. Re-authentication required.",
+    );
   }
 
   const body = new URLSearchParams({
     client_id: CLIENT_ID,
     grant_type: "refresh_token",
     refresh_token: auth.refresh_token,
-    scope: "openid email profile offline_access",
+    scope: "openid email profile",
   });
 
   const response = await fetch(TOKEN_URL, {
@@ -83,6 +90,7 @@ export async function refreshCodexToken(
   }
 
   return {
+    ...auth,
     id_token: tokenData.id_token || auth.id_token,
     access_token: tokenData.access_token || auth.access_token,
     refresh_token: tokenData.refresh_token || auth.refresh_token,

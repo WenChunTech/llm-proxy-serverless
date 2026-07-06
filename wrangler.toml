@@ -11,7 +11,7 @@ binding = "ASSETS"
 LOG_LEVEL = "info"
 
 [triggers]
-crons = ["0 1 * * *"]
+crons = ["15 1 * * *"]
 
 [[rules]]
 type = "CompiledWasm"

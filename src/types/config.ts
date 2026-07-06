@@ -78,13 +78,27 @@ export interface CodexAuth {
   access_token: string;
   refresh_token: string;
   account_id?: string;
+  base_url?: string;
   email?: string;
   plan_type?: string;
   expiry_date: number;
+  expired?: string;
+  session_token?: string;
+  chatgpt_plan_type?: string;
+  chatgpt_account_id?: string;
+  disabled?: boolean;
+  id_token_synthetic?: boolean;
+  last_refresh?: string;
+  name?: string;
+  type?: string;
+  token_type?: string;
+  _validated_at?: string;
+  _validation_status?: string;
 }
 
 export interface CodexConfig extends BaseProviderConfig {
-  auth: CodexAuth;
+  base_url?: string;
+  auth: CodexAuth | CodexAuth[];
 }
 
 export interface Config {

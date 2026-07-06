@@ -131,9 +131,15 @@ function buildAttemptLogDetails(
 function shouldAttemptTarget(
   retryBudget: RetryBudget,
   passStartedBeforeLimit: boolean,
-  hasFallbackChain: boolean,
   forceFallbackPass: boolean,
 ): boolean {
+  // Once a pass has started, finish every matching provider/config/auth target.
+  // MAX_RETRIES controls whether another pass may start; it must not truncate a
+  // large provider pool such as many Codex accounts for the same model.
+  if (passStartedBeforeLimit) {
+    return true;
+  }
+
   if (retryBudget.attempts < MAX_RETRIES) {
     return true;
   }
@@ -142,7 +148,7 @@ function shouldAttemptTarget(
     return true;
   }
 
-  return hasFallbackChain && passStartedBeforeLimit;
+  return false;
 }
 
 async function extractErrorMessage(resp: Response): Promise<string> {
@@ -157,6 +163,11 @@ async function extractErrorMessage(resp: Response): Promise<string> {
       return "(unable to read response body)";
     }
   }
+}
+
+function isMultiAccountAuthConfig(config: unknown): boolean {
+  const auth = (config as Record<string, any>)?.auth;
+  return Array.isArray(auth) && auth.length > 0;
 }
 
 function buildAttemptTargets(
@@ -185,6 +196,17 @@ function buildAttemptTargets(
             baseUrl,
             project: projects[projectIdx],
             projectIndex: projectIdx,
+          });
+        }
+      } else if (isMultiAccountAuthConfig(config)) {
+        const accounts = (config as Record<string, any>).auth as any[];
+        for (const account of accounts) {
+          if (account.disabled) continue;
+          targets.push({
+            providerName,
+            providerIndex: pIdx,
+            config: { ...(config as any), auth: account },
+            baseUrl,
           });
         }
       } else {
@@ -322,7 +344,6 @@ async function executeSingleModelRequest(
   originalBody: Record<string, unknown>,
   requestLogger: RequestLogger,
   retryBudget: RetryBudget,
-  hasFallbackChain: boolean,
   isFallbackModel: boolean,
   forwardedHeaders?: HeaderMap,
 ): Promise<ExecuteModelRequestResult | null> {
@@ -352,7 +373,8 @@ async function executeSingleModelRequest(
   let lastResult: ExecuteModelRequestResult | null = null;
   let lastError: Error | undefined;
 
-  // MAX_RETRIES 是全局尝试上限；如果还没进入兜底链，会先完成当前遍历并继续走到兜底模型。
+  // MAX_RETRIES 控制是否开启下一轮；已经开始的一轮会尝试完所有匹配目标，
+  // 避免 Codex 多账号或多份 Responses 配置被固定 5 次预算截断。
   for (let pass = 1; ; pass++) {
     const passStartedBeforeLimit = retryBudget.attempts < MAX_RETRIES;
     const forceFallbackPass = isFallbackModel && pass === 1;
@@ -363,7 +385,6 @@ async function executeSingleModelRequest(
         !shouldAttemptTarget(
           retryBudget,
           passStartedBeforeLimit,
-          hasFallbackChain,
           forceFallbackPass,
         )
       ) {
@@ -439,7 +460,6 @@ export async function executeModelRequest(
   } = params;
   const modelsToTry = [model, ...getFallbackChain(model)];
   const retryBudget: RetryBudget = { attempts: 0 };
-  const hasFallbackChain = modelsToTry.length > 1;
 
   let lastResult: ExecuteModelRequestResult | null = null;
 
@@ -461,7 +481,6 @@ export async function executeModelRequest(
       originalBody,
       requestLogger,
       retryBudget,
-      hasFallbackChain,
       index > 0,
       forwardedHeaders,
     );

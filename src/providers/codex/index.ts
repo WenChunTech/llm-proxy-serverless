@@ -1,5 +1,5 @@
 import { codexPoller } from "../../config";
-import { CodexConfig } from "../../types/config";
+import { CodexAuth, CodexConfig } from "../../types/config";
 import {
   convertCodexResponseTo,
   convertCodexStreamResponseTo,
@@ -11,12 +11,37 @@ import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders";
 import type { Provider } from "../_base/interface";
 
 const CODEX_USER_AGENT =
-  "codex-tui/0.122.0 (Mac OS; arm64) iTerm.app (codex-tui; 0.122.0)";
+  "codex-tui/0.135.0 (Mac OS 26.5.0; arm64) iTerm.app/3.6.10 (codex-tui; 0.135.0)";
+const DEFAULT_CODEX_BASE_URL = "https://chatgpt.com/backend-api/codex";
+
+function normalizeAuth(auth: CodexAuth): CodexAuth {
+  if (!auth.expiry_date && auth.expired) {
+    (auth as any).expiry_date = new Date(auth.expired).getTime();
+  }
+  return auth;
+}
 
 export class CodexProvider implements Provider {
   model: string;
+  private static subAccountIndex = 0;
+
   constructor(model: string) {
     this.model = model;
+  }
+
+  private resolveAuth(auth: CodexAuth | CodexAuth[]): CodexAuth {
+    if (Array.isArray(auth)) {
+      const accounts = auth.filter((a) => !a.disabled);
+      if (accounts.length === 0) {
+        throw new Error("No enabled Codex accounts available");
+      }
+      const idx = CodexProvider.subAccountIndex++ % accounts.length;
+      return normalizeAuth(accounts[idx]);
+    }
+    if (auth.disabled) {
+      throw new Error("No enabled Codex accounts available");
+    }
+    return normalizeAuth(auth);
   }
 
   getProviderType() {
@@ -40,24 +65,22 @@ export class CodexProvider implements Provider {
   ) {
     const codexConfig = config || codexPoller.getNext(this.model);
 
-    // Ensure we have a valid access token
-    const auth = codexConfig.auth;
+    const auth = this.resolveAuth(codexConfig.auth);
 
-    const url = "https://chatgpt.com/backend-api/codex/responses";
-    // Build request body in Responses API format
+    const baseUrl = auth.base_url || codexConfig.base_url ||
+      DEFAULT_CODEX_BASE_URL;
+    const url = `${baseUrl.replace(/\/+$/, "")}/responses`;
     const body: Record<string, any> = {
       ...reqData,
       model: this.model,
       stream: is_streaming,
     };
 
-    // Remove fields that Codex doesn't accept
     delete body.previous_response_id;
     delete body.prompt_cache_retention;
     delete body.safety_identifier;
     delete body.stream_options;
 
-    // Ensure instructions field exists (Codex requires it)
     if (body.instructions === undefined || body.instructions === null) {
       body.instructions = "";
     }
@@ -76,13 +99,9 @@ export class CodexProvider implements Provider {
       headers["accept"] = "application/json";
     }
 
-    // Add ChatGPT account ID header
     if (auth.account_id) {
       headers["chatgpt-account-id"] = auth.account_id;
     }
-
-    // Add a session ID
-    // headers["Session_id"] = crypto.randomUUID();
 
     return fetch(url, {
       method: "POST",
