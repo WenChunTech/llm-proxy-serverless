@@ -1,6 +1,7 @@
 import { ProviderType } from "../../pkg/converter_wasm";
-import { getProvider, getProviderInstance } from "../providers/factory";
+import { getProviderInstance } from "../providers/factory";
 import type { Provider } from "../providers/_base/interface";
+import { getConfiguredProvidersForModel } from "../providers/registry";
 import { logger, RequestLogger } from "../utils/logger";
 import { saveErrorLog } from "../services/errorLog";
 import {
@@ -27,6 +28,18 @@ export interface ExecuteModelRequestParams {
 export interface ExecuteModelRequestResult {
   response: Response;
   provider: Provider;
+}
+
+export class ModelNotConfiguredError extends Error {
+  model: string;
+  attemptedModels: string[];
+
+  constructor(model: string, attemptedModels: string[]) {
+    super(`No provider configured for model: ${model}`);
+    this.name = "ModelNotConfiguredError";
+    this.model = model;
+    this.attemptedModels = attemptedModels;
+  }
 }
 
 interface AttemptTarget {
@@ -349,23 +362,13 @@ async function executeSingleModelRequest(
 ): Promise<ExecuteModelRequestResult | null> {
   const requestId = requestLogger.getRequestId();
   const providers = getAllProvidersForModel(model);
-  const fallbackProvider = getProvider(model);
 
   if (providers.length === 0) {
-    const request = await buildProviderRequest(
-      fallbackProvider,
-      requestBody,
-      targetType,
-      isStreaming,
-    );
-    const response = await fallbackProvider.fetchResponse(
-      isStreaming,
-      request,
-      undefined,
-      undefined,
-      forwardedHeaders,
-    );
-    return { response, provider: fallbackProvider };
+    logger.info("[model-unconfigured]", {
+      requestId,
+      model,
+    });
+    return null;
   }
 
   const targets = buildAttemptTargets(providers, model);
@@ -459,6 +462,12 @@ export async function executeModelRequest(
     forwardedHeaders,
   } = params;
   const modelsToTry = [model, ...getFallbackChain(model)];
+  const hasAnyConfiguredProvider = modelsToTry.some((candidateModel) =>
+    getConfiguredProvidersForModel(candidateModel).length > 0
+  );
+  if (!hasAnyConfiguredProvider) {
+    throw new ModelNotConfiguredError(model, modelsToTry);
+  }
   const retryBudget: RetryBudget = { attempts: 0 };
 
   let lastResult: ExecuteModelRequestResult | null = null;

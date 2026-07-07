@@ -1,5 +1,6 @@
 import { QwenAuth } from "../../types/config";
 import { logger } from "../../utils/logger";
+import { appConfig, updateConfig } from "../../config";
 
 const QWEN_OAUTH_TOKEN_ENDPOINT = "https://chat.qwen.ai/api/v1/oauth2/token";
 const QWEN_OAUTH_CLIENT_ID = "f0304373b74a44d2b584a3fb70ca9e56";
@@ -48,15 +49,13 @@ export async function refreshAccessToken(auth: QwenAuth): Promise<QwenAuth> {
     expiry_date: Date.now() + tokenResponse.expires_in * 1000,
   };
 
-  // const newConfig = {
-  //   ...appConfig,
-  //   qwen: appConfig.qwen.map((c) =>
-  //     c.auth?.refresh_token === auth.refresh_token
-  //       ? { ...c, auth: updatedAuth }
-  //       : c
-  //   ),
-  // };
-  // await updateConfig(newConfig);
+  const newConfig = {
+    ...appConfig,
+    qwen: appConfig.qwen.map((c) =>
+      c.auth?.refresh_token === auth.refresh_token ? { ...c, auth: updatedAuth } : c
+    ),
+  };
+  await updateConfig(newConfig);
   logger.info("[Qwen Auth] Refreshed Token");
 
   return updatedAuth;
@@ -66,6 +65,7 @@ export async function getAccessToken(auth: QwenAuth): Promise<string> {
   if (!auth || !auth.access_token || isAccessTokenExpired(auth)) {
     const newAuth = await refreshAccessToken(auth);
     auth.access_token = newAuth.access_token;
+    auth.refresh_token = newAuth.refresh_token;
     auth.expiry_date = newAuth.expiry_date;
     return newAuth.access_token;
   }

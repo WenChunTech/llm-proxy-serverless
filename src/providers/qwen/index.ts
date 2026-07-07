@@ -1,44 +1,63 @@
-import { qwenPoller } from '../../config';
-import { convertToQwenRequestTo, convertQwenResponseTo, convertQwenStreamResponseTo } from './adapter';
-import { ProviderType } from '../../../pkg/converter_wasm';
-import { getAccessToken } from './auth';
-import { RequestLogger } from '../../utils/logger';
+import { ProviderType } from "../../../pkg/converter_wasm";
+import { qwenPoller } from "../../config";
+import { QwenConfig } from "../../types/config";
+import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders";
+import { RequestLogger } from "../../utils/logger";
+import type { Provider } from "../_base/interface";
+import { getAccessToken } from "./auth";
+import {
+  convertQwenResponseTo,
+  convertQwenStreamResponseTo,
+  convertToQwenRequestTo,
+} from "./adapter";
 
-export class QwenProvider {
-    model: string;
-    constructor(model: string) {
-        this.model = model
-    }
+export class QwenProvider implements Provider {
+  model: string;
 
-    async convertRequestTo(body: any, source: any) {
-        return convertToQwenRequestTo(body, source);
-    }
+  constructor(model: string) {
+    this.model = model;
+  }
 
-    getProviderType() {
-        return ProviderType.Chat;
-    }
+  async convertRequestTo(body: any, source: any) {
+    return convertToQwenRequestTo(body, source);
+  }
 
-    async fetchResponse(_is_streaming: boolean, reqData: any) {
-        const qwenConfig = qwenPoller.getNext(this.model);
-        const token = await getAccessToken(qwenConfig.auth);
-        const endpoint = `https://${qwenConfig.auth.resource_url}/v1/chat/completions`;
-        const headers: any = {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-        };
+  getProviderType() {
+    return ProviderType.Chat;
+  }
 
-        return fetch(endpoint, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(reqData)
-        });
-    }
+  async fetchResponse(
+    _isStreaming: boolean,
+    reqData: any,
+    config?: QwenConfig,
+    _project?: string,
+    forwardedHeaders?: HeaderMap,
+  ) {
+    const qwenConfig = config || qwenPoller.getNext(this.model);
+    const token = await getAccessToken(qwenConfig.auth);
+    const endpoint = `https://${qwenConfig.auth.resource_url}/v1/chat/completions`;
+    const headers = mergeHeaders(forwardedHeaders, {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    });
 
-    async convertResponseTo(c: any, response: any, target: any) {
-        return convertQwenResponseTo(c, response, target);
-    }
+    return fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(reqData),
+    });
+  }
 
-    async convertStreamResponseTo(stream: any, response: any, target: any, requestLogger?: RequestLogger) {
-        return convertQwenStreamResponseTo(stream, response, target, requestLogger);
-    }
+  async convertResponseTo(c: any, response: any, target: any) {
+    return convertQwenResponseTo(c, response, target);
+  }
+
+  async convertStreamResponseTo(
+    stream: any,
+    response: any,
+    target: any,
+    requestLogger?: RequestLogger,
+  ) {
+    return convertQwenStreamResponseTo(stream, response, target, requestLogger);
+  }
 }

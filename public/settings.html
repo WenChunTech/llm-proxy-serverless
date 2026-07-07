@@ -45,6 +45,150 @@
         backdrop-filter: blur(14px);
       }
 
+      .provider-section-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1.25rem;
+        padding: 1.1rem 1.25rem;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 1.4rem;
+        background:
+          radial-gradient(circle at top left, rgba(217, 119, 6, 0.14), transparent 38%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent),
+          var(--panel-soft);
+        text-align: left;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.05),
+          0 12px 24px rgba(15, 23, 42, 0.12);
+        transition:
+          border-color 0.2s ease,
+          background 0.2s ease,
+          transform 0.2s ease,
+          box-shadow 0.2s ease;
+      }
+
+      .provider-section-toggle:hover {
+        border-color: rgba(217, 119, 6, 0.28);
+        background:
+          radial-gradient(circle at top left, rgba(217, 119, 6, 0.18), transparent 42%),
+          linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent),
+          var(--panel-soft);
+        transform: translateY(-1px);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 255, 255, 0.06),
+          0 16px 28px rgba(15, 23, 42, 0.16);
+      }
+
+      .provider-section-summary {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+
+      .provider-section-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.65rem;
+        border-radius: 9999px;
+        border: 1px solid rgba(148, 163, 184, 0.22);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--muted);
+        font-size: 0.75rem;
+        line-height: 1rem;
+      }
+
+      .provider-section-body {
+        margin-top: 1rem;
+      }
+
+      .collapse-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.25rem 0.35rem;
+        border-radius: 1rem;
+        text-align: left;
+        transition: background 0.2s ease;
+      }
+
+      .collapse-toggle:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .collapse-toggle-icon {
+        flex-shrink: 0;
+        width: 2.25rem;
+        height: 2.25rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(217, 119, 6, 0.2);
+        border-radius: 9999px;
+        background: rgba(217, 119, 6, 0.1);
+        color: rgb(217, 119, 6);
+        font-size: 0.95rem;
+        line-height: 1;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        transition:
+          transform 0.2s ease,
+          background 0.2s ease,
+          border-color 0.2s ease;
+      }
+
+      .collapse-toggle:hover .collapse-toggle-icon {
+        border-color: rgba(217, 119, 6, 0.34);
+        background: rgba(217, 119, 6, 0.16);
+      }
+
+      .collapse-toggle[aria-expanded="false"] .collapse-toggle-icon {
+        transform: rotate(-90deg);
+      }
+
+      .status-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.7rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border: 1px solid transparent;
+      }
+
+      .status-chip-valid {
+        color: rgb(134, 239, 172);
+        background: rgba(34, 197, 94, 0.12);
+        border-color: rgba(34, 197, 94, 0.22);
+      }
+
+      .status-chip-rate {
+        color: rgb(253, 186, 116);
+        background: rgba(249, 115, 22, 0.12);
+        border-color: rgba(249, 115, 22, 0.22);
+      }
+
+      .status-chip-invalid {
+        color: rgb(252, 165, 165);
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.22);
+      }
+
+      .status-chip-disabled {
+        color: rgb(203, 213, 225);
+        background: rgba(100, 116, 139, 0.16);
+        border-color: rgba(148, 163, 184, 0.18);
+      }
+
+      .status-chip-idle {
+        color: rgb(191, 219, 254);
+        background: rgba(59, 130, 246, 0.1);
+        border-color: rgba(96, 165, 250, 0.18);
+      }
+
       .priority-item {
         transition:
           transform 0.25s ease,
@@ -816,6 +960,10 @@
       let importConfigState = null;
       let codexValidationState = null;
       let codexValidationFilter = "all";
+      let codexValidationProviderFilter = "all";
+      let codexValidationSummaryExpanded = true;
+      let providerSectionCollapseState = {};
+      let codexValidationGroupCollapseState = {};
 
       const THEME_KEY = "llm-proxy-theme";
       const LANGUAGE_KEY = "llm-proxy-language";
@@ -848,7 +996,6 @@
         "codex",
       ];
       const PROVIDER_ALIASES = {
-        openai: "openai_chat",
         openai_chat: "openai_chat",
         openai_responses: "openai_responses",
         gemini_cli: "gemini_cli",
@@ -964,6 +1111,15 @@
           editButton: "Edit",
           copyButton: "Copy",
           deleteButton: "Delete",
+          enableButton: "Enable",
+          disableButton: "Disable",
+          providerConfigLabel: "Config #{index}",
+          providerConfigsCount: "{count} configs",
+          providerEnabledCount: "{count} enabled",
+          providerModelsCount: "{count} models",
+          providerAuthsCount: "{count} auths",
+          expandButton: "Expand",
+          collapseButton: "Collapse",
           availableProviders: "Available providers (drag to add):",
           noFallbackMappings: "No fallback mappings configured yet.",
           modelLabel: "Model",
@@ -1001,9 +1157,9 @@
           codexValidationRunning: "Validating...",
           codexValidationTitle: "Codex Auth Validation",
           codexValidationDescription:
-            "Checks all Codex auth entries in the current settings. Refreshed tokens are staged locally; save providers to persist them.",
+            "Checks Codex auth entries in the current settings, including disabled ones. Refreshed tokens are staged locally; save providers to persist them.",
           codexValidationComplete:
-            "Codex validation completed: {valid} valid, {invalid} invalid, {rateLimited} rate-limited, {skipped} skipped.",
+            "Codex validation completed: {valid} valid, {invalid} invalid, {rateLimited} rate-limited.",
           codexValidationFailed:
             "Failed to validate Codex auths: {message}",
           codexValidationSummary: "{checked} checked / {total} total",
@@ -1012,10 +1168,14 @@
           codexValidationFilterLabel: "Filter status",
           codexValidationFilterAll: "All",
           codexValidationFilterOk: "Valid",
+          codexValidationFilterInvalid: "Invalid",
           codexValidationFilterRateLimited: "Rate limited",
           codexValidationFilterDisabled: "Disabled",
+          codexValidationProviderFilterLabel: "Filter config",
+          codexValidationProviderFilterAll: "All Codex configs",
           codexValidationNoFilteredResults:
             "No Codex auths match the selected status.",
+          codexValidationValidateFiltered: "Validate Filtered",
           codexValidationDisableFiltered: "Disable Filtered",
           codexValidationDeleteFiltered: "Delete Filtered",
           codexValidationDeleteFilteredConfirm:
@@ -1025,9 +1185,15 @@
           codexValidationRefreshed: "token refreshed",
           codexValidationAutoDisabled: "auto disabled",
           codexValidationDisable: "Disable",
+          codexValidationEnable: "Enable",
           codexValidationDelete: "Delete",
+          codexValidationDisabledTag: "currently disabled",
+          codexValidationConfigLabel: "Config #{index}",
+          codexAuthListLabel: "Auth entries",
           codexAuthRateLimitedAutoDisabled:
             "Rate-limited Codex auths were automatically disabled. Click 'Save Providers' to persist changes.",
+          codexAuthEnabledPending:
+            "Codex auth enabled. Click 'Save Providers' to apply changes.",
           codexAuthDisabledPending:
             "Codex auth disabled. Click 'Save Providers' to apply changes.",
           codexAuthFilteredDisabledPending:
@@ -1038,6 +1204,12 @@
             "{count} filtered Codex auth(s) deleted. Click 'Save Providers' to apply changes.",
           codexAuthActionUnavailable:
             "This Codex auth could not be found in the current configuration.",
+          codexAuthSummaryLabel: "Auth status",
+          codexAuthSummaryValid: "{count} valid",
+          codexAuthSummaryRateLimited: "{count} rate-limited",
+          codexAuthSummaryInvalid: "{count} invalid",
+          codexAuthSummaryDisabled: "{count} disabled",
+          codexAuthSummaryUnchecked: "{count} unchecked",
           codexValidationReason_ok: "Valid",
           codexValidationReason_invalid_auth: "Invalid auth",
           codexValidationReason_payment_required: "Payment required",
@@ -1215,6 +1387,15 @@
           editButton: "编辑",
           copyButton: "复制",
           deleteButton: "删除",
+          enableButton: "启用",
+          disableButton: "禁用",
+          providerConfigLabel: "配置 #{index}",
+          providerConfigsCount: "{count} 个配置",
+          providerEnabledCount: "{count} 个启用",
+          providerModelsCount: "{count} 个模型",
+          providerAuthsCount: "{count} 个 auth",
+          expandButton: "展开",
+          collapseButton: "折叠",
           availableProviders: "可用提供商（拖拽以添加）：",
           noFallbackMappings: "还没有配置回退映射。",
           modelLabel: "模型",
@@ -1250,9 +1431,9 @@
           codexValidationRunning: "校验中...",
           codexValidationTitle: "Codex Auth 校验",
           codexValidationDescription:
-            "校验当前设置中的所有 Codex auth。刷新后的 token 会先回填到本地配置，点击保存提供商后才会持久化。",
+            "校验当前设置中的 Codex auth，包括已禁用项。刷新后的 token 会先回填到本地配置，点击保存提供商后才会持久化。",
           codexValidationComplete:
-            "Codex 校验完成：{valid} 个有效，{invalid} 个无效，{rateLimited} 个限流，{skipped} 个跳过。",
+            "Codex 校验完成：{valid} 个有效，{invalid} 个无效，{rateLimited} 个限流。",
           codexValidationFailed: "Codex auth 校验失败：{message}",
           codexValidationSummary: "已校验 {checked} 个 / 共 {total} 个",
           codexValidationVisibleSummary:
@@ -1260,10 +1441,14 @@
           codexValidationFilterLabel: "过滤状态",
           codexValidationFilterAll: "全部",
           codexValidationFilterOk: "有效",
+          codexValidationFilterInvalid: "无效",
           codexValidationFilterRateLimited: "已限流",
           codexValidationFilterDisabled: "已禁用",
+          codexValidationProviderFilterLabel: "筛选配置项",
+          codexValidationProviderFilterAll: "全部 Codex 配置",
           codexValidationNoFilteredResults:
             "没有匹配当前状态的 Codex auth。",
+          codexValidationValidateFiltered: "校验当前筛选项",
           codexValidationDisableFiltered: "禁用当前筛选项",
           codexValidationDeleteFiltered: "删除当前筛选项",
           codexValidationDeleteFilteredConfirm:
@@ -1273,9 +1458,15 @@
           codexValidationRefreshed: "token 已刷新",
           codexValidationAutoDisabled: "已自动禁用",
           codexValidationDisable: "禁用",
+          codexValidationEnable: "启用",
           codexValidationDelete: "删除",
+          codexValidationDisabledTag: "当前已禁用",
+          codexValidationConfigLabel: "配置项 #{index}",
+          codexAuthListLabel: "Auth 列表",
           codexAuthRateLimitedAutoDisabled:
             "已自动禁用限流的 Codex auth。点击“保存提供商”后持久化。",
+          codexAuthEnabledPending:
+            "Codex auth 已启用。点击“保存提供商”后生效。",
           codexAuthDisabledPending:
             "Codex auth 已禁用。点击“保存提供商”后生效。",
           codexAuthFilteredDisabledPending:
@@ -1286,6 +1477,12 @@
             "已删除当前筛选出的 {count} 个 Codex auth。点击“保存提供商”后生效。",
           codexAuthActionUnavailable:
             "当前配置中找不到这个 Codex auth。",
+          codexAuthSummaryLabel: "Auth 状态",
+          codexAuthSummaryValid: "{count} 个有效",
+          codexAuthSummaryRateLimited: "{count} 个限流",
+          codexAuthSummaryInvalid: "{count} 个无效",
+          codexAuthSummaryDisabled: "{count} 个禁用",
+          codexAuthSummaryUnchecked: "{count} 个未校验",
           codexValidationReason_ok: "有效",
           codexValidationReason_invalid_auth: "认证无效",
           codexValidationReason_payment_required: "需要付费",
@@ -1529,10 +1726,16 @@
         );
 
         if (provider === "codex") {
+          const normalizedAuth = normalizeCodexAuthValue(cfg?.auth);
+          const authList = getCodexAuthList(normalizedAuth);
+          const forceDisabled = !Array.isArray(normalizedAuth) &&
+            authList[0]?.disabled === true;
           return {
             ...cfg,
+            base_url: normalizeCodexBaseUrl(cfg?.base_url),
+            enabled: forceDisabled ? false : cfg?.enabled,
             models,
-            auth: normalizeCodexAuthValue(cfg?.auth),
+            auth: normalizedAuth,
           };
         }
 
@@ -1565,10 +1768,7 @@
           : null;
       }
 
-      function mergeLocalProviderConfigsByConnection(provider) {
-        const providerConfigs = Array.isArray(config?.[provider])
-          ? config[provider]
-          : [];
+      function mergeProviderConfigsByConnection(provider, providerConfigs) {
         const merged = [];
         const keyedIndex = new Map();
 
@@ -1603,15 +1803,29 @@
           });
         });
 
-        config[provider] = merged;
+        return merged;
+      }
+
+      function mergeLocalProviderConfigsByConnection(provider) {
+        const providerConfigs = Array.isArray(config?.[provider])
+          ? config[provider]
+          : [];
+        config[provider] = mergeProviderConfigsByConnection(
+          provider,
+          providerConfigs,
+        );
       }
 
       function normalizeLoadedConfig(rawConfig) {
         const nextConfig = cloneValue(rawConfig || {});
         ALL_PROVIDERS.forEach((provider) => {
-          if (!Array.isArray(nextConfig[provider])) {
-            nextConfig[provider] = [];
-          }
+          const providerConfigs = Array.isArray(nextConfig[provider])
+            ? nextConfig[provider]
+            : [];
+          nextConfig[provider] = mergeProviderConfigsByConnection(
+            provider,
+            providerConfigs,
+          );
         });
         nextConfig.model_priority = normalizeProviderPriority(
           nextConfig.model_priority,
@@ -1627,6 +1841,113 @@
 
       function setConfig(nextConfig) {
         config = normalizeLoadedConfig(nextConfig);
+      }
+
+      function clearCodexValidationState() {
+        codexValidationState = null;
+        codexValidationFilter = "all";
+        codexValidationProviderFilter = "all";
+        codexValidationSummaryExpanded = true;
+        codexValidationGroupCollapseState = {};
+      }
+
+      function clearCodexValidationStateForProvider(provider) {
+        if (provider === "codex") {
+          clearCodexValidationState();
+        }
+      }
+
+      function getProviderConfigDisplayBaseUrl(provider, cfg) {
+        if (provider === "codex") {
+          return normalizeCodexBaseUrl(cfg?.base_url);
+        }
+        return typeof cfg?.base_url === "string" ? cfg.base_url.trim() : "";
+      }
+
+      function getCodexAuthAccountId(auth) {
+        return typeof auth?.account_id === "string" && auth.account_id.trim()
+          ? auth.account_id.trim()
+          : typeof auth?.chatgpt_account_id === "string" &&
+              auth.chatgpt_account_id.trim()
+          ? auth.chatgpt_account_id.trim()
+          : "";
+      }
+
+      function getCodexAuthPlanType(auth) {
+        return typeof auth?.plan_type === "string" && auth.plan_type.trim()
+          ? auth.plan_type.trim()
+          : typeof auth?.chatgpt_plan_type === "string" &&
+              auth.chatgpt_plan_type.trim()
+          ? auth.chatgpt_plan_type.trim()
+          : "";
+      }
+
+      function getCodexAuthLabel(providerIndex, authIndex, auth) {
+        return auth?.email || auth?.name || getCodexAuthAccountId(auth) ||
+          `Codex #${providerIndex + 1} Auth #${authIndex + 1}`;
+      }
+
+      function isProviderSectionCollapsed(provider) {
+        return providerSectionCollapseState[provider] === true;
+      }
+
+      function toggleProviderSectionCollapsed(provider) {
+        providerSectionCollapseState[provider] =
+          !providerSectionCollapseState[provider];
+        renderProviders();
+      }
+
+      function getCodexValidationGroupKey(providerIndex) {
+        return `codex-validation-group:${providerIndex}`;
+      }
+
+      function isCodexValidationGroupCollapsed(providerIndex) {
+        return codexValidationGroupCollapseState[
+          getCodexValidationGroupKey(providerIndex)
+        ] === true;
+      }
+
+      function toggleCodexValidationGroup(providerIndex) {
+        const key = getCodexValidationGroupKey(providerIndex);
+        codexValidationGroupCollapseState[key] =
+          !codexValidationGroupCollapseState[key];
+        renderCodexValidationSummary();
+      }
+
+      function toggleCodexValidationSummary() {
+        codexValidationSummaryExpanded = !codexValidationSummaryExpanded;
+        renderCodexValidationSummary();
+      }
+
+      function getCodexValidationScopeProviderOptions() {
+        const codexConfigs = Array.isArray(config?.codex) ? config.codex : [];
+        return [
+          {
+            value: "all",
+            label: t("codexValidationProviderFilterAll"),
+          },
+          ...codexConfigs.map((cfg, index) => {
+            const baseUrl = getProviderConfigDisplayBaseUrl("codex", cfg);
+            const label = baseUrl
+              ? `${t("codexValidationConfigLabel", { index: index + 1 })} | ${baseUrl}`
+              : t("codexValidationConfigLabel", { index: index + 1 });
+            return { value: String(index), label };
+          }),
+        ];
+      }
+
+      function normalizeCodexValidationUiState() {
+        const providerOptions = getCodexValidationScopeProviderOptions();
+        if (!providerOptions.some((item) => item.value === codexValidationProviderFilter)) {
+          codexValidationProviderFilter = "all";
+        }
+        if (
+          !["all", "ok", "invalid", "rate_limited", "disabled"].includes(
+            codexValidationFilter,
+          )
+        ) {
+          codexValidationFilter = "all";
+        }
       }
 
       function resolveThemeIsDark(theme) {
@@ -1923,6 +2244,181 @@
         }
       }
 
+      function getCodexValidationResultMapForProvider(providerIndex) {
+        const results = Array.isArray(codexValidationState?.results)
+          ? codexValidationState.results
+          : [];
+        const entries = results
+          .filter((item) => item.providerIndex === providerIndex)
+          .map((item) => [item.authIndex, item]);
+        return new Map(entries);
+      }
+
+      function renderCodexAuthSummary(providerIndex, codexConfig) {
+        const auths = getCodexAuthList(codexConfig?.auth);
+        if (auths.length === 0) {
+          return "";
+        }
+
+        const resultMap = getCodexValidationResultMapForProvider(providerIndex);
+        const summary = {
+          valid: 0,
+          rateLimited: 0,
+          invalid: 0,
+          disabled: 0,
+          unchecked: 0,
+        };
+
+        auths.forEach((auth, authIndex) => {
+          const disabled = codexConfig?.enabled === false || auth?.disabled === true;
+          const result = resultMap.get(authIndex);
+
+          if (disabled) {
+            summary.disabled += 1;
+            return;
+          }
+          if (!result) {
+            summary.unchecked += 1;
+            return;
+          }
+          if (result.reason === "ok") {
+            summary.valid += 1;
+            return;
+          }
+          if (result.reason === "rate_limited") {
+            summary.rateLimited += 1;
+            return;
+          }
+          summary.invalid += 1;
+        });
+
+        const chips = [
+          summary.valid > 0
+            ? `<span class="status-chip status-chip-valid">${
+              escapeHtml(t("codexAuthSummaryValid", { count: summary.valid }))
+            }</span>`
+            : "",
+          summary.rateLimited > 0
+            ? `<span class="status-chip status-chip-rate">${
+              escapeHtml(
+                t("codexAuthSummaryRateLimited", { count: summary.rateLimited }),
+              )
+            }</span>`
+            : "",
+          summary.invalid > 0
+            ? `<span class="status-chip status-chip-invalid">${
+              escapeHtml(t("codexAuthSummaryInvalid", { count: summary.invalid }))
+            }</span>`
+            : "",
+          summary.disabled > 0
+            ? `<span class="status-chip status-chip-disabled">${
+              escapeHtml(
+                t("codexAuthSummaryDisabled", { count: summary.disabled }),
+              )
+            }</span>`
+            : "",
+          summary.unchecked > 0
+            ? `<span class="status-chip status-chip-idle">${
+              escapeHtml(
+                t("codexAuthSummaryUnchecked", { count: summary.unchecked }),
+              )
+            }</span>`
+            : "",
+        ].filter(Boolean).join("");
+
+        return `
+          <div class="space-y-2">
+            <p class="text-sm font-medium">${escapeHtml(t("codexAuthSummaryLabel"))}</p>
+            <div class="flex flex-wrap gap-2">
+              ${chips || `<span class="status-chip status-chip-idle">${
+                escapeHtml(t("codexAuthSummaryUnchecked", { count: auths.length }))
+              }</span>`}
+            </div>
+          </div>
+        `;
+      }
+
+      function renderProviderConfigDetails(provider, cfg, index) {
+        const lines = [];
+        const baseUrl = getProviderConfigDisplayBaseUrl(provider, cfg);
+        const apiKeyPreview = cfg?.api_key
+          ? `${cfg.api_key.slice(0, 10)}***`
+          : "";
+
+        if (baseUrl) {
+          lines.push(
+            `<p class="text-sm">${escapeHtml(t("fieldUrl"))}: ${escapeHtml(baseUrl)}</p>`,
+          );
+        }
+        if (apiKeyPreview) {
+          lines.push(
+            `<p class="text-sm">${escapeHtml(t("apiKeyLabel"))}: ${escapeHtml(apiKeyPreview)}</p>`,
+          );
+        }
+        if (cfg?.auth && provider !== "codex") {
+          lines.push(
+            `<p class="text-sm">${escapeHtml(t("authJsonLabel"))}: ${
+              escapeHtml(describeAuthPreview(provider, cfg.auth))
+            }</p>`,
+          );
+        }
+        if (Array.isArray(cfg?.projects) && cfg.projects.length > 0) {
+          lines.push(
+            `<p class="text-sm">${escapeHtml(t("projectsLabel"))}: ${
+              escapeHtml(cfg.projects.join(", "))
+            }</p>`,
+          );
+        }
+        if (Array.isArray(cfg?.models) && cfg.models.length > 0) {
+          lines.push(
+            `<p class="text-sm">${escapeHtml(t("fieldModels"))}: ${
+              escapeHtml(cfg.models.join(", "))
+            }</p>`,
+          );
+        }
+
+        const codexAuthMarkup = provider === "codex"
+          ? renderCodexAuthSummary(index, cfg)
+          : "";
+
+        return `
+          <div class="space-y-3">
+            ${lines.join("")}
+            ${codexAuthMarkup}
+          </div>
+        `;
+      }
+
+      function getProviderSectionSummaryChips(provider, configs) {
+        const enabledCount = configs.filter((cfg) => isProviderConfigEnabled(cfg)).length;
+        const modelSet = new Set();
+
+        configs.forEach((cfg) => {
+          const models = Array.isArray(cfg?.models) ? cfg.models : [];
+          models.forEach((model) => {
+            const normalized = String(model || "").trim();
+            if (normalized) {
+              modelSet.add(normalized);
+            }
+          });
+        });
+
+        const chips = [
+          t("providerConfigsCount", { count: configs.length }),
+          t("providerEnabledCount", { count: enabledCount }),
+          t("providerModelsCount", { count: modelSet.size }),
+        ];
+
+        if (provider === "codex") {
+          const authCount = configs.reduce((total, cfg) =>
+            total + getCodexAuthList(cfg?.auth).length, 0
+          );
+          chips.push(t("providerAuthsCount", { count: authCount }));
+        }
+
+        return chips;
+      }
+
       function buildDownloadConfigSnapshot() {
         const snapshot = config ? cloneValue(config) : null;
 
@@ -1983,36 +2479,56 @@
           const configs = config?.[provider] || [];
           const section = document.createElement("div");
           section.className = "provider-card p-4";
+          const collapsed = isProviderSectionCollapsed(provider);
+          const summaryChips = getProviderSectionSummaryChips(provider, configs)
+            .map((item) => `
+              <span class="provider-section-chip">${escapeHtml(item)}</span>
+            `)
+            .join("");
 
-          let content = `<h3 class="text-lg font-semibold mb-3">${
+          let content = `
+            <button
+              type="button"
+              class="provider-section-toggle"
+              onclick="toggleProviderSectionCollapsed('${provider}')"
+              aria-expanded="${collapsed ? "false" : "true"}"
+            >
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-3">
+                  <h3 class="text-lg font-semibold">${
             escapeHtml(getProviderDisplayName(provider))
-          }</h3>`;
+          }</h3>
+                  ${
+            configs.length === 0
+              ? `<span class="provider-section-chip">${escapeHtml(t("noConfigurations"))}</span>`
+              : ""
+          }
+                </div>
+                ${
+            configs.length > 0
+              ? `<div class="provider-section-summary">${summaryChips}</div>`
+              : `<p class="mt-3 text-sm text-gray-400">${escapeHtml(t("noConfigurations"))}</p>`
+          }
+              </div>
+              <span class="collapse-toggle-icon">▾</span>
+            </button>
+          `;
+
+          if (collapsed) {
+            section.innerHTML = content;
+            container.appendChild(section);
+            return;
+          }
 
           if (configs.length === 0) {
-            content += `<p class="text-gray-400">${
-              escapeHtml(t("noConfigurations"))
-            }</p>`;
+            content += "";
           } else {
             content +=
-              `<div class="provider-entry-list" data-provider-section="${
+              `<div class="provider-section-body provider-entry-list" data-provider-section="${
                 escapeHtml(provider)
               }">`;
             configs.forEach((cfg, index) => {
               const isEnabled = isProviderConfigEnabled(cfg);
-              const apiKeyPreview = cfg.api_key
-                ? `${cfg.api_key.slice(0, 10)}***`
-                : "";
-              const authPreview = cfg.auth
-                ? `<p class="text-sm">${
-                  escapeHtml(t("authJsonLabel"))
-                }: ${escapeHtml(describeAuthPreview(provider, cfg.auth))}</p>`
-                : "";
-              const projectsPreview = Array.isArray(cfg.projects) &&
-                  cfg.projects.length > 0
-                ? `<p class="text-sm">${
-                  escapeHtml(t("projectsLabel"))
-                }: ${escapeHtml(cfg.projects.join(", "))}</p>`
-                : "";
               content += `
                 <div class="provider-entry p-4 rounded-[1.25rem] mb-2 flex items-start gap-2 ${
                 isEnabled ? "" : "opacity-70"
@@ -2020,8 +2536,8 @@
                 escapeHtml(provider)
               }" data-entry-index="${index}">
                   <div class="drag-handle" title="Drag to reorder">⠿</div>
-                  <div class="provider-entry-main flex-1">
-                    <div class="mb-2">
+                  <div class="provider-entry-main flex-1 space-y-3">
+                    <div class="flex flex-wrap items-center gap-2">
                       <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
                 isEnabled
                   ? "bg-green-500/15 text-green-300"
@@ -2033,32 +2549,26 @@
                 )
               }
                       </span>
+                      <span class="text-sm font-medium">${
+                escapeHtml(t("providerConfigLabel", { index: index + 1 }))
+              }</span>
                     </div>
-                    ${
-                cfg.base_url
-                  ? `<p class="text-sm">${escapeHtml(t("fieldUrl"))}: ${
-                    escapeHtml(cfg.base_url)
-                  }</p>`
-                  : ""
-              }
-                    ${
-                apiKeyPreview
-                  ? `<p class="text-sm">${
-                    escapeHtml(t("apiKeyLabel"))
-                  }: ${escapeHtml(apiKeyPreview)}</p>`
-                  : ""
-              }
-                    ${authPreview}
-                    ${projectsPreview}
-                    ${
-                cfg.models?.length
-                  ? `<p class="text-sm">${
-                    escapeHtml(t("fieldModels"))
-                  }: ${escapeHtml(cfg.models.join(", "))}</p>`
-                  : ""
-              }
+                    ${renderProviderConfigDetails(provider, cfg, index)}
                   </div>
                   <div class="provider-entry-actions flex flex-wrap gap-2 ml-2 flex-shrink-0">
+                    ${
+                provider === "codex"
+                  ? `
+                    <button
+                      type="button"
+                      onclick="validateCodexAuths(${index})"
+                      class="btn-secondary text-white px-3 py-2 rounded-full text-sm"
+                    >
+                      ${escapeHtml(t("validateCodexAuthsButton"))}
+                    </button>
+                    `
+                  : ""
+              }
                     <button
                       onclick="editProvider('${provider}', ${index})"
                       class="btn-secondary text-white px-3 py-2 rounded-full text-sm"
@@ -2128,6 +2638,9 @@
         VISIBLE_PROVIDERS.forEach((provider) => {
           const configs = Array.isArray(config?.[provider]) ? config[provider] : [];
           configs.forEach((cfg) => {
+            if (!isProviderConfigEnabled(cfg)) {
+              return;
+            }
             const modelList = Array.isArray(cfg?.models) ? cfg.models : [];
             modelList.forEach((model) => {
               const normalized = String(model || "").trim();
@@ -3777,7 +4290,9 @@
         const authJsonInput = document.getElementById("field-auth_json");
 
         if (baseUrlInput) {
-          providerConfig.base_url = baseUrlInput.value.trim();
+          providerConfig.base_url = providerType === "codex"
+            ? normalizeCodexBaseUrl(baseUrlInput.value)
+            : baseUrlInput.value.trim();
         }
         if (apiKeyInput) {
           providerConfig.api_key = apiKeyInput.value.trim();
@@ -3938,8 +4453,10 @@
           );
           return;
         }
+        clearCodexValidationStateForProvider(provider);
         renderProviders();
         renderFallback();
+        renderCodexValidationSummary();
         closeAddProviderModal();
         showAlert(t("providerUpdatedPending"), "success");
       }
@@ -3969,8 +4486,10 @@
           );
           return;
         }
+        clearCodexValidationStateForProvider(provider);
         renderProviders();
         renderFallback();
+        renderCodexValidationSummary();
         closeAddProviderModal();
         showAlert(
           t(mode === "copy" ? "providerCopiedPending" : "providerAddedPending"),
@@ -3991,9 +4510,11 @@
         ) {
           providerArray.splice(index, 1);
           setConfig(updatedConfig);
+          clearCodexValidationStateForProvider(provider);
           pruneUnavailableFallbackModels();
           renderProviders();
           renderFallback();
+          renderCodexValidationSummary();
           showAlert(t("providerRemovedPending"), "success");
         } else {
           showAlert(t("invalidProviderOrIndex"), "error");
@@ -4159,7 +4680,9 @@
         );
         if (reordered.length === configs.length) {
           config[provider] = reordered;
+          clearCodexValidationStateForProvider(provider);
           renderProviders();
+          renderCodexValidationSummary();
           showAlert(t("providerOrderUpdatedPending"), "success");
         }
       }
@@ -4265,6 +4788,7 @@
             renderProviders();
             renderPriority();
             renderFallback();
+            renderCodexValidationSummary();
             showAlert(t("providersSaved"), "success");
           } else {
             showAlert(
@@ -4417,13 +4941,13 @@
       }
 
       function getCodexValidationStats(results = []) {
-        const checked = results.filter((result) => !result.skipped);
+        const checked = Array.isArray(results) ? results : [];
         return {
-          total: results.length,
+          total: checked.length,
           checked: checked.length,
           valid: checked.filter((result) => result.valid).length,
           invalid: checked.filter((result) => !result.valid).length,
-          skipped: results.filter((result) => result.skipped).length,
+          skipped: 0,
           rateLimited: checked.filter((result) =>
             result.reason === "rate_limited"
           ).length,
@@ -4439,6 +4963,7 @@
         return [
           ["all", t("codexValidationFilterAll")],
           ["ok", t("codexValidationFilterOk")],
+          ["invalid", t("codexValidationFilterInvalid")],
           ["rate_limited", t("codexValidationFilterRateLimited")],
           ["disabled", t("codexValidationFilterDisabled")],
         ];
@@ -4449,29 +4974,33 @@
           case "ok":
             return result.reason === "ok";
           case "invalid":
-            return !result.valid && result.reason !== "disabled";
+            return !result.valid;
           case "rate_limited":
             return result.reason === "rate_limited";
           case "disabled":
-            return result.disabled === true || result.reason === "disabled";
-          case "skipped":
-            return result.skipped === true;
+            return result.disabled === true;
           case "all":
           default:
             return true;
         }
       }
 
+      function matchesCodexValidationProviderFilter(result, providerFilter) {
+        return providerFilter === "all" ||
+          String(result.providerIndex) === String(providerFilter);
+      }
+
       function getFilteredCodexValidationResults(results) {
         return results.filter((result) =>
-          matchesCodexValidationFilter(result, codexValidationFilter)
+          matchesCodexValidationFilter(result, codexValidationFilter) &&
+          matchesCodexValidationProviderFilter(
+            result,
+            codexValidationProviderFilter,
+          )
         );
       }
 
       function getCodexValidationBadgeClass(result) {
-        if (result.skipped) {
-          return "bg-gray-500/20 text-gray-300";
-        }
         if (result.reason === "ok") {
           return "bg-green-500/15 text-green-300";
         }
@@ -4479,6 +5008,92 @@
           return "bg-red-500/15 text-red-300";
         }
         return "bg-gray-500/20 text-gray-300";
+      }
+
+      function renderCodexValidationRow(result) {
+        const details = [];
+        if (result.statusCode > 0) {
+          details.push(
+            t("codexValidationHttpStatus", {
+              status: result.statusCode,
+            }),
+          );
+        }
+        if (result.refreshed) {
+          details.push(t("codexValidationRefreshed"));
+        }
+        if (result.reason === "rate_limited" && result.disabled) {
+          details.push(t("codexValidationAutoDisabled"));
+        }
+        if (result.disabled) {
+          details.push(t("codexValidationDisabledTag"));
+        }
+        if (result.accountId) {
+          details.push(result.accountId);
+        }
+        if (result.planType) {
+          details.push(result.planType);
+        }
+
+        const actionLabel = result.disabled
+          ? t("codexValidationEnable")
+          : t("codexValidationDisable");
+        const actionHandler = result.disabled
+          ? `enableCodexAuthFromValidation(${result.providerIndex}, ${result.authIndex})`
+          : `disableCodexAuthFromValidation(${result.providerIndex}, ${result.authIndex})`;
+
+        return `
+          <div class="provider-entry rounded-[1.25rem] p-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="provider-entry-main flex-1">
+              <div class="mb-2 flex flex-wrap items-center gap-2">
+                <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+          getCodexValidationBadgeClass(result)
+        }">
+                  ${escapeHtml(getCodexValidationReasonLabel(result.reason))}
+                </span>
+                ${
+          result.disabled
+            ? `<span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-gray-500/20 text-gray-300">${
+              escapeHtml(t("codexValidationFilterDisabled"))
+            }</span>`
+            : ""
+        }
+                <span class="text-xs text-gray-400">${
+          escapeHtml(
+            `Codex #${result.providerIndex + 1} / Auth #${result.authIndex + 1}`,
+          )
+        }</span>
+              </div>
+              <p class="font-medium">${escapeHtml(result.label)}</p>
+              ${
+          details.length > 0
+            ? `<p class="text-sm text-gray-400">${escapeHtml(details.join(" | "))}</p>`
+            : ""
+        }
+              ${
+          result.errorMessage
+            ? `<p class="text-sm text-red-400">${escapeHtml(result.errorMessage)}</p>`
+            : ""
+        }
+            </div>
+            <div class="provider-entry-actions flex flex-wrap gap-2">
+              <button
+                type="button"
+                onclick="${actionHandler}"
+                class="btn-secondary text-white px-3 py-2 rounded-full text-sm"
+              >
+                ${escapeHtml(actionLabel)}
+              </button>
+              <button
+                type="button"
+                onclick="deleteCodexAuthFromValidation(${result.providerIndex}, ${result.authIndex})"
+                class="btn-danger text-white px-3 py-2 rounded-full text-sm"
+              >
+                ${escapeHtml(t("codexValidationDelete"))}
+              </button>
+            </div>
+          </div>
+        `;
       }
 
       function renderCodexValidationSummary() {
@@ -4490,6 +5105,7 @@
           return;
         }
 
+        normalizeCodexValidationUiState();
         const results = Array.isArray(codexValidationState.results)
           ? codexValidationState.results
           : [];
@@ -4510,88 +5126,6 @@
           return;
         }
 
-        const rows = filteredResults.map((result) => {
-          const details = [];
-          if (result.statusCode > 0) {
-            details.push(
-              t("codexValidationHttpStatus", {
-                status: result.statusCode,
-              }),
-            );
-          }
-          if (result.skipped) {
-            details.push(t("codexValidationSkipped"));
-          }
-          if (result.refreshed) {
-            details.push(t("codexValidationRefreshed"));
-          }
-          if (result.reason === "rate_limited" && result.disabled) {
-            details.push(t("codexValidationAutoDisabled"));
-          }
-          if (result.accountId) {
-            details.push(result.accountId);
-          }
-          if (result.planType) {
-            details.push(result.planType);
-          }
-
-          const actions = `
-              ${
-            result.disabled
-              ? ""
-              : `
-              <button
-                type="button"
-                onclick="disableCodexAuthFromValidation(${result.providerIndex}, ${result.authIndex})"
-                class="btn-secondary text-white px-3 py-2 rounded-full text-sm"
-              >
-                ${escapeHtml(t("codexValidationDisable"))}
-              </button>
-              `
-          }
-              <button
-                type="button"
-                onclick="deleteCodexAuthFromValidation(${result.providerIndex}, ${result.authIndex})"
-                class="btn-danger text-white px-3 py-2 rounded-full text-sm"
-              >
-                ${escapeHtml(t("codexValidationDelete"))}
-              </button>
-            `;
-
-          return `
-            <div class="provider-entry rounded-[1.25rem] p-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div class="provider-entry-main flex-1">
-                <div class="mb-2 flex flex-wrap items-center gap-2">
-                  <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-            getCodexValidationBadgeClass(result)
-          }">
-                    ${escapeHtml(getCodexValidationReasonLabel(result.reason))}
-                  </span>
-                  <span class="text-xs text-gray-400">${
-            escapeHtml(
-              `Codex #${result.providerIndex + 1} / Auth #${
-                result.authIndex + 1
-              }`,
-            )
-          }</span>
-                </div>
-                <p class="font-medium">${escapeHtml(result.label)}</p>
-                ${
-            details.length > 0
-              ? `<p class="text-sm text-gray-400">${escapeHtml(details.join(" | "))}</p>`
-              : ""
-          }
-                ${
-            result.errorMessage
-              ? `<p class="text-sm text-red-400">${escapeHtml(result.errorMessage)}</p>`
-              : ""
-          }
-              </div>
-              <div class="provider-entry-actions flex flex-wrap gap-2">${actions}</div>
-            </div>
-          `;
-        }).join("");
-
         const filterOptions = getCodexValidationFilterOptions().map(
           ([value, label]) => `
             <option value="${escapeHtml(value)}" ${
@@ -4599,7 +5133,63 @@
           }>${escapeHtml(label)}</option>
           `,
         ).join("");
-        const rowsMarkup = rows || `
+        const providerFilterOptions = getCodexValidationScopeProviderOptions().map(
+          (item) => `
+            <option value="${escapeHtml(item.value)}" ${
+            codexValidationProviderFilter === item.value ? "selected" : ""
+          }>${escapeHtml(item.label)}</option>
+          `,
+        ).join("");
+
+        const groupedResults = filteredResults.reduce((groups, result) => {
+          if (!groups.has(result.providerIndex)) {
+            groups.set(result.providerIndex, []);
+          }
+          groups.get(result.providerIndex).push(result);
+          return groups;
+        }, new Map());
+        const rowsMarkup = groupedResults.size > 0
+          ? Array.from(groupedResults.entries()).map(([providerIndex, items]) => {
+            const cfg = Array.isArray(config?.codex) ? config.codex[providerIndex] : null;
+            const baseUrl = cfg
+              ? getProviderConfigDisplayBaseUrl("codex", cfg)
+              : "";
+            const collapsed = isCodexValidationGroupCollapsed(providerIndex);
+            return `
+              <div class="provider-entry rounded-[1.25rem] p-4 space-y-3">
+                <button
+                  type="button"
+                  class="collapse-toggle"
+                  onclick="toggleCodexValidationGroup(${providerIndex})"
+                  aria-expanded="${collapsed ? "false" : "true"}"
+                >
+                  <div class="min-w-0">
+                    <p class="font-medium">${
+              escapeHtml(
+                t("codexValidationConfigLabel", { index: providerIndex + 1 }),
+              )
+            }</p>
+                    ${
+              baseUrl
+                ? `<p class="text-sm text-gray-400">${escapeHtml(baseUrl)} | ${
+                  escapeHtml(`${t("codexAuthListLabel")}: ${items.length}`)
+                }</p>`
+                : `<p class="text-sm text-gray-400">${
+                  escapeHtml(`${t("codexAuthListLabel")}: ${items.length}`)
+                }</p>`
+            }
+                  </div>
+                  <span class="collapse-toggle-icon">▾</span>
+                </button>
+                ${
+              collapsed
+                ? ""
+                : `<div class="space-y-3">${items.map((result) => renderCodexValidationRow(result)).join("")}</div>`
+            }
+              </div>
+            `;
+          }).join("")
+          : `
           <p class="text-sm text-gray-400">${
           escapeHtml(t("codexValidationNoFilteredResults"))
         }</p>
@@ -4607,14 +5197,20 @@
 
         container.innerHTML = `
           <div class="provider-card p-4 space-y-4">
-            <div>
-              <h3 class="text-lg font-semibold mb-1">${
+            <button
+              type="button"
+              class="collapse-toggle"
+              onclick="toggleCodexValidationSummary()"
+              aria-expanded="${codexValidationSummaryExpanded ? "true" : "false"}"
+            >
+              <div class="min-w-0">
+                <h3 class="text-lg font-semibold mb-1">${
           escapeHtml(t("codexValidationTitle"))
         }</h3>
-              <p class="text-sm text-gray-400">${
+                <p class="text-sm text-gray-400">${
           escapeHtml(t("codexValidationDescription"))
         }</p>
-              <p class="mt-2 text-sm text-gray-400">${
+                <p class="mt-2 text-sm text-gray-400">${
           escapeHtml(
             t("codexValidationSummary", {
               checked: stats.checked,
@@ -4622,7 +5218,13 @@
             }),
           )
         }</p>
-            </div>
+              </div>
+              <span class="collapse-toggle-icon">▾</span>
+            </button>
+            ${
+          !codexValidationSummaryExpanded
+            ? ""
+            : `
             <div class="fallback-picker-toolbar flex flex-wrap items-end gap-3">
               <div class="flex-1 min-w-[12rem]">
                 <label class="form-label text-sm">${
@@ -4636,6 +5238,25 @@
                   ${filterOptions}
                 </select>
               </div>
+              <div class="flex-1 min-w-[12rem]">
+                <label class="form-label text-sm">${
+          escapeHtml(t("codexValidationProviderFilterLabel"))
+        }</label>
+                <select
+                  id="codexValidationProviderFilter"
+                  class="form-input"
+                  onchange="setCodexValidationProviderFilter(this.value)"
+                >
+                  ${providerFilterOptions}
+                </select>
+              </div>
+              <button
+                type="button"
+                onclick="validateFilteredCodexAuths()"
+                class="btn-secondary text-white px-3 py-2 rounded-full"
+              >
+                ${escapeHtml(t("codexValidationValidateFiltered"))}
+              </button>
               <button
                 type="button"
                 onclick="disableFilteredCodexAuths()"
@@ -4660,6 +5281,8 @@
           )
         }</p>
             <div class="space-y-3">${rowsMarkup}</div>
+            `
+        }
           </div>
         `;
       }
@@ -4669,6 +5292,11 @@
             .some(([value]) => value === filter)
           ? filter
           : "all";
+        renderCodexValidationSummary();
+      }
+
+      function setCodexValidationProviderFilter(value) {
+        codexValidationProviderFilter = value;
         renderCodexValidationSummary();
       }
 
@@ -4696,17 +5324,27 @@
           : null;
       }
 
-      function disableCodexAuthTarget(providerIndex, authIndex) {
+      function setCodexAuthDisabledState(providerIndex, authIndex, disabled) {
         const target = findCodexAuthTarget(providerIndex, authIndex);
         if (!target) {
           return false;
         }
 
-        target.auth.disabled = true;
-        if (!target.isAuthArray) {
+        target.auth.disabled = disabled;
+        if (disabled && !target.isAuthArray) {
           target.codexConfig.enabled = false;
+        } else if (!disabled) {
+          target.codexConfig.enabled = true;
         }
         return true;
+      }
+
+      function disableCodexAuthTarget(providerIndex, authIndex) {
+        return setCodexAuthDisabledState(providerIndex, authIndex, true);
+      }
+
+      function enableCodexAuthTarget(providerIndex, authIndex) {
+        return setCodexAuthDisabledState(providerIndex, authIndex, false);
       }
 
       function deleteCodexAuthTarget(providerIndex, authIndex) {
@@ -4769,32 +5407,87 @@
         return autoDisabled;
       }
 
-      async function validateCodexAuths() {
-        const button = event?.currentTarget || null;
+      function sortCodexValidationResults(results) {
+        return [...results].sort((a, b) =>
+          a.providerIndex - b.providerIndex || a.authIndex - b.authIndex
+        );
+      }
+
+      function replaceCodexValidationState(nextState) {
+        const results = sortCodexValidationResults(nextState?.results || []);
+        const stats = getCodexValidationStats(results);
+        codexValidationState = {
+          ...(nextState || {}),
+          total: stats.total,
+          checked: stats.checked,
+          valid: stats.valid,
+          invalid: stats.invalid,
+          skipped: 0,
+          rateLimited: stats.rateLimited,
+          refreshed: stats.refreshed,
+          results,
+        };
+      }
+
+      function mergeCodexValidationState(nextState) {
+        const existingResults = Array.isArray(codexValidationState?.results)
+          ? codexValidationState.results
+          : [];
+        const mergedByKey = new Map(
+          existingResults.map((item) => [
+            `${item.providerIndex}:${item.authIndex}`,
+            item,
+          ]),
+        );
+
+        (nextState?.results || []).forEach((item) => {
+          mergedByKey.set(`${item.providerIndex}:${item.authIndex}`, item);
+        });
+
+        replaceCodexValidationState({
+          ...(codexValidationState || {}),
+          ...(nextState || {}),
+          results: Array.from(mergedByKey.values()),
+        });
+      }
+
+      async function runCodexValidationRequest(payload, options = {}) {
+        const {
+          button = event?.currentTarget || null,
+          replaceAll = false,
+          idleKey = "validateCodexAuthsButton",
+        } = options;
+
         setButtonSavingState(
           button,
           true,
-          "validateCodexAuthsButton",
+          idleKey,
           "codexValidationRunning",
         );
-
         try {
           const response = await authFetch("/api/settings/codex/validate", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ config }),
+            body: JSON.stringify({
+              config,
+              ...payload,
+            }),
           });
           const result = await parseApiResponse(response);
           if (!result.success) {
             throw new Error(result.error || t("invalidServerResponse"));
           }
 
-          codexValidationState = result.data;
           const autoDisabledCount = applyCodexValidationAuthUpdates(
             result.data.results || [],
           );
+          if (replaceAll || !codexValidationState) {
+            replaceCodexValidationState(result.data);
+          } else {
+            mergeCodexValidationState(result.data);
+          }
           renderProviders();
           renderCodexValidationSummary();
 
@@ -4807,7 +5500,6 @@
                 valid: stats.valid,
                 invalid: stats.invalid,
                 rateLimited: stats.rateLimited,
-                skipped: stats.skipped,
               }),
               stats.invalid > 0 || stats.rateLimited > 0 ? "error" : "success",
             );
@@ -4826,10 +5518,20 @@
           setButtonSavingState(
             button,
             false,
-            "validateCodexAuthsButton",
+            idleKey,
             "codexValidationRunning",
           );
         }
+      }
+
+      async function validateCodexAuths(providerIndex) {
+        const providerIndices = Number.isInteger(providerIndex) && providerIndex >= 0
+          ? [providerIndex]
+          : [];
+        await runCodexValidationRequest(
+          { providerIndices },
+          { replaceAll: providerIndices.length === 0 },
+        );
       }
 
       function updateCodexValidationResultAfterDisable(
@@ -4842,12 +5544,24 @@
         );
         if (!result) return;
         result.disabled = true;
-        result.skipped = true;
-        result.valid = false;
-        result.reason = "disabled";
-        result.statusCode = 0;
-        result.errorMessage = "";
-        delete result.auth;
+        if (result.auth) {
+          result.auth.disabled = true;
+        }
+      }
+
+      function updateCodexValidationResultAfterEnable(
+        providerIndex,
+        authIndex,
+      ) {
+        if (!codexValidationState?.results) return;
+        const result = codexValidationState.results.find((item) =>
+          item.providerIndex === providerIndex && item.authIndex === authIndex
+        );
+        if (!result) return;
+        result.disabled = false;
+        if (result.auth) {
+          result.auth.disabled = false;
+        }
       }
 
       function updateCodexValidationResultsAfterDelete(
@@ -4899,9 +5613,24 @@
         }
 
         updateCodexValidationResultAfterDisable(providerIndex, authIndex);
+        pruneUnavailableFallbackModels();
         renderProviders();
+        renderFallback();
         renderCodexValidationSummary();
         showAlert(t("codexAuthDisabledPending"), "success");
+      }
+
+      function enableCodexAuthFromValidation(providerIndex, authIndex) {
+        if (!enableCodexAuthTarget(providerIndex, authIndex)) {
+          showAlert(t("codexAuthActionUnavailable"), "error");
+          return;
+        }
+
+        updateCodexValidationResultAfterEnable(providerIndex, authIndex);
+        renderProviders();
+        renderFallback();
+        renderCodexValidationSummary();
+        showAlert(t("codexAuthEnabledPending"), "success");
       }
 
       function deleteCodexAuthFromValidation(providerIndex, authIndex) {
@@ -4932,6 +5661,26 @@
         );
       }
 
+      async function validateFilteredCodexAuths() {
+        const targets = getFilteredCodexValidationTargets().map((result) => ({
+          providerIndex: result.providerIndex,
+          authIndex: result.authIndex,
+        }));
+
+        if (targets.length === 0) {
+          showAlert(t("codexValidationNoFilteredResults"), "error");
+          return;
+        }
+
+        await runCodexValidationRequest(
+          { targets },
+          {
+            replaceAll: false,
+            idleKey: "codexValidationValidateFiltered",
+          },
+        );
+      }
+
       function disableFilteredCodexAuths() {
         const targets = getFilteredCodexValidationTargets();
         if (targets.length === 0) {
@@ -4950,7 +5699,9 @@
           }
         });
 
+        pruneUnavailableFallbackModels();
         renderProviders();
+        renderFallback();
         renderCodexValidationSummary();
         showAlert(
           t("codexAuthFilteredDisabledPending", { count: changed }),
@@ -5246,12 +5997,14 @@
             throw new Error(result.error || t("invalidServerResponse"));
           }
 
+          clearCodexValidationState();
           setConfig(result.data);
           settingsApiKey = config.api_key?.trim() || null;
           renderGeneralSettings();
           renderProviders();
           renderPriority();
           renderFallback();
+          renderCodexValidationSummary();
           closeImportConfigModal();
           showAlert(t("importConfigSuccess"), "success");
         } catch (error) {

@@ -96,14 +96,14 @@ const PROVIDER_DESCRIPTORS: ProviderDescriptor[] = [
   {
     id: PROVIDERS.OPENAI_CHAT,
     configKey: "openai_chat",
-    ownedBy: "openai",
+    ownedBy: "openai_chat",
     supportsProjects: false,
     create: (model: string) => new OpenAIProvider(model),
   },
   {
     id: PROVIDERS.OPENAI_RESPONSES,
     configKey: "openai_responses",
-    ownedBy: "openai",
+    ownedBy: "openai_responses",
     supportsProjects: false,
     create: (model: string) => new OpenAIResponsesProvider(model),
   },
@@ -142,7 +142,6 @@ const PROVIDER_DESCRIPTOR_MAP = new Map(
 );
 
 const PROVIDER_ALIASES: Record<string, ProviderId> = {
-  openai: PROVIDERS.OPENAI_CHAT,
   openai_chat: PROVIDERS.OPENAI_CHAT,
   openai_responses: PROVIDERS.OPENAI_RESPONSES,
   gemini_cli: PROVIDERS.GEMINI_CLI,
@@ -251,11 +250,6 @@ export function getProviderConfigsByModel(
 
 export function getProvidersForModel(model: string): ProviderId[] {
   const configuredProviders = getConfiguredProvidersForModel(model);
-
-  if (configuredProviders.length === 0) {
-    return [PROVIDERS.OPENAI_CHAT];
-  }
-
   const priority = normalizeModelPriority(appConfig.model_priority);
   const remaining = new Set(configuredProviders);
   const ordered: ProviderId[] = [];

@@ -64,6 +64,11 @@ interface CodexValidationTask {
   model: string;
 }
 
+interface CodexValidationTaskOptions {
+  providerIndices?: Set<number>;
+  targetKeys?: Set<string>;
+}
+
 interface CodexValidationResult {
   providerIndex: number;
   authIndex: number;
@@ -417,7 +422,7 @@ function buildCodexValidationResult(
   task: CodexValidationTask,
   classification: CodexValidationClassification,
   auth: CodexAuth,
-  options: { skipped?: boolean; refreshed?: boolean } = {},
+  options: { refreshed?: boolean } = {},
 ): CodexValidationResult {
   const validatedAuth: CodexAuth = {
     ...auth,
@@ -435,69 +440,75 @@ function buildCodexValidationResult(
     accountId: getCodexAuthAccountId(auth),
     planType: getCodexAuthPlanType(auth),
     disabled: task.config.enabled === false || auth.disabled === true,
-    skipped: options.skipped === true,
+    skipped: false,
     valid: classification.valid,
     reason: classification.reason,
     statusCode: classification.statusCode,
     errorMessage: classification.errMsg,
     refreshed: options.refreshed === true,
-    auth: options.skipped ? undefined : validatedAuth,
+    auth: validatedAuth,
   };
 }
 
 async function validateCodexAuthTask(
   task: CodexValidationTask,
 ): Promise<CodexValidationResult> {
-  if (task.config.enabled === false || task.auth.disabled === true) {
-    return buildCodexValidationResult(
-      task,
-      {
-        valid: false,
-        reason: "disabled",
-        errType: "",
-        errCode: "",
-        errMsg: "",
-        statusCode: 0,
-      },
-      task.auth,
-      { skipped: true },
-    );
+  let auth = task.auth;
+  let refreshed = false;
+
+  if (!auth.access_token) {
+    if (!auth.refresh_token) {
+      return buildCodexValidationResult(
+        task,
+        {
+          valid: false,
+          reason: "missing_access_token",
+          errType: "",
+          errCode: "",
+          errMsg: "Missing access_token",
+          statusCode: 0,
+        },
+        auth,
+      );
+    }
+
+    const refreshResult = await refreshCodexAuthForValidation(auth);
+    if (!refreshResult.ok) {
+      return buildCodexValidationResult(
+        task,
+        {
+          valid: false,
+          reason: "refresh_failed",
+          errType: "",
+          errCode: "",
+          errMsg: refreshResult.error,
+          statusCode: 0,
+        },
+        auth,
+      );
+    }
+
+    auth = refreshResult.auth;
+    refreshed = true;
   }
 
-  if (!task.auth.access_token) {
-    return buildCodexValidationResult(
-      task,
-      {
-        valid: false,
-        reason: "missing_access_token",
-        errType: "",
-        errCode: "",
-        errMsg: "Missing access_token",
-        statusCode: 0,
-      },
-      task.auth,
-      { skipped: true },
-    );
-  }
-
-  const baseUrl = getCodexBaseUrl(task.config, task.auth);
+  const baseUrl = getCodexBaseUrl(task.config, auth);
 
   try {
     const response = await makeCodexValidationRequest(
       baseUrl,
-      task.auth,
+      auth,
       task.model,
     );
     let classification = classifyCodexValidationResponse(response);
-    let auth = task.auth;
-    let refreshed = false;
 
     if (
       !classification.valid &&
       classification.reason === "invalid_auth" &&
-      task.auth.refresh_token
+      auth.refresh_token &&
+      !refreshed
     ) {
-      const refreshResult = await refreshCodexAuthForValidation(task.auth);
+      const refreshResult = await refreshCodexAuthForValidation(auth);
       if (refreshResult.ok) {
         auth = refreshResult.auth;
         refreshed = true;
@@ -541,15 +552,27 @@ async function validateCodexAuthTask(
 function getCodexValidationTasks(
   codexConfigs: CodexConfig[],
   model: string,
+  options: CodexValidationTaskOptions = {},
 ): CodexValidationTask[] {
   const tasks: CodexValidationTask[] = [];
+  const providerIndices = options.providerIndices;
+  const targetKeys = options.targetKeys;
 
   codexConfigs.forEach((config, providerIndex) => {
+    if (providerIndices && !providerIndices.has(providerIndex)) {
+      return;
+    }
+
     const authList = Array.isArray(config.auth) ? config.auth : [config.auth];
     authList.forEach((auth, authIndex) => {
       if (!auth || typeof auth !== "object") {
         return;
       }
+
+      if (targetKeys && !targetKeys.has(`${providerIndex}:${authIndex}`)) {
+        return;
+      }
+
       tasks.push({
         providerIndex,
         config,
@@ -721,10 +744,18 @@ function normalizeProviderConfigForMerge(
   );
 
   if (providerId === "codex") {
+    const codexConfig = config as CodexConfig;
+    const normalizedAuth = normalizeCodexAuthValue(codexConfig.auth);
+    const authIsArray = Array.isArray(normalizedAuth);
+    const authList = getNormalizedCodexAuthList(normalizedAuth);
+    const forceDisabled = !authIsArray && authList[0]?.disabled === true;
+
     return {
-      ...(config as CodexConfig),
+      ...codexConfig,
+      base_url: normalizeCodexBaseUrl(codexConfig.base_url),
+      enabled: forceDisabled ? false : codexConfig.enabled,
       models: normalizedModels,
-      auth: normalizeCodexAuthValue((config as CodexConfig).auth),
+      auth: normalizedAuth,
     } as ProviderConfig;
   }
 
@@ -853,7 +884,9 @@ function getRequestApiKey(c: Context): string {
       return token;
     }
   }
-  return c.req.header("x-api-key") || "";
+  return c.req.header("x-api-key") ||
+    c.req.header("x-goog-api-key") ||
+    "";
 }
 
 function checkAuth(c: Context): { ok: boolean; response?: Response } {
@@ -1438,22 +1471,63 @@ export async function handleValidateCodexAuths(c: Context) {
       ? body.config as Partial<Config>
       : appConfig;
     const model = getTrimmedString(body?.model) || CODEX_VALIDATION_MODEL;
+    const providerIndices: Set<number> | undefined = Array.isArray(
+        body?.providerIndices,
+      )
+      ? new Set<number>(
+        body.providerIndices
+          .filter((index: unknown) =>
+            Number.isInteger(index) && Number(index) >= 0
+          )
+          .map(Number),
+      )
+      : undefined;
+    const targetKeys: Set<string> | undefined = Array.isArray(body?.targets)
+      ? new Set<string>(
+        body.targets
+          .map((target: unknown) =>
+            target && typeof target === "object"
+              ? {
+                providerIndex: Number((target as Record<string, unknown>).providerIndex),
+                authIndex: Number((target as Record<string, unknown>).authIndex),
+              }
+              : null
+          )
+          .filter((
+            target: { providerIndex: number; authIndex: number } | null,
+          ): target is { providerIndex: number; authIndex: number } =>
+            !!target &&
+            Number.isInteger(target.providerIndex) &&
+            target.providerIndex >= 0 &&
+            Number.isInteger(target.authIndex) &&
+            target.authIndex >= 0
+          )
+          .map((target: { providerIndex: number; authIndex: number }) =>
+            `${target.providerIndex}:${target.authIndex}`
+          ),
+      )
+      : undefined;
     const codexConfigs = Array.isArray(sourceConfig.codex)
       ? sourceConfig.codex as CodexConfig[]
       : [];
-    const tasks = getCodexValidationTasks(codexConfigs, model);
+    const tasks = getCodexValidationTasks(codexConfigs, model, {
+      providerIndices,
+      targetKeys,
+    });
     const results = await runCodexValidationTasks(tasks);
-    const checkedResults = results.filter((result) => !result.skipped);
+    const checkedResults = results;
 
     return c.json({
       success: true,
       data: {
         model,
+        providerIndices: providerIndices ? Array.from(providerIndices) : [],
+        targets: targetKeys ? Array.from(targetKeys) : [],
         total: results.length,
         checked: checkedResults.length,
         valid: checkedResults.filter((result) => result.valid).length,
         invalid: checkedResults.filter((result) => !result.valid).length,
-        skipped: results.filter((result) => result.skipped).length,
+        skipped: 0,
         rateLimited: checkedResults.filter((result) =>
           result.reason === "rate_limited"
         ).length,

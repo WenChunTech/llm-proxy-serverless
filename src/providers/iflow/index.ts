@@ -1,44 +1,68 @@
-import { iflowPoller } from '../../config';
-import { convertToIFlowRequestTo, convertIFlowResponseTo, convertIFlowStreamResponseTo } from './adapter';
-import { ProviderType } from '../../../pkg/converter_wasm';
-import { getAccessToken } from './auth';
-import { RequestLogger } from '../../utils/logger';
+import { ProviderType } from "../../../pkg/converter_wasm";
+import { iflowPoller } from "../../config";
+import { IFlowConfig } from "../../types/config";
+import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders";
+import { RequestLogger } from "../../utils/logger";
+import type { Provider } from "../_base/interface";
+import { getAccessToken } from "./auth";
+import {
+  convertIFlowResponseTo,
+  convertIFlowStreamResponseTo,
+  convertToIFlowRequestTo,
+} from "./adapter";
 
-export class IflowProvider {
-    model: string;
-    constructor(model: string) {
-        this.model = model
-    }
+export class IflowProvider implements Provider {
+  model: string;
 
-    async convertRequestTo(body: any, source: any) {
-        return convertToIFlowRequestTo(body, source);
-    }
+  constructor(model: string) {
+    this.model = model;
+  }
 
-    getProviderType() {
-        return ProviderType.Chat;
-    }
+  async convertRequestTo(body: any, source: any) {
+    return convertToIFlowRequestTo(body, source);
+  }
 
-    async fetchResponse(_is_streaming: boolean, reqData: any) {
-        const iflowConfig = iflowPoller.getNext(this.model);
-        const token = await getAccessToken(iflowConfig.auth);
-        const endpoint = 'https://apis.iflow.cn/v1/chat/completions';
-        const headers: any = {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-        };
+  getProviderType() {
+    return ProviderType.Chat;
+  }
 
-        return fetch(endpoint, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify(reqData)
-        });
-    }
+  async fetchResponse(
+    _isStreaming: boolean,
+    reqData: any,
+    config?: IFlowConfig,
+    _project?: string,
+    forwardedHeaders?: HeaderMap,
+  ) {
+    const iflowConfig = config || iflowPoller.getNext(this.model);
+    const token = await getAccessToken(iflowConfig.auth);
+    const endpoint = "https://apis.iflow.cn/v1/chat/completions";
+    const headers = mergeHeaders(forwardedHeaders, {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+    });
 
-    async convertResponseTo(c: any, response: any, target: any) {
-        return convertIFlowResponseTo(c, response, target);
-    }
+    return fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(reqData),
+    });
+  }
 
-    async convertStreamResponseTo(stream: any, response: any, target: any, requestLogger?: RequestLogger) {
-        return convertIFlowStreamResponseTo(stream, response, target, requestLogger);
-    }
+  async convertResponseTo(c: any, response: any, target: any) {
+    return convertIFlowResponseTo(c, response, target);
+  }
+
+  async convertStreamResponseTo(
+    stream: any,
+    response: any,
+    target: any,
+    requestLogger?: RequestLogger,
+  ) {
+    return convertIFlowStreamResponseTo(
+      stream,
+      response,
+      target,
+      requestLogger,
+    );
+  }
 }

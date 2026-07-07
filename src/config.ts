@@ -15,6 +15,7 @@ import {
   QwenConfig,
   isProviderConfigEnabled,
 } from "./types/config";
+import { invalidateModelMap } from "./providers/factory";
 import { invalidateModelIndex } from "./providers/registry";
 import Poller from "./services/polling";
 
@@ -82,6 +83,22 @@ function filterEnabled<T extends BaseProviderConfig>(items: T[]): T[] {
   return items.filter(isProviderConfigEnabled);
 }
 
+function rebuildRuntimeState(config: Config): void {
+  appConfig = config;
+  geminiCliPoller = new Poller(filterEnabled(appConfig.gemini_cli || []));
+  geminiPoller = new Poller(filterEnabled(appConfig.gemini || []));
+  qwenPoller = new Poller(filterEnabled(appConfig.qwen || []));
+  openAIPoller = new Poller(filterEnabled(appConfig.openai_chat || []));
+  openAIResponsesPoller = new Poller(
+    filterEnabled(appConfig.openai_responses || []),
+  );
+  claudePoller = new Poller(filterEnabled(appConfig.claude || []));
+  iflowPoller = new Poller(filterEnabled(appConfig.iflow || []));
+  codexPoller = new Poller(filterEnabled(appConfig.codex || []));
+  invalidateModelIndex();
+  invalidateModelMap();
+}
+
 export const initConfig = async () => {
   let loadedConfig: Config | null | undefined;
 
@@ -120,17 +137,7 @@ export const initConfig = async () => {
     logger.warn("No external config loaded; using built-in empty config.");
   }
 
-  if (loadedConfig) {
-    appConfig = loadedConfig;
-  }
-  geminiCliPoller = new Poller(filterEnabled(appConfig.gemini_cli || []));
-  geminiPoller = new Poller(filterEnabled(appConfig.gemini || []));
-  qwenPoller = new Poller(filterEnabled(appConfig.qwen || []));
-  openAIPoller = new Poller(filterEnabled(appConfig.openai_chat || []));
-  openAIResponsesPoller = new Poller(filterEnabled(appConfig.openai_responses || []));
-  claudePoller = new Poller(filterEnabled(appConfig.claude || []));
-  iflowPoller = new Poller(filterEnabled(appConfig.iflow || []));
-  codexPoller = new Poller(filterEnabled(appConfig.codex || []));
+  rebuildRuntimeState(loadedConfig || appConfig);
 };
 
 export const updateConfig = async (config: Config) => {
@@ -144,6 +151,5 @@ export const updateConfig = async (config: Config) => {
       "No writable config store is configured. Set Vercel Redis env vars: KV_REST_API_URL/KV_REST_API_TOKEN.",
     );
   }
-  appConfig = config;
-  invalidateModelIndex();
-}
+  rebuildRuntimeState(config);
+};

@@ -1,45 +1,66 @@
-import { openAIPoller } from '../../config';
-import { convertToOpenAIRequestTo, convertOpenAIResponseTo, convertOpenAIStreamResponseTo } from './adapter';
-import { ProviderType } from '../../../pkg/converter_wasm';
-import { RequestLogger } from '../../utils/logger';
+import { ProviderType } from "../../../pkg/converter_wasm";
+import { openAIPoller } from "../../config";
+import { OpenAIChatConfig } from "../../types/config";
+import { type HeaderMap, mergeHeaders } from "../../utils/httpHeaders";
+import { RequestLogger } from "../../utils/logger";
+import type { Provider } from "../_base/interface";
+import {
+  convertOpenAIResponseTo,
+  convertOpenAIStreamResponseTo,
+  convertToOpenAIRequestTo,
+} from "./adapter";
 
-export class OpenAIProvider {
-    apiKey: string;
-    baseUrl: string;
+export class OpenAIProvider implements Provider {
+  model: string;
 
-    constructor(model: string) {
-        const openaiConfig = openAIPoller.getNext(model);
-        this.apiKey = openaiConfig.api_key;
-        this.baseUrl = openaiConfig.base_url;
-    }
+  constructor(model: string) {
+    this.model = model;
+  }
 
-    getProviderType() {
-        return ProviderType.Chat;
-    }
+  getProviderType() {
+    return ProviderType.Chat;
+  }
 
-    async convertRequestTo(body: any, source: any) {
-        return convertToOpenAIRequestTo(body, source);
-    }
+  async convertRequestTo(body: any, source: any) {
+    return convertToOpenAIRequestTo(body, source);
+  }
 
-  async fetchResponse(_is_streaming: boolean, reqData: any) {
-    const url = `${this.baseUrl}/chat/completions`;
-    const headers = {
+  async fetchResponse(
+    _isStreaming: boolean,
+    reqData: any,
+    config?: OpenAIChatConfig,
+    _project?: string,
+    forwardedHeaders?: HeaderMap,
+  ) {
+    const openaiConfig = config || openAIPoller.getNext(this.model);
+    const url = `${openaiConfig.base_url}/chat/completions`;
+    const headers = mergeHeaders(forwardedHeaders, {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${this.apiKey}`,
-    };
-    const body = JSON.stringify(reqData);
+      "Authorization": `Bearer ${openaiConfig.api_key}`,
+    });
+
     return fetch(url, {
       method: "POST",
-      headers: headers,
-      body: body,
+      headers,
+      body: JSON.stringify(reqData),
     });
-    }
+  }
 
-    async convertResponseTo(c: any, response: Response, target: any) {
-        return convertOpenAIResponseTo(c, response, target);
-    }
+  async convertResponseTo(c: any, response: Response, target: any) {
+    return convertOpenAIResponseTo(c, response, target);
+  }
 
-    async convertStreamResponseTo(stream: any, response: Response, target: any, requestLogger?: RequestLogger) {
-        return convertOpenAIStreamResponseTo(stream, response, target, requestLogger);
-    }
+  async convertStreamResponseTo(
+    stream: any,
+    response: Response,
+    target: any,
+    requestLogger?: RequestLogger,
+  ) {
+    return convertOpenAIStreamResponseTo(
+      stream,
+      response,
+      target,
+      requestLogger,
+    );
+  }
 }

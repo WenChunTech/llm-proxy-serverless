@@ -1,5 +1,12 @@
-import { Context } from 'hono';
-import { appConfig } from '../config';
+import { Context } from "hono";
+import { appConfig } from "../config";
+import {
+  getProviderDescriptor,
+  getProviderDescriptors,
+  normalizeModelPriority,
+  type ProviderConfig,
+} from "../providers/registry";
+import { isProviderConfigEnabled } from "../types/config";
 
 export interface ModelInfo {
   id: string;
@@ -12,130 +19,39 @@ export function getModelsResponse(c: Context): Response {
   const allModels = collectAllModels();
   const response = {
     object: "list",
-    data: allModels
+    data: allModels,
   };
   return c.json(response, 200);
 }
 
 export function collectAllModels(): ModelInfo[] {
-  const models: ModelInfo[] = [];
+  const created = Math.floor(Date.now() / 1000);
+  const models = new Map<string, ModelInfo>();
+  const orderedDescriptors = normalizeModelPriority(appConfig.model_priority)
+    .map((providerId) => getProviderDescriptor(providerId))
+    .filter((descriptor): descriptor is NonNullable<typeof descriptor> =>
+      Boolean(descriptor)
+    );
+  const remainingDescriptors = getProviderDescriptors().filter((descriptor) =>
+    !orderedDescriptors.some((ordered) => ordered.id === descriptor.id)
+  );
 
-  if (appConfig.gemini_cli) {
-    appConfig.gemini_cli.forEach(config => {
-      config.models.forEach(model => {
-        models.push({
-          id: model,
+  for (const descriptor of [...orderedDescriptors, ...remainingDescriptors]) {
+    const configs = (appConfig[descriptor.configKey] || []) as ProviderConfig[];
+    for (const config of configs) {
+      if (!isProviderConfigEnabled(config)) continue;
+      for (const model of config.models) {
+        const normalizedModel = model.trim();
+        if (!normalizedModel || models.has(normalizedModel)) continue;
+        models.set(normalizedModel, {
+          id: normalizedModel,
           object: "model",
-          created: Date.now(),
-          owned_by: "gemini-cli"
+          created,
+          owned_by: descriptor.ownedBy,
         });
-      });
-    });
+      }
+    }
   }
 
-  if (appConfig.gemini) {
-    appConfig.gemini.forEach((config) => {
-      config.models.forEach((model) => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "gemini",
-        });
-      });
-    });
-  }
-
-  if (appConfig.gemini) {
-    appConfig.gemini.forEach((config) => {
-      config.models.forEach((model) => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "gemini",
-        });
-      });
-    });
-  }
-
-  if (appConfig.qwen) {
-    appConfig.qwen.forEach(config => {
-      config.models.forEach(model => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "qwen"
-        });
-      });
-    });
-  }
-
-  if (appConfig.openai) {
-    appConfig.openai.forEach(config => {
-      config.models.forEach(model => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "openai"
-        });
-      });
-    });
-  }
-
-  if (appConfig.openai_responses) {
-    appConfig.openai_responses.forEach((config) => {
-      config.models.forEach((model) => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "openai",
-        });
-      });
-    });
-  }
-
-  if (appConfig.claude) {
-    appConfig.claude.forEach(config => {
-      config.models.forEach(model => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "claude"
-        });
-      });
-    });
-  }
-
-  if (appConfig.iflow) {
-    appConfig.iflow.forEach(config => {
-      config.models.forEach(model => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "iflow"
-        });
-      });
-    });
-  }
-
-  if (appConfig.codex) {
-    appConfig.codex.forEach((config) => {
-      config.models.forEach((model) => {
-        models.push({
-          id: model,
-          object: "model",
-          created: Date.now(),
-          owned_by: "codex",
-        });
-      });
-    });
-  }
-
-  return models;
+  return Array.from(models.values());
 }

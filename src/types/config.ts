@@ -66,8 +66,6 @@ export interface OpenAIResponsesConfig extends BaseProviderConfig {
   api_key: string;
 }
 
-export type OpenAIConfig = OpenAIChatConfig;
-
 export interface ClaudeConfig extends BaseProviderConfig {
   base_url: string;
   api_key: string;
@@ -106,7 +104,6 @@ export interface Config {
   gemini_cli: GeminiCliConfig[];
   gemini: GeminiConfig[];
   qwen: QwenConfig[];
-  openai?: OpenAIConfig[];
   openai_chat: OpenAIChatConfig[];
   openai_responses: OpenAIResponsesConfig[];
   claude: ClaudeConfig[];

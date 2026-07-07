@@ -3,7 +3,10 @@ import { streamSSE } from "hono/streaming";
 import { ProviderType } from "../../pkg/converter_wasm";
 import { logger, RequestLogger } from "./logger";
 import { saveErrorLog } from "../services/errorLog";
-import { executeModelRequest } from "../services/requestExecution";
+import {
+  executeModelRequest,
+  ModelNotConfiguredError,
+} from "../services/requestExecution";
 import {
   getForwardableRequestHeaders,
   getProxyResponseHeaders,
@@ -66,8 +69,10 @@ export async function handleModelRequest(
     isStreaming,
   });
 
-  const { response: resp, provider: actualProvider } =
-    await executeModelRequest({
+  let resp: Response;
+  let actualProvider;
+  try {
+    ({ response: resp, provider: actualProvider } = await executeModelRequest({
       model,
       targetType,
       isStreaming,
@@ -75,7 +80,19 @@ export async function handleModelRequest(
       originalBody,
       requestLogger,
       forwardedHeaders: getForwardableRequestHeaders(c.req.raw.headers),
-    });
+    }));
+  } catch (error) {
+    if (error instanceof ModelNotConfiguredError) {
+      return c.json({
+        error: {
+          message: `Model '${model}' not found in any provider configuration`,
+          type: "invalid_request_error",
+          code: "model_not_found",
+        },
+      }, 400);
+    }
+    throw error;
+  }
 
   if (!resp.ok) return proxyResponse(resp);
 
