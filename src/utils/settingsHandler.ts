@@ -664,40 +664,15 @@ function getNormalizedCodexAuthList(
 }
 
 function getCodexAuthMergeIdentity(auth: CodexAuth): string {
-  const accountId = getCodexAuthAccountId(auth).trim();
-  if (accountId) {
-    return `account:${accountId}`;
-  }
-
   const refreshToken = typeof auth.refresh_token === "string"
     ? auth.refresh_token.trim()
     : "";
-  if (refreshToken) {
-    return `refresh:${refreshToken}`;
-  }
-
-  const email = typeof auth.email === "string"
-    ? auth.email.trim().toLowerCase()
-    : "";
-  if (email) {
-    return `email:${email}`;
-  }
-
-  const name = typeof auth.name === "string" ? auth.name.trim() : "";
-  if (name) {
-    return `name:${name}`;
-  }
-
-  const idToken = typeof auth.id_token === "string" ? auth.id_token.trim() : "";
-  if (idToken) {
-    return `id_token:${idToken}`;
-  }
-
   const accessToken = typeof auth.access_token === "string"
     ? auth.access_token.trim()
     : "";
-  if (accessToken) {
-    return `access_token:${accessToken}`;
+
+  if (refreshToken || accessToken) {
+    return `rt+ak:${refreshToken}::${accessToken}`;
   }
 
   return "unknown";
