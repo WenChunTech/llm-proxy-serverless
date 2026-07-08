@@ -17,7 +17,7 @@ const CODEX_USER_AGENT =
   "codex-tui/0.135.0 (Mac OS 26.5.0; arm64) iTerm.app/3.6.10 (codex-tui; 0.135.0)";
 const CODEX_TOKEN_URL = "https://auth.openai.com/oauth/token";
 const CODEX_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
-const CODEX_VALIDATION_MODEL = "gpt-5.4-mini";
+const CODEX_VALIDATION_MODEL = "gpt-5.4";
 const CODEX_VALIDATION_CONCURRENCY = 5;
 const CODEX_VALIDATION_TIMEOUT_MS = 30_000;
 const TESTABLE_PROVIDERS = new Set([

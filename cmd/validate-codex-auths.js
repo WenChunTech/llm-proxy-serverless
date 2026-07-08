@@ -388,7 +388,7 @@ async function main() {
       try {
         const url = `${auth.baseURL.replace(/\/+$/, "")}/responses`;
         const resp = await makeRequest(url, auth.token, {
-          model: "gpt-5.4-mini",
+          model: "gpt-5.4",
           input: [
             {
               content: "hello",
@@ -411,7 +411,7 @@ async function main() {
           const refreshResult = await tryRefresh(auth);
           if (refreshResult.ok) {
             const retry = await makeRequest(url, auth.token, {
-              model: "gpt-5.4-mini",
+              model: "gpt-5.4",
               input: [
                 {
                   content: "hello",
