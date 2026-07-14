@@ -7,5 +7,5 @@ export const PROVIDERS = {
   OPENAI_RESPONSES: "openai_responses",
   CLAUDE: "claude",
   CODEX: "codex",
+  GROK: "grok",
 };
-

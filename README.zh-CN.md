@@ -387,6 +387,7 @@ curl --request POST \
 - `node cmd/qwen_code.js`
 - `node cmd/iflow.js`
 - `node cmd/codex.js`
+- `node cmd/grok.js`
 
 这些脚本的职责是帮助你拿到本地可用的 OAuth 凭证文件。拿到凭证后，可以手动写入
 `config.json`，也可以通过 `/settings.html` 填入对应 provider 配置。

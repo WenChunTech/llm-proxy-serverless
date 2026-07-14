@@ -9,6 +9,7 @@ import {
   Config,
   GeminiCliConfig,
   GeminiConfig,
+  GrokConfig,
   IFlowConfig,
   OpenAIChatConfig,
   OpenAIResponsesConfig,
@@ -28,6 +29,7 @@ export let appConfig: Config = {
   claude: [],
   iflow: [],
   codex: [],
+  grok: [],
   model_priority: [],
 };
 export const APP_CONFIG = "APP_CONFIG";
@@ -78,6 +80,7 @@ export let openAIResponsesPoller: Poller<OpenAIResponsesConfig>;
 export let claudePoller: Poller<ClaudeConfig>;
 export let iflowPoller: Poller<IFlowConfig>;
 export let codexPoller: Poller<CodexConfig>;
+export let grokPoller: Poller<GrokConfig>;
 
 function filterEnabled<T extends BaseProviderConfig>(items: T[]): T[] {
   return items.filter(isProviderConfigEnabled);
@@ -95,6 +98,7 @@ function rebuildRuntimeState(config: Config): void {
   claudePoller = new Poller(filterEnabled(appConfig.claude || []));
   iflowPoller = new Poller(filterEnabled(appConfig.iflow || []));
   codexPoller = new Poller(filterEnabled(appConfig.codex || []));
+  grokPoller = new Poller(filterEnabled(appConfig.grok || []));
   invalidateModelIndex();
   invalidateModelMap();
 }

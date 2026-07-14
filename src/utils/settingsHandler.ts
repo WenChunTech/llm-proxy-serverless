@@ -1,8 +1,12 @@
 import { Context } from "hono";
 import { appConfig, updateConfig } from "../config";
-import { CodexAuth, CodexConfig, Config } from "../types/config";
+import { CodexAuth, CodexConfig, Config, GrokAuth, GrokConfig } from "../types/config";
 import { timingSafeCompare } from "./runtime";
 import { logger } from "./logger";
+import {
+  isTokenExpired as isGrokTokenExpired,
+  refreshGrokToken,
+} from "../providers/grok/auth";
 import {
   getProviderDescriptors,
   normalizeModelPriority,
@@ -612,6 +616,518 @@ async function runCodexValidationTasks(
   );
 }
 
+const DEFAULT_GROK_BASE_URL = "https://api.x.ai/v1";
+const GROK_VALIDATION_MODEL = "grok-4.5";
+const GROK_VALIDATION_CONCURRENCY = 5;
+const GROK_VALIDATION_TIMEOUT_MS = 30_000;
+
+interface GrokValidationFetchResponse {
+  statusCode: number;
+  body: unknown;
+  rawBody: string;
+}
+
+interface GrokValidationClassification {
+  valid: boolean;
+  reason: string;
+  errType: string;
+  errCode: string;
+  errMsg: string;
+  statusCode: number;
+}
+
+interface GrokValidationTask {
+  providerIndex: number;
+  config: GrokConfig;
+  auth: GrokAuth;
+  authIndex: number;
+  authCount: number;
+  isAuthArray: boolean;
+  model: string;
+}
+
+interface GrokValidationTaskOptions {
+  providerIndices?: Set<number>;
+  targetKeys?: Set<string>;
+}
+
+interface GrokValidationResult {
+  providerIndex: number;
+  authIndex: number;
+  authCount: number;
+  isAuthArray: boolean;
+  label: string;
+  email: string;
+  sub: string;
+  disabled: boolean;
+  skipped: boolean;
+  valid: boolean;
+  reason: string;
+  statusCode: number;
+  errorMessage: string;
+  refreshed: boolean;
+  auth?: GrokAuth;
+}
+
+function getGrokAuthLabel(
+  providerIndex: number,
+  authIndex: number,
+  auth: GrokAuth,
+): string {
+  return auth.email || auth.sub ||
+    `Grok #${providerIndex + 1} Auth #${authIndex + 1}`;
+}
+
+function getGrokBaseUrl(config: GrokConfig, auth: GrokAuth): string {
+  return (auth.base_url || config.base_url || DEFAULT_GROK_BASE_URL).replace(
+    /\/+$/,
+    "",
+  );
+}
+
+function buildGrokRequestHeaders(
+  auth: GrokAuth,
+  stream: boolean,
+): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${auth.access_token}`,
+    "Accept": stream ? "text/event-stream" : "application/json",
+    "Connection": "Keep-Alive",
+  };
+  if (auth.headers) {
+    for (const [name, value] of Object.entries(auth.headers)) {
+      const trimmed = value?.trim();
+      if (trimmed) {
+        headers[name] = trimmed;
+      }
+    }
+  }
+  return headers;
+}
+
+function buildGrokProbeBody(
+  model: string,
+  stream: boolean,
+): Record<string, unknown> {
+  return {
+    model,
+    input: [
+      {
+        content: "hello",
+        role: "user",
+      },
+    ],
+    instructions: "",
+    store: false,
+    stream,
+  };
+}
+
+async function makeGrokValidationRequest(
+  baseUrl: string,
+  auth: GrokAuth,
+  model: string,
+): Promise<GrokValidationFetchResponse> {
+  const url = `${baseUrl}/responses`;
+  const stream = true;
+
+  const response = await fetchWithTimeout(
+    url,
+    {
+      method: "POST",
+      headers: buildGrokRequestHeaders(auth, stream),
+      body: JSON.stringify(buildGrokProbeBody(model, stream)),
+    },
+    GROK_VALIDATION_TIMEOUT_MS,
+  );
+
+  const rawBody = await response.text();
+  let body: unknown = null;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    body = null;
+  }
+
+  return {
+    statusCode: response.status,
+    body,
+    rawBody,
+  };
+}
+
+async function refreshGrokAuthForValidation(
+  auth: GrokAuth,
+): Promise<{ ok: true; auth: GrokAuth } | { ok: false; error: string }> {
+  if (!auth.refresh_token) {
+    return {
+      ok: false,
+      error: "No refresh token available",
+    };
+  }
+
+  try {
+    const refreshed = await refreshGrokToken(auth);
+    return { ok: true, auth: refreshed };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
+function classifyGrokValidationResponse(
+  response: GrokValidationFetchResponse,
+): GrokValidationClassification {
+  const { statusCode, body, rawBody } = response;
+  const bodyRecord = isRecord(body) ? body : {};
+  const errorRecord = isRecord(bodyRecord.error) ? bodyRecord.error : {};
+  const errType = getRecordString(errorRecord, "type").toLowerCase();
+  const errCode = getRecordString(errorRecord, "code").toLowerCase();
+  const errMsg = getRecordString(errorRecord, "message") ||
+    (typeof bodyRecord.error === "string" ? bodyRecord.error : "");
+  const lower = rawBody.toLowerCase();
+
+  if (
+    statusCode === 401 ||
+    errType === "authentication_error" ||
+    errCode === "invalid_api_key" ||
+    lower.includes("invalid or expired token") ||
+    lower.includes("invalid_api_key") ||
+    lower.includes("unauthorized")
+  ) {
+    return {
+      valid: false,
+      reason: "invalid_auth",
+      errType,
+      errCode,
+      errMsg,
+      statusCode,
+    };
+  }
+
+  if (statusCode === 200 || statusCode === 201) {
+    return { valid: true, reason: "ok", errType, errCode, errMsg, statusCode };
+  }
+
+  if (statusCode === 402) {
+    return {
+      valid: false,
+      reason: "payment_required",
+      errType,
+      errCode,
+      errMsg,
+      statusCode,
+    };
+  }
+
+  if (statusCode === 403) {
+    return {
+      valid: false,
+      reason: "forbidden",
+      errType,
+      errCode,
+      errMsg,
+      statusCode,
+    };
+  }
+
+  if (statusCode === 429) {
+    return {
+      valid: true,
+      reason: "rate_limited",
+      errType,
+      errCode,
+      errMsg,
+      statusCode,
+    };
+  }
+
+  if (statusCode >= 400 && statusCode < 500) {
+    return {
+      valid: true,
+      reason: "request_error",
+      errType,
+      errCode,
+      errMsg,
+      statusCode,
+    };
+  }
+
+  if (statusCode >= 500) {
+    return {
+      valid: true,
+      reason: "server_error",
+      errType,
+      errCode,
+      errMsg,
+      statusCode,
+    };
+  }
+
+  return {
+    valid: false,
+    reason: "unexpected",
+    errType,
+    errCode,
+    errMsg,
+    statusCode,
+  };
+}
+
+function buildGrokValidationResult(
+  task: GrokValidationTask,
+  classification: GrokValidationClassification,
+  auth: GrokAuth,
+  options: { refreshed?: boolean } = {},
+): GrokValidationResult {
+  const validatedAuth: GrokAuth = {
+    ...auth,
+    _validated_at: new Date().toISOString(),
+    _validation_status: classification.reason,
+  };
+
+  return {
+    providerIndex: task.providerIndex,
+    authIndex: task.authIndex,
+    authCount: task.authCount,
+    isAuthArray: task.isAuthArray,
+    label: getGrokAuthLabel(task.providerIndex, task.authIndex, auth),
+    email: auth.email || "",
+    sub: auth.sub || "",
+    disabled: task.config.enabled === false || auth.disabled === true,
+    skipped: false,
+    valid: classification.valid,
+    reason: classification.reason,
+    statusCode: classification.statusCode,
+    errorMessage: classification.errMsg,
+    refreshed: options.refreshed === true,
+    auth: validatedAuth,
+  };
+}
+
+async function validateGrokAuthTask(
+  task: GrokValidationTask,
+): Promise<GrokValidationResult> {
+  let auth = task.auth;
+  let refreshed = false;
+
+  if (!auth.access_token || isGrokTokenExpired(auth)) {
+    if (!auth.refresh_token) {
+      return buildGrokValidationResult(
+        task,
+        {
+          valid: false,
+          reason: auth.access_token ? "token_expired" : "missing_access_token",
+          errType: "",
+          errCode: "",
+          errMsg: auth.access_token
+            ? "Access token expired and no refresh token available"
+            : "Missing access_token",
+          statusCode: 0,
+        },
+        auth,
+      );
+    }
+
+    const refreshResult = await refreshGrokAuthForValidation(auth);
+    if (!refreshResult.ok) {
+      return buildGrokValidationResult(
+        task,
+        {
+          valid: false,
+          reason: "refresh_failed",
+          errType: "",
+          errCode: "",
+          errMsg: refreshResult.error,
+          statusCode: 0,
+        },
+        auth,
+      );
+    }
+
+    auth = refreshResult.auth;
+    refreshed = true;
+  }
+
+  const baseUrl = getGrokBaseUrl(task.config, auth);
+
+  try {
+    const response = await makeGrokValidationRequest(baseUrl, auth, task.model);
+    let classification = classifyGrokValidationResponse(response);
+
+    if (
+      !classification.valid &&
+      classification.reason === "invalid_auth" &&
+      auth.refresh_token &&
+      !refreshed
+    ) {
+      const refreshResult = await refreshGrokAuthForValidation(auth);
+      if (refreshResult.ok) {
+        auth = refreshResult.auth;
+        refreshed = true;
+        const retry = await makeGrokValidationRequest(
+          getGrokBaseUrl(task.config, auth),
+          auth,
+          task.model,
+        );
+        classification = classifyGrokValidationResponse(retry);
+      } else {
+        classification = {
+          valid: false,
+          reason: "refresh_failed",
+          errType: "",
+          errCode: "",
+          errMsg: refreshResult.error,
+          statusCode: 0,
+        };
+      }
+    }
+
+    return buildGrokValidationResult(task, classification, auth, { refreshed });
+  } catch (error) {
+    return buildGrokValidationResult(
+      task,
+      {
+        valid: false,
+        reason: "request_failed",
+        errType: "",
+        errCode: "",
+        errMsg: error instanceof Error ? error.message : String(error),
+        statusCode: 0,
+      },
+      task.auth,
+    );
+  }
+}
+
+function getGrokValidationTasks(
+  grokConfigs: GrokConfig[],
+  model: string,
+  options: GrokValidationTaskOptions = {},
+): GrokValidationTask[] {
+  const tasks: GrokValidationTask[] = [];
+  const providerIndices = options.providerIndices;
+  const targetKeys = options.targetKeys;
+
+  grokConfigs.forEach((config, providerIndex) => {
+    if (providerIndices && !providerIndices.has(providerIndex)) {
+      return;
+    }
+
+    const authList = Array.isArray(config.auth) ? config.auth : [config.auth];
+    authList.forEach((auth, authIndex) => {
+      if (!auth || typeof auth !== "object") {
+        return;
+      }
+
+      if (targetKeys && !targetKeys.has(`${providerIndex}:${authIndex}`)) {
+        return;
+      }
+
+      tasks.push({
+        providerIndex,
+        config,
+        auth,
+        authIndex,
+        authCount: authList.length,
+        isAuthArray: Array.isArray(config.auth),
+        model,
+      });
+    });
+  });
+
+  return tasks;
+}
+
+async function runGrokValidationTasks(
+  tasks: GrokValidationTask[],
+): Promise<GrokValidationResult[]> {
+  const results: GrokValidationResult[] = [];
+  let cursor = 0;
+
+  async function worker() {
+    while (cursor < tasks.length) {
+      const task = tasks[cursor++];
+      results.push(await validateGrokAuthTask(task));
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(GROK_VALIDATION_CONCURRENCY, tasks.length) },
+    () => worker(),
+  );
+  await Promise.all(workers);
+
+  return results.sort((a, b) =>
+    a.providerIndex - b.providerIndex || a.authIndex - b.authIndex
+  );
+}
+
+function normalizeGrokBaseUrl(baseUrl?: string): string {
+  const normalized = typeof baseUrl === "string" && baseUrl.trim()
+    ? baseUrl.trim()
+    : DEFAULT_GROK_BASE_URL;
+  return normalized.replace(/\/+$/, "");
+}
+
+function getNormalizedGrokAuthList(
+  auth: GrokAuth | GrokAuth[],
+): GrokAuth[] {
+  return (Array.isArray(auth) ? auth : [auth]).filter((item): item is GrokAuth =>
+    !!item && typeof item === "object"
+  );
+}
+
+function getGrokAuthMergeIdentity(auth: GrokAuth): string {
+  const refreshToken = typeof auth.refresh_token === "string"
+    ? auth.refresh_token.trim()
+    : "";
+  const accessToken = typeof auth.access_token === "string"
+    ? auth.access_token.trim()
+    : "";
+
+  if (refreshToken || accessToken) {
+    return `rt+ak:${refreshToken}::${accessToken}`;
+  }
+
+  return "unknown";
+}
+
+function getGrokAuthMergeKey(
+  auth: GrokAuth,
+  providerBaseUrl?: string,
+): string {
+  return `${
+    normalizeGrokBaseUrl(auth.base_url || providerBaseUrl)
+  }::${getGrokAuthMergeIdentity(auth)}`;
+}
+
+function normalizeGrokAuthValue(
+  auth: GrokAuth | GrokAuth[],
+): GrokAuth | GrokAuth[] {
+  const authIsArray = Array.isArray(auth);
+  const deduped: GrokAuth[] = [];
+  const seen = new Set<string>();
+
+  for (const item of getNormalizedGrokAuthList(auth)) {
+    const key = getGrokAuthMergeKey(item);
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    deduped.push(item);
+  }
+
+  if (authIsArray) {
+    return deduped;
+  }
+
+  return deduped[0] || auth;
+}
+
 function normalizeFallbackConfig(
   fallbackModels?: string[],
 ): string[] {
@@ -734,6 +1250,22 @@ function normalizeProviderConfigForMerge(
     } as ProviderConfig;
   }
 
+  if (providerId === "grok") {
+    const grokConfig = config as GrokConfig;
+    const normalizedAuth = normalizeGrokAuthValue(grokConfig.auth);
+    const authIsArray = Array.isArray(normalizedAuth);
+    const authList = getNormalizedGrokAuthList(normalizedAuth);
+    const forceDisabled = !authIsArray && authList[0]?.disabled === true;
+
+    return {
+      ...grokConfig,
+      base_url: normalizeGrokBaseUrl(grokConfig.base_url),
+      enabled: forceDisabled ? false : grokConfig.enabled,
+      models: normalizedModels,
+      auth: normalizedAuth,
+    } as ProviderConfig;
+  }
+
   return {
     ...config,
     models: normalizedModels,
@@ -759,6 +1291,24 @@ function getProviderMergeKey(
 
     return `codex::${
       normalizeCodexBaseUrl(codexConfig.base_url)
+    }::${authKeys.join("|")}`;
+  }
+
+  if (providerId === "grok") {
+    const grokConfig = config as GrokConfig;
+    const authKeys = Array.from(
+      new Set(
+        getNormalizedGrokAuthList(grokConfig.auth)
+          .map((auth) => getGrokAuthMergeKey(auth, grokConfig.base_url)),
+      ),
+    ).sort();
+
+    if (authKeys.length === 0) {
+      return null;
+    }
+
+    return `grok::${
+      normalizeGrokBaseUrl(grokConfig.base_url)
     }::${authKeys.join("|")}`;
   }
 
@@ -1516,6 +2066,92 @@ export async function handleValidateCodexAuths(c: Context) {
       {
         success: false,
         error: "Failed to validate Codex auths: " + String(error),
+      },
+      502,
+    );
+  }
+}
+
+export async function handleValidateGrokAuths(c: Context) {
+  try {
+    const auth = checkAuth(c);
+    if (!auth.ok) return auth.response;
+
+    const body = await c.req.json().catch(() => ({}));
+    const sourceConfig = body?.config && typeof body.config === "object"
+      ? body.config as Partial<Config>
+      : appConfig;
+    const model = getTrimmedString(body?.model) || GROK_VALIDATION_MODEL;
+    const providerIndices: Set<number> | undefined = Array.isArray(
+        body?.providerIndices,
+      )
+      ? new Set<number>(
+        body.providerIndices
+          .filter((index: unknown) =>
+            Number.isInteger(index) && Number(index) >= 0
+          )
+          .map(Number),
+      )
+      : undefined;
+    const targetKeys: Set<string> | undefined = Array.isArray(body?.targets)
+      ? new Set<string>(
+        body.targets
+          .map((target: unknown) =>
+            target && typeof target === "object"
+              ? {
+                providerIndex: Number((target as Record<string, unknown>).providerIndex),
+                authIndex: Number((target as Record<string, unknown>).authIndex),
+              }
+              : null
+          )
+          .filter((
+            target: { providerIndex: number; authIndex: number } | null,
+          ): target is { providerIndex: number; authIndex: number } =>
+            !!target &&
+            Number.isInteger(target.providerIndex) &&
+            target.providerIndex >= 0 &&
+            Number.isInteger(target.authIndex) &&
+            target.authIndex >= 0
+          )
+          .map((target: { providerIndex: number; authIndex: number }) =>
+            `${target.providerIndex}:${target.authIndex}`
+          ),
+      )
+      : undefined;
+    const grokConfigs = Array.isArray(sourceConfig.grok)
+      ? sourceConfig.grok as GrokConfig[]
+      : [];
+    const tasks = getGrokValidationTasks(grokConfigs, model, {
+      providerIndices,
+      targetKeys,
+    });
+    const results = await runGrokValidationTasks(tasks);
+    const checkedResults = results;
+
+    return c.json({
+      success: true,
+      data: {
+        model,
+        providerIndices: providerIndices ? Array.from(providerIndices) : [],
+        targets: targetKeys ? Array.from(targetKeys) : [],
+        total: results.length,
+        checked: checkedResults.length,
+        valid: checkedResults.filter((result) => result.valid).length,
+        invalid: checkedResults.filter((result) => !result.valid).length,
+        skipped: 0,
+        rateLimited: checkedResults.filter((result) =>
+          result.reason === "rate_limited"
+        ).length,
+        refreshed: checkedResults.filter((result) => result.refreshed).length,
+        results,
+      },
+    });
+  } catch (error) {
+    logger.error("Failed to validate Grok auths:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to validate Grok auths: " + String(error),
       },
       502,
     );

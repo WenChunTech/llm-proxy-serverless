@@ -5,6 +5,7 @@ import {
   Config,
   GeminiCliConfig,
   GeminiConfig,
+  GrokConfig,
   IFlowConfig,
   isProviderConfigEnabled,
   OpenAIChatConfig,
@@ -20,6 +21,7 @@ import { ClaudeProvider } from "./claude/index";
 import { QwenProvider } from "./qwen/index";
 import { IflowProvider } from "./iflow/index";
 import { CodexProvider } from "./codex/index";
+import { GrokProvider } from "./grok/index";
 
 export type ProviderId =
   | typeof PROVIDERS.GEMINI_CLI
@@ -29,7 +31,8 @@ export type ProviderId =
   | typeof PROVIDERS.CLAUDE
   | typeof PROVIDERS.QWEN
   | typeof PROVIDERS.IFLOW
-  | typeof PROVIDERS.CODEX;
+  | typeof PROVIDERS.CODEX
+  | typeof PROVIDERS.GROK;
 
 export type ProviderConfig =
   | GeminiCliConfig
@@ -39,7 +42,8 @@ export type ProviderConfig =
   | ClaudeConfig
   | QwenConfig
   | IFlowConfig
-  | CodexConfig;
+  | CodexConfig
+  | GrokConfig;
 
 export function supportsProjects(
   config: ProviderConfig,
@@ -61,6 +65,7 @@ export interface ProviderDescriptor<
     | "qwen"
     | "iflow"
     | "codex"
+    | "grok"
   >;
   ownedBy: string;
   supportsProjects: boolean;
@@ -76,6 +81,7 @@ const DEFAULT_MODEL_PRIORITY: ProviderId[] = [
   PROVIDERS.CLAUDE,
   PROVIDERS.GEMINI,
   PROVIDERS.CODEX,
+  PROVIDERS.GROK,
 ];
 
 const PROVIDER_DESCRIPTORS: ProviderDescriptor[] = [
@@ -135,6 +141,13 @@ const PROVIDER_DESCRIPTORS: ProviderDescriptor[] = [
     supportsProjects: false,
     create: (model: string) => new CodexProvider(model),
   },
+  {
+    id: PROVIDERS.GROK,
+    configKey: "grok",
+    ownedBy: "xai",
+    supportsProjects: false,
+    create: (model: string) => new GrokProvider(model),
+  },
 ];
 
 const PROVIDER_DESCRIPTOR_MAP = new Map(
@@ -150,6 +163,8 @@ const PROVIDER_ALIASES: Record<string, ProviderId> = {
   qwen: PROVIDERS.QWEN,
   iflow: PROVIDERS.IFLOW,
   codex: PROVIDERS.CODEX,
+  grok: PROVIDERS.GROK,
+  xai: PROVIDERS.GROK,
 };
 
 let modelProviderIndex: Map<string, ProviderId[]> | null = null;

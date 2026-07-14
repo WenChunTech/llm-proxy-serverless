@@ -408,6 +408,7 @@ locally:
 - `node cmd/qwen_code.js`
 - `node cmd/iflow.js`
 - `node cmd/codex.js`
+- `node cmd/grok.js`
 
 These scripts help you generate locally usable OAuth credential files. After
 obtaining credentials, you can write them into `config.json` manually or fill

@@ -99,6 +99,33 @@ export interface CodexConfig extends BaseProviderConfig {
   auth: CodexAuth | CodexAuth[];
 }
 
+export interface GrokAuth {
+  type?: string;
+  access_token: string;
+  refresh_token: string;
+  id_token?: string;
+  token_type?: string;
+  expires_in?: number;
+  expiry_date: number;
+  expired?: string;
+  last_refresh?: string;
+  email?: string;
+  sub?: string;
+  base_url?: string;
+  redirect_uri?: string;
+  token_endpoint?: string;
+  auth_kind?: string;
+  headers?: Record<string, string>;
+  disabled?: boolean;
+  _validated_at?: string;
+  _validation_status?: string;
+}
+
+export interface GrokConfig extends BaseProviderConfig {
+  base_url?: string;
+  auth: GrokAuth | GrokAuth[];
+}
+
 export interface Config {
   api_key?: string;
   gemini_cli: GeminiCliConfig[];
@@ -109,6 +136,7 @@ export interface Config {
   claude: ClaudeConfig[];
   iflow: IFlowConfig[];
   codex: CodexConfig[];
+  grok: GrokConfig[];
   model_priority: string[];
   fallback_models?: string[];
 }
