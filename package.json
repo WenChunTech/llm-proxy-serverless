@@ -5,7 +5,7 @@
     "deploy": "wrangler deploy",
     "build": "bun build src/index.ts --target bun --outdir api --entry-naming index.js --minify-whitespace && bun scripts/strip-trailing-whitespace.js",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
-    "start": "bun src/index.ts",
+    "start": "bun src/container.ts",
     "deploy:dry-run": "wrangler deploy --dry-run --outdir dist/worker"
   },
   "type": "module",
