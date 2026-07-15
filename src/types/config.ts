@@ -96,6 +96,7 @@ export interface CodexAuth {
 
 export interface CodexConfig extends BaseProviderConfig {
   base_url?: string;
+  api_key?: string;
   auth: CodexAuth | CodexAuth[];
 }
 
@@ -123,6 +124,7 @@ export interface GrokAuth {
 
 export interface GrokConfig extends BaseProviderConfig {
   base_url?: string;
+  api_key?: string;
   auth: GrokAuth | GrokAuth[];
 }
 

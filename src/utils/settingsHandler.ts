@@ -1439,10 +1439,15 @@ function buildProviderModelsEndpoint(baseUrl: string, providerType?: string): st
   if (pathname.endsWith("/models")) {
     url.pathname = pathname || "/models";
   } else {
-    const isOpenAI = providerType === "openai_chat" || providerType === "openai_responses";
+    // Codex/Grok responses APIs and OpenAI-compatible proxies use `/models`
+    // relative to the same base path (optionally already versioned like `/v1`).
+    const isOpenAIStyle = providerType === "openai_chat" ||
+      providerType === "openai_responses" ||
+      providerType === "codex" ||
+      providerType === "grok";
     const hasVersionPath = /\/v\d+$/.test(pathname);
 
-    if (!isOpenAI && !hasVersionPath) {
+    if (!isOpenAIStyle && !hasVersionPath) {
       url.pathname = `${pathname}/v1/models`;
     } else {
       url.pathname = `${pathname}/models`;

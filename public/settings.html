@@ -892,6 +892,8 @@
       "openai_responses",
       "claude",
       "gemini",
+      "codex",
+      "grok",
     ]);
     const PROVIDER_LABELS = {
       gemini_cli: "Gemini CLI",
@@ -1213,6 +1215,12 @@
         loadModelsSuccess: "Loaded {count} models.",
         loadModelsEmpty: "The provider returned no models.",
         loadModelsMissingBaseUrl: "Please enter the base URL first.",
+        loadModelsMissingAuth:
+          "Please enter an API key or provide auth JSON. If API key is empty, the first auth access_token will be used.",
+        loadModelsMissingAccessToken:
+          "The first auth entry in JSON is missing access_token.",
+        loadModelsInvalidAuthJson:
+          "Invalid auth JSON: {message}",
         loadModelsFailed: "Failed to load models: {message}",
         autoFetchingModels: "Fetching models...",
         providerTestTitle: "Provider Test",
@@ -1572,6 +1580,12 @@
         loadModelsSuccess: "已加载 {count} 个模型。",
         loadModelsEmpty: "Provider 未返回任何模型。",
         loadModelsMissingBaseUrl: "请先填写 Base URL。",
+        loadModelsMissingAuth:
+          "请填写 API Key 或 Auth JSON。API Key 为空时会使用第一个 auth 的 access_token。",
+        loadModelsMissingAccessToken:
+          "Auth JSON 中第一个账号缺少 access_token。",
+        loadModelsInvalidAuthJson:
+          "Auth JSON 无效：{message}",
         loadModelsFailed: "获取模型失败：{message}",
         autoFetchingModels: "正在获取模型...",
         providerTestTitle: "Provider 测试",
@@ -3521,6 +3535,7 @@
         }
 
         showAlert(t("codexAuthUploadSuccess"), "success");
+        autoFetchModelsForProvider();
       } catch (error) {
         showAlert(
           t("codexAuthUploadFailed", {
@@ -3579,6 +3594,7 @@
           }),
           "success",
         );
+        autoFetchModelsForProvider();
       } catch (error) {
         showAlert(
           t("codexAuthUploadFailed", {
@@ -3638,6 +3654,7 @@
         }
 
         showAlert(t("grokAuthUploadSuccess"), "success");
+        autoFetchModelsForProvider();
       } catch (error) {
         showAlert(
           t("grokAuthUploadFailed", {
@@ -3696,6 +3713,7 @@
           }),
           "success",
         );
+        autoFetchModelsForProvider();
       } catch (error) {
         showAlert(
           t("grokAuthUploadFailed", {
@@ -3946,8 +3964,15 @@
               t("baseUrlLabel"),
               "https://chatgpt.com/backend-api/codex",
               "text",
+              "autoFetchModelsForProvider()",
+            ) + renderTextInput(
+              "field-api_key",
+              t("apiKeyLabel"),
+              t("apiKeyPlaceholder"),
+              "password",
+              "autoFetchModelsForProvider()",
             ) + renderCodexAuthJsonField() +
-            renderModelField(modelsPlaceholder[provider], false);
+            renderModelField(modelsPlaceholder[provider], true);
         case "grok":
           return enabledField +
             renderTextInput(
@@ -3955,8 +3980,15 @@
               t("baseUrlLabel"),
               "https://api.x.ai/v1",
               "text",
+              "autoFetchModelsForProvider()",
+            ) + renderTextInput(
+              "field-api_key",
+              t("apiKeyLabel"),
+              t("apiKeyPlaceholder"),
+              "password",
+              "autoFetchModelsForProvider()",
             ) + renderGrokAuthJsonField() +
-            renderModelField(modelsPlaceholder[provider], false);
+            renderModelField(modelsPlaceholder[provider], true);
         default:
           return enabledField +
             renderModelField(modelsPlaceholder[provider], false);
@@ -4462,10 +4494,22 @@
       if (getCurrentModelMode() !== "fetch") return;
       if (autoFetchTimer) clearTimeout(autoFetchTimer);
       autoFetchTimer = setTimeout(() => {
+        const providerType =
+          document.getElementById("providerType")?.value || "";
         const baseUrl =
           document.getElementById("field-base_url")?.value.trim() ||
           "";
-        if (baseUrl) {
+        const hasAuthJson = !!(
+          document.getElementById("field-auth_json")?.value.trim()
+        );
+        const hasApiKey = !!(
+          document.getElementById("field-api_key")?.value.trim()
+        );
+        if (
+          providerType === "codex" || providerType === "grok"
+            ? hasApiKey || hasAuthJson
+            : baseUrl
+        ) {
           fetchProviderModels();
         }
       }, 800);
@@ -4632,13 +4676,111 @@
       );
     }
 
+    function parseProviderAuthJsonField(providerType) {
+      const rawAuth = document.getElementById("field-auth_json")?.value.trim() ||
+        "";
+      if (!rawAuth) {
+        return null;
+      }
+
+      let parsed;
+      try {
+        parsed = JSON.parse(rawAuth);
+      } catch (error) {
+        throw new Error(
+          t("loadModelsInvalidAuthJson", {
+            message: error instanceof Error ? error.message : String(error),
+          }),
+        );
+      }
+
+      const extracted = providerType === "codex"
+        ? extractCodexAuthInput(parsed)
+        : providerType === "grok"
+          ? extractGrokAuthInput(parsed)
+          : { auth: parsed, config: null };
+      const normalized = providerType === "codex"
+        ? normalizeCodexAuthJson(parsed)
+        : providerType === "grok"
+          ? normalizeGrokAuthJson(parsed)
+          : parsed;
+      const authList = providerType === "codex"
+        ? getCodexAuthList(normalized)
+        : providerType === "grok"
+          ? getGrokAuthList(normalized)
+          : [];
+
+      if (authList.length === 0) {
+        return null;
+      }
+
+      const firstAuth = authList.find((item) => item?.disabled !== true) ||
+        authList[0];
+      const configBaseUrl = typeof extracted?.config?.base_url === "string"
+        ? extracted.config.base_url.trim()
+        : "";
+
+      return { firstAuth, configBaseUrl };
+    }
+
+    function resolveModelFetchCredentials(providerType) {
+      if (providerType === "codex" || providerType === "grok") {
+        const manualApiKey =
+          document.getElementById("field-api_key")?.value.trim() || "";
+        const parsedAuth = parseProviderAuthJsonField(providerType);
+        if (!manualApiKey && !parsedAuth?.firstAuth) {
+          throw new Error(t("loadModelsMissingAuth"));
+        }
+
+        const firstAuth = parsedAuth?.firstAuth;
+        const authApiKey = typeof firstAuth?.access_token === "string"
+          ? firstAuth.access_token.trim()
+          : "";
+        const apiKey = manualApiKey || authApiKey;
+        if (!apiKey) {
+          throw new Error(t("loadModelsMissingAccessToken"));
+        }
+
+        // Priority: auth JSON base_url -> provider JSON base_url -> manual -> default
+        const authBaseUrl = typeof firstAuth?.base_url === "string"
+          ? firstAuth.base_url.trim()
+          : "";
+        const jsonBaseUrl = authBaseUrl || parsedAuth?.configBaseUrl || "";
+        const manualBaseUrl =
+          document.getElementById("field-base_url")?.value.trim() || "";
+        const defaultBaseUrl = providerType === "codex"
+          ? DEFAULT_CODEX_BASE_URL
+          : DEFAULT_GROK_BASE_URL;
+        const baseUrl = providerType === "codex"
+          ? normalizeCodexBaseUrl(jsonBaseUrl || manualBaseUrl || defaultBaseUrl)
+          : normalizeGrokBaseUrl(jsonBaseUrl || manualBaseUrl || defaultBaseUrl);
+
+        return { baseUrl, apiKey };
+      }
+
+      return {
+        baseUrl: document.getElementById("field-base_url")?.value.trim() || "",
+        apiKey: document.getElementById("field-api_key")?.value.trim() || "",
+      };
+    }
+
     async function fetchProviderModels() {
-      const baseUrl =
-        document.getElementById("field-base_url")?.value.trim() || "";
-      const apiKey =
-        document.getElementById("field-api_key")?.value.trim() || "";
       const providerType =
         document.getElementById("providerType")?.value || "";
+
+      let baseUrl = "";
+      let apiKey = "";
+      try {
+        const credentials = resolveModelFetchCredentials(providerType);
+        baseUrl = credentials.baseUrl;
+        apiKey = credentials.apiKey;
+      } catch (error) {
+        setModelFetchStatus(
+          error instanceof Error ? error.message : String(error),
+          "error",
+        );
+        return;
+      }
 
       if (!baseUrl) {
         setModelFetchStatus(t("loadModelsMissingBaseUrl"), "error");
